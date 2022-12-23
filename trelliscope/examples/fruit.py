@@ -1,7 +1,6 @@
 from trelliscope.trelliscope import Trelliscope
 import pandas as pd
 import os
-import json
 
 BASE_OUTPUT_DIR = "test-build-output"
 
@@ -26,11 +25,6 @@ def main():
     df["panel"] = df["img"]
 
     tr = Trelliscope(df, name, path=output_dir, debug=True).write_display()
-    # tr.set_default_label("name")
-
-    # tr.write_trelliscope(output_dir)
-
-    # # print(df.to_json(orient="records"))
 
 if __name__ == "__main__":
     main()
