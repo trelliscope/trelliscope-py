@@ -25,7 +25,7 @@ def main():
     # TODO: Use an img_panel function from the Trelliscope library
     df["panel"] = df["img"]
 
-    tr = Trelliscope(df, name, path=output_dir).write_display()
+    tr = Trelliscope(df, name, path=output_dir, debug=True).write_display()
     # tr.set_default_label("name")
 
     # tr.write_trelliscope(output_dir)

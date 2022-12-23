@@ -27,7 +27,7 @@ class Trelliscope:
     METADATA_FILE_NAME = "metaData.jsonp"
 
     def __init__(self, dataFrame: pd.DataFrame, name: str, description: str = None, key_cols = None, tags = None,
-            path = None, force_plot = False):
+            path = None, force_plot = False, debug = False):
         """
         Instantiate a Trelliscope display object.
 
@@ -54,6 +54,7 @@ class Trelliscope:
         self._tags = tags
         self._path = path
         self._force_plot = force_plot
+        self._debug = debug
         #TODO: Is there a reason this is not a true uuid?
         self._id = uuid.uuid4().hex[:8]
 
@@ -236,7 +237,16 @@ class Trelliscope:
         # define all the information, rather than passing in unique params
         file_path = os.path.join(output_dir, Trelliscope.METADATA_FILE_NAME)
 
-        output_content = ""
+        if self._debug:
+            # Pretty print the json if in debug mode
+            meta_data_json = self._data_frame.to_json(orient="records", indent=2)
+        else:
+            meta_data_json = self._data_frame.to_json(orient="records")
+
+        # Turn the escaped \/ into just /
+        meta_data_json = meta_data_json.replace("\\/", "/")
+
+        output_content = f"__loadMetaData__{self._id}({meta_data_json})"
 
         with open(file_path, "w") as output_file:
             output_file.write(output_content)
