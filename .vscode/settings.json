@@ -1,0 +1,5 @@
+{
+    "python.testing.cwd": "${workspaceFolder}/trelliscope/tests",
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestPath": "python3 -m pytest"
+}
