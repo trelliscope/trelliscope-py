@@ -3,7 +3,7 @@ import pandas as pd
 from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
 
-class Meta:
+class Meta():
     """
     The base class for all Meta variants.
     """
@@ -20,17 +20,27 @@ class Meta:
         self.filterable = filterable
         self.sortable = sortable
         self.label = label
+        self.tags = []
         
         if tags is None:
             # TODO: Verify this behavior, it's slightly different than what is done in R
             self.tags = []
-        else:
+        elif isinstance(tags, str):
+            self.tags = [tags]
+        elif isinstance(tags, list):
             self.tags = tags
+        else:
+            raise ValueError("Tags is an unrecognized type.")
 
-    def get_error_message(self, error_text):
+        if label is None:
+            # TODO: Verify this behavior. It seems to be expected by
+            # a unit test, but was not present in the R code...
+            self.label = varname
+
+    def get_error_message(self, error_text: str):
         return f"While defining a `{self.type}` meta variable for the variable `{self.varname}`: `{error_text}`"
 
-    def get_data_error_message(self, error_text):
+    def get_data_error_message(self, error_text: str):
         return f"While checking meta variable definition for variable `{self.varname}` against the data: `{error_text}`"
 
     def to_json(self, pretty: bool = True):
@@ -41,20 +51,36 @@ class Meta:
 
         return json.dumps(self, default=lambda o: o.__dict__, indent=indent_value)
 
+    def check_varname(self, df: pd.DataFrame):
+        if not self.varname in df.columns:
+            raise ValueError(self.get_error_message("Could not find variable {self.varname} is in the list of columns"))
+
+    def check_variable(self, df: pd.DataFrame):
+        # To be overridden by sub classes
+        pass
+
+    def check_with_data(self, df: pd.DataFrame):
+        self.check_varname(df)
+        self.check_variable(df)
+
 
 class NumberMeta(Meta):
-    def __init__(self, varname: str, label: str = None, tags: list = None):
+    def __init__(self, varname: str, label: str = None, tags: list = None, digits: int = None, locale: bool = True):
         super().__init__(type="number", varname=varname, label=label, tags=tags,
             filterable=True, sortable=True)
 
-        # TODO: Should these be settable?
-        # TODO: implement checks with regard to these:
-        self.digits = None
-        self.locale = True
+        if digits is not None and not isinstance(digits, int):
+            raise TypeError("Digits must be an integer")
+
+        if locale is not None and not isinstance(locale, bool):
+            raise TypeError("Locale must be logical (boolean)")
+
+        self.digits = digits
+        self.locale = locale
 
     def check_variable(self, df: pd.DataFrame):
         if not is_numeric_dtype(df[self.varname]):
-            raise ValueError(self.get_data_error_message("Data type is not numeric"))
+            raise ValueError(self.get_data_error_message("Data type must be numeric"))
 
 
 

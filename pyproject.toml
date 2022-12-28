@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "trelliscope"
+dependencies = [
+    "pandas < 1.5.2"
+]
+version = "0.0.1"
+authors = [
+  { name="Scott Burton", email="sburton@thinkoriginally.com" },
+]
+description = "A python interface to the Trelliscope data science library."
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+]
+
+[project.optional-dependencies]
+dev = [
+]
+test = [
+    "statsmodels"
+]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/trelliscope/trelliscope-py"
+"Bug Tracker" = "https://github.com/trelliscope/trelliscope-py/issues"
