@@ -132,7 +132,13 @@ class GeoMeta(Meta):
 
 
 class HrefMeta(Meta):
-    def __init__(self):
-        super().__init__()
-        raise NotImplementedError()
+    def __init__(self, varname: str, label: str = None, tags: list = None):
+        super().__init__(type="href", varname=varname, label=label, tags=tags,
+            filterable=False, sortable=False)
+        
+    def check_variable(self, df: pd.DataFrame):
+        if not is_string_dtype(df[self.varname]):
+            raise ValueError(self.get_data_error_message("Data type is not a string"))
+
+    # TODO: Add cast variable
 

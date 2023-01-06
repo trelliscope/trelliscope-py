@@ -13,11 +13,17 @@ import uuid
 import json
 import shutil
 import pandas as pd
+from pandas.api.types import is_string_dtype
+from pandas.api.types import is_numeric_dtype
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+from .metas import Meta, StringMeta, NumberMeta, HrefMeta
 
 class Trelliscope:
     """
-    A Trelliscope Display Object.
+    Main interface for creating and writing Trelliscopes.
     """
 
     DISPLAYS_DIR = "displays"
@@ -65,8 +71,15 @@ class Trelliscope:
             self._tags = []
 
         if self._key_cols is None:
-            # TODO: Infer this somehow...
+            # TODO: Infer this somehow or make sure it's set on the df...
             self._key_cols = ["name"]
+
+        self._metas = {}
+        self._columns_to_ignore = []
+
+    def add_meta(self, meta_name: str, meta: Meta):
+        # TODO: Should we make a copy here??
+        self._metas[meta_name] = meta
 
     def write_display(self):
         # TODO: Do we want to use the temp file context manager so our files are cleaned up after?
@@ -84,22 +97,118 @@ class Trelliscope:
         output_dir = os.path.join(self._path, name_dir)
         print(f"Saving to {output_dir}")
 
+        # Remove the targeted output dir if it already exists
         if os.path.exists(output_dir):
             shutil.rmtree(output_dir)
 
         displays_dir = os.path.join(output_dir, Trelliscope.DISPLAYS_DIR)
-
-        # appfiles_dir = os.path.join(output_dir, Trelliscope.APPFILES_DIR)
-        # display_group_dir = os.path.join(displays_dir, self._display_group)
-        # display_name_dir = os.path.join(display_group_dir, self._dataset_name)
-
+        
         os.makedirs(output_dir)
         os.makedirs(displays_dir)
 
-        self._write_config_file(output_dir)
-        self._write_displays(displays_dir)
+        tr = self.infer()
 
-        return self.__copy()
+        tr._write_config_file(output_dir)
+        tr._write_displays(displays_dir)
+
+        return tr
+
+    def infer(self):
+        tr = self._infer_metas()
+
+        ## TODO: Fill out the state/view inferring methods
+
+        # tr._state = self._state.infer_state(tr._data_frame, tr._key_cols, )
+
+        # for view in tr._views:
+        #     view._state = view._state.infer_state(tr._data_frame, tr._key_cols)
+
+        return tr
+
+    def _infer_metas(self):
+        tr = self.__copy()
+
+        # get column names from the data frame
+        column_names = tr._data_frame.columns
+
+        # compare to metas that are already defined
+        existing_meta_names = tr._metas.keys()
+
+        # go through each column name that does not have a corresponding meta
+        metas_to_infer = set(column_names) - set(existing_meta_names)
+
+        logging.debug(f"Inferring Metas: {metas_to_infer}")
+
+        metas_to_remove = []
+        metas_inferred = []
+
+        for meta_name in metas_to_infer:
+            meta = tr._infer_meta_variable(tr._data_frame[meta_name], meta_name)
+
+            if meta is None:
+                # Could not infer this meta, add to remove list
+                metas_to_remove.append(meta_name)
+            else:
+                metas_inferred.append(meta_name)
+
+                # Add this inferred meta to the trelliscope
+                tr.add_meta(meta_name, meta)
+
+        # Add to the ignore list any that we could not infer
+        tr._columns_to_ignore.extend(metas_to_remove)
+
+        logging.debug(f"Successfully inferred metas: {metas_inferred}")
+
+        tr = tr._finalize_meta_labels()
+
+        return tr
+
+    def _infer_meta_variable(self, meta_column: pd.Series, meta_name: str):
+        meta = None
+
+        # TODO: Finish this list when all meta types are implemented
+
+        if meta_column.dtype == "category":
+            raise NotImplementedError("category type is not implemented")
+        elif is_numeric_dtype(meta_column.dtype):
+            meta = NumberMeta(meta_name)
+        elif is_string_dtype(meta_column.dtype):
+            # this is a string column
+            
+            # TODO: Improve this way of inferring href
+            # For now, check if the first value starts with http
+            if str(meta_column[0]).startswith("http"):
+                # This appears to be an href column
+                meta = HrefMeta(meta_name)
+            else:
+                # This appears to be a regular string column
+                meta = StringMeta(meta_name)
+
+        return meta
+        
+    def _finalize_meta_labels(self):
+        # This is how this is inferred in the R code...
+        # Finalize labels if NULL with the following priority:
+        # 1. use from disp$meta_labels if defined
+        # 2. use from attr(disp$df[[varname]], "label") if defined
+        # 3. set it to varname
+
+        # TODO: See if there is a Pandas equivalent to a column label
+        # that is separate from the column name. It appears this R
+        # functionality is not present in Pandas
+
+        # TODO: if tr.__copy() doesn't make copies of metas, this needs
+        # to make copies of the metas here before changing the label
+        tr = self.__copy()
+
+        for meta in self._metas.values():
+            if meta.label is None:
+                meta.label = meta.varname
+
+        return tr
+
+    def infer_state():
+        pass
 
     def _write_config_file(self, output_dir):
         file_path = os.path.join(output_dir, Trelliscope.CONFIG_FILE_NAME)
@@ -188,48 +297,8 @@ class Trelliscope:
             output_file.write(output_content)
 
     def _get_metas_list(self) -> list:
-        metas =  []
-
-        for col_name in self._data_frame.columns:
-            meta_info = self._get_meta_info_for_column(col_name)
-            metas.append(meta_info)
-
-        return metas
-
-    def _get_meta_info_for_column(self, col_name):
-        meta = {}
-
-        col = self._data_frame[col_name]
-        meta["varname"] = col_name
-        meta["label"] = col_name # TODO: find where this can be different
-        meta["sortable"] = True # Default to True
-        meta["filterable"] = True # Default to True
-        meta["tags"] = [] # TODO: Fill this in...
-
-        if col.dtype == "object":
-            # this is a string column
-            # TODO: check for other types of "object" columns
-            
-            # TODO: Improve this check to infer href
-            if str(col[0]).startswith("http"):
-                # This appears to be an href column
-                meta["type"] = "href"
-                meta["sortable"] = False
-                meta["filterable"] = False
-            else:
-                # This appears to be a regular string column
-                meta["type"] = "string"
-
-        elif col.dtype == "category":
-            raise NotImplementedError("category type is not implemented")
-        elif col.dtype == "float64":
-            raise NotImplementedError("float64 type is not implemented")
-        elif col.dtype == "int64":
-            meta["type"] = "number"
-            meta["locale"] = True # TODO: What is this?
-            meta["digits"] = None # TODO: What is this?
-
-        return meta
+        meta_list = [meta.__dict__ for meta in self._metas.values()]
+        return meta_list
 
     def _write_meta_data(self, output_dir: str):
         # TODO: This will need to be refactored if there are more than
@@ -280,4 +349,5 @@ class Trelliscope:
         return self.__copy()
 
     def __copy(self):
+        # TODO: Should this do a deep copy? Should it make copies of metas?
         return copy.deepcopy(self)

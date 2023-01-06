@@ -54,7 +54,7 @@ def test_number_meta_with_string():
     assert number_meta.varname == "Species"
     assert number_meta.filterable == True
     assert number_meta.sortable == True
-    assert number_meta.label is "Species"
+    assert number_meta.label == "Species"
     assert number_meta.tags == []
 
     with pytest.raises(ValueError):

@@ -10,16 +10,16 @@
             "request": "launch",
             "program": "${workspaceFolder}/trelliscope/examples/fruit.py",
             "console": "integratedTerminal",
-            "justMyCode": true,
+            "justMyCode": false,
             "python": "${workspaceFolder}/venv/bin/python"
         },
         {
-            "name": "Meta tests",
+            "name": "Meta debugging",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/trelliscope/examples/meta_tests.py",
+            "program": "${workspaceFolder}/trelliscope/examples/meta_debugging.py",
             "console": "integratedTerminal",
-            "justMyCode": true,
+            "justMyCode": false,
             "python": "${workspaceFolder}/venv/bin/python"
         },
         // {
