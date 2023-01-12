@@ -20,6 +20,9 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 from .metas import Meta, StringMeta, NumberMeta, HrefMeta
+from .state import DisplayState
+from .view import View
+from .input import Input
 
 class Trelliscope:
     """
@@ -33,7 +36,7 @@ class Trelliscope:
     METADATA_FILE_NAME = "metaData.jsonp"
 
     def __init__(self, dataFrame: pd.DataFrame, name: str, description: str = None, key_cols = None, tags = None,
-            path = None, force_plot = False, debug = False):
+            path = None, force_plot = False, panel_col = None, debug = False):
         """
         Instantiate a Trelliscope display object.
 
@@ -53,14 +56,18 @@ class Trelliscope:
                 already been plotted and have not changed since the previous plotting?
         """
 
-        self._data_frame = dataFrame
+        # TODO: Add lots of checks here to ensure the data types match etc
+
+        self._data_frame: pd.DateOffset = dataFrame
         self._name: str = name
-        self._description = description
-        self._key_cols = key_cols
-        self._tags = tags
-        self._path = path
-        self._force_plot = force_plot
+        self._description: str = description
+        self._tags: list = tags
+        self._key_cols: list = key_cols
+        self._path: str = path
+        self._force_plot: bool = force_plot
+        self._panel_col = panel_col
         self._debug = debug
+
         #TODO: Is there a reason this is not a true uuid?
         self._id = uuid.uuid4().hex[:8]
 
@@ -76,10 +83,69 @@ class Trelliscope:
 
         self._metas = {}
         self._columns_to_ignore = []
+        self._state = DisplayState()
+        
+        self._views = {}
+        self._inputs = {}
+
+    def set_meta(self, meta: Meta):
+        if not issubclass(meta, Meta):
+            raise ValueError("Error: Meta definition must be a valid Meta class instance.")
+        
+        meta.check_with_data(self._data_frame)
+        name = meta.varname
+
+        if name in self._metas:
+            logging.info(f"Replacing existing meta variable {name}")
+
+        self._metas[name] = meta
+
+    def set_metas(self, meta_list: list):
+        for meta in meta_list:
+            self.set_meta(meta)
 
     def add_meta(self, meta_name: str, meta: Meta):
         # TODO: Should we make a copy here??
         self._metas[meta_name] = meta
+
+        return self
+
+    def set_state(self, state: DisplayState):
+        self.state = state
+
+    def set_view(self, view: View):
+        name  = view.name
+
+        if name in self._views:
+            logging.info("Replacing existing view {name}")
+
+        self._views[name] = view
+
+    def set_input(self, input: Input):
+        name = input.name
+
+        if name in self._inputs:
+            logging.info("Replacing existing input {input}")
+
+        self._inputs[name] = input
+
+    def get_output_path(self) -> str:
+        #TODO: See how to handle names with multiple words, etc.
+        #TODO: Do we care about other special characters here?
+        name_dir = self._name.lower().replace(" ", "_")
+
+        return os.path.join(self._path, name_dir)
+
+    def get_displays_path(self) -> str:
+        output_path = self.get_output_path()
+        return os.path.join(output_path, DISPLAYS_DIR)
+    
+    # TODO: fill this in. In R, they first build a list and then to_json it here
+    # def to_json(self, pretty: bool = True):
+
+    # TODO: fill thi in with a detailed listing of everything in the trelliscope
+    # def __repr__(self) -> str:
+        
 
     def write_display(self):
         # TODO: Do we want to use the temp file context manager so our files are cleaned up after?
@@ -90,18 +156,14 @@ class Trelliscope:
         # the context object is used like this:
         # with tempfile.TemporaryDirectory() as tmpdirname:
 
-        #TODO: See how to handle names with multiple words, etc.
-        #TODO: Do we care about other special characters here?
-        name_dir = self._name.lower().replace(" ", "_")
-
-        output_dir = os.path.join(self._path, name_dir)
+        output_dir = self.get_output_path()
         print(f"Saving to {output_dir}")
 
         # Remove the targeted output dir if it already exists
         if os.path.exists(output_dir):
             shutil.rmtree(output_dir)
 
-        displays_dir = os.path.join(output_dir, Trelliscope.DISPLAYS_DIR)
+        displays_dir = self.get_displays_path()
         
         os.makedirs(output_dir)
         os.makedirs(displays_dir)
@@ -301,7 +363,7 @@ class Trelliscope:
         return meta_list
 
     def _write_meta_data(self, output_dir: str):
-        # TODO: This will need to be refactored if there are more than
+        # TODO: This will need to be refactored if there is more than
         # one display info to print out. This assumes the member variables
         # define all the information, rather than passing in unique params
         file_path = os.path.join(output_dir, Trelliscope.METADATA_FILE_NAME)
