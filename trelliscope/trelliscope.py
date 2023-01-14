@@ -1,4 +1,4 @@
-#TODO: Decide how to handle type hints for return type of Trelliscope
+# TODO: Decide how to handle type hints for return type of Trelliscope
 # This enables type hints for the return type to be Trelliscope
 # from __future__ import annotations
 # This is now the proper way to do type hints for the return type of the
@@ -87,6 +87,7 @@ class Trelliscope:
         
         self._views = {}
         self._inputs = {}
+        self._type_type = None
 
     def set_meta(self, meta: Meta):
         if not issubclass(meta, Meta):

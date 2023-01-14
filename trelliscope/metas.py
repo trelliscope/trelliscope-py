@@ -4,6 +4,13 @@ from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
 
 class Meta():
+    TYPE_STRING = "string"
+    TYPE_HREF = "href"
+    TYPE_FACTOR = "factor"
+    TYPE_NUMBER = "number"
+    TYPE_DATE = "date"
+    TYPE_DATETIME = "datetime"
+
     """
     The base class for all Meta variants.
     """
@@ -52,7 +59,7 @@ class Meta():
         return json.dumps(self, default=lambda o: o.__dict__, indent=indent_value)
 
     def check_varname(self, df: pd.DataFrame):
-        if not self.varname in df.columns:
+        if self.varname not in df.columns:
             raise ValueError(self.get_error_message("Could not find variable {self.varname} is in the list of columns"))
 
     def check_variable(self, df: pd.DataFrame):
@@ -66,7 +73,7 @@ class Meta():
 
 class NumberMeta(Meta):
     def __init__(self, varname: str, label: str = None, tags: list = None, digits: int = None, locale: bool = True):
-        super().__init__(type="number", varname=varname, label=label, tags=tags,
+        super().__init__(type=Meta.TYPE_NUMBER, varname=varname, label=label, tags=tags,
             filterable=True, sortable=True)
 
         if digits is not None and not isinstance(digits, int):
@@ -92,7 +99,7 @@ class CurrencyMeta(Meta):
 
 class StringMeta(Meta):
     def __init__(self, varname: str, label: str = None, tags: list = None):
-        super().__init__(type="string", varname=varname, label=label, tags=tags,
+        super().__init__(type=Meta.TYPE_STRING, varname=varname, label=label, tags=tags,
             filterable=True, sortable=False)
         
     def check_variable(self, df: pd.DataFrame):
@@ -133,7 +140,7 @@ class GeoMeta(Meta):
 
 class HrefMeta(Meta):
     def __init__(self, varname: str, label: str = None, tags: list = None):
-        super().__init__(type="href", varname=varname, label=label, tags=tags,
+        super().__init__(type=Meta.TYPE_HREF, varname=varname, label=label, tags=tags,
             filterable=False, sortable=False)
         
     def check_variable(self, df: pd.DataFrame):
