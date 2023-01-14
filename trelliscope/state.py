@@ -17,7 +17,8 @@ class State():
     def __init__(self, type : str):
         self.type = type
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
+        # Default __dict__ behavior is sufficient, because we don't have custom inner types
         return self.__dict__
 
     def to_json(self, pretty: bool = True):
@@ -26,7 +27,7 @@ class State():
         if pretty:
             indent_value = 2
 
-        return json.dumps(self, default=lambda o: o.__dict__, indent=indent_value)
+        return json.dumps(self.to_dict(), indent=indent_value)
 
     def _get_error_message(self, text):
         return f"While checking a {self.type} state definition: {text}"
@@ -223,8 +224,8 @@ class DisplayState():
 
         # Sort and filter are stored internally as Ordered dictionaries
         # but for the output, we need to strip off the keys
-        sort_list = [v.to_dict() for k, v in self.sort.items()]
-        filter_list = [v.to_dict() for k, v in self.filter.items()]
+        sort_list = [v.to_dict() for v in self.sort.values()]
+        filter_list = [v.to_dict() for v in self.filter.values()]
 
         result["layout"] = layout_dict
         result["labels"] = label_dict

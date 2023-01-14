@@ -17,11 +17,6 @@ class Meta():
     def __init__(self, type: str, varname: str, filterable: bool, sortable: bool, label: str = None, tags: list = None):
         # TODO: Should filterable and sortable have default values?
         
-        # Note: We are specifically *NOT* using an underscore in these
-        # variable names so the default JSON serialization using __dict__ works
-        # as expected and produced the correctly named output.
-        # This also makes sense in that this class is essentially a struct or a dict
-        # with a few extra features.
         self.type = type
         self.varname = varname
         self.filterable = filterable
@@ -50,13 +45,17 @@ class Meta():
     def get_data_error_message(self, error_text: str):
         return f"While checking meta variable definition for variable `{self.varname}` against the data: `{error_text}`"
 
+    def to_dict(self) -> dict:
+        # Default __dict__ behavior is sufficient, because we don't have custom inner types
+        return self.__dict__
+
     def to_json(self, pretty: bool = True):
         indent_value = None
 
         if pretty:
             indent_value = 2
 
-        return json.dumps(self, default=lambda o: o.__dict__, indent=indent_value)
+        return json.dumps(self.to_dict(), indent=indent_value)
 
     def check_varname(self, df: pd.DataFrame):
         if self.varname not in df.columns:

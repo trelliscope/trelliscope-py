@@ -139,7 +139,7 @@ class Trelliscope:
 
     def get_displays_path(self) -> str:
         output_path = self.get_output_path()
-        return os.path.join(output_path, DISPLAYS_DIR)
+        return os.path.join(output_path, Trelliscope.DISPLAYS_DIR)
     
     # TODO: fill this in. In R, they first build a list and then to_json it here
     # def to_json(self, pretty: bool = True):
@@ -360,7 +360,7 @@ class Trelliscope:
             output_file.write(output_content)
 
     def _get_metas_list(self) -> list:
-        meta_list = [meta.__dict__ for meta in self._metas.values()]
+        meta_list = [meta.to_dict() for meta in self._metas.values()]
         return meta_list
 
     def _write_meta_data(self, output_dir: str):
