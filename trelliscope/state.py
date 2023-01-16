@@ -73,7 +73,7 @@ class LabelState(State):
     def check_with_data(self, df: pd.DataFrame):
         extra_columns = set(self.varnames) - set(df.columns)
         if len(extra_columns) > 0:
-           raise ValueError(f"Label variables not found in data: {extra_columns}")
+           raise ValueError(self._get_data_error_message(f"Label variables not found in data: {extra_columns}"))
 
         return True
 
@@ -85,19 +85,22 @@ class SortState(State):
     def __init__(self, varname : str, dir : str = DIR_ASCENDING):
         super().__init__(State.TYPE_SORT)
 
-        if dir not in [SortState.DIR_ASCENDING, SortState.DIR_DESCENDING]:
-            raise ValueError(self._get_error_message(f"Sort direction is not valid. Must be '{SortState.DIR_ASCENDING}' or '{SortState.DIR_DESCENDING}'."))
+        check_enum(dir, (SortState.DIR_ASCENDING, SortState.DIR_DESCENDING), self._get_error_message)
 
         self.varname = varname
         self.dir = dir
 
     def check_with_data(self, df : pd.DataFrame):
         if self.varname not in df.columns:
-            raise ValueError(f"'{self.varname}' not found in the dataset that the {self.type} state definition is being applied to.")
+            raise ValueError(self._get_data_error_message(f"'{self.varname}' not found in the dataset that the {self.type} state definition is being applied to."))
+        
+        return True
 
     def check_with_meta(self, meta : Meta):
         if not meta.sortable:
             raise ValueError(self._get_error_message(f"'{self.varname}' is not sortable"))
+        
+        return True
 
 class FilterState(State):
     FILTERTYPE_CATEGORY = "category"
@@ -122,11 +125,15 @@ class FilterState(State):
 
     def check_with_data(self, df : pd.DataFrame):
         if self.varname not in df.columns:
-            raise ValueError(f"'{self.varname}' not found in the dataset that the {self.type} state definition is being applied to.")
+            raise ValueError(self._get_data_error_message(f"'{self.varname}' not found in the dataset that the {self.type} state definition is being applied to."))
+    
+        return True
 
     def check_with_meta(self, meta : Meta):
         if meta.type not in self.applies_to:
             raise ValueError(self._get_error_message(f"the meta type applied to variable '{self.varname}' is not compatible with this filter"))
+        
+        return True
         
 class CategoryFilterState(FilterState):
     def __init__(self, varname : str, regexp : str = None, values : list = None):
@@ -142,7 +149,7 @@ class CategoryFilterState(FilterState):
 
         diff = set(self.values) - set(df.columns)
         if len(diff) > 0:
-            raise ValueError(self._get_error_message(f"could not find the value(s): {diff} in the variable '{self.varname}'"))
+            raise ValueError(self._get_data_error_message(f"could not find the value(s): {diff} in the variable '{self.varname}'"))
 
 class RangeFilterState(FilterState):
     def __init__(self, varname : str, filtertype : str, applies_to : list, min : int = None, max : int = None):

@@ -115,8 +115,9 @@ class FactorMeta(Meta):
 
 class DateMeta(Meta):
     def __init__(self):
-        super().__init__()
         raise NotImplementedError()
+        super().__init__(Meta.TYPE_DATE)
+        
 
 
 class DatetimeMeta(Meta):
