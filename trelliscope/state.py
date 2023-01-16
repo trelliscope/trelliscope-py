@@ -4,6 +4,7 @@ import logging
 from collections import OrderedDict
 
 from .metas import Meta
+from .utils import check_enum
                 
 class State():
     """
@@ -48,6 +49,9 @@ class LayoutState(State):
     def __init__(self, nrow : int = 1, ncol : int = 1, arrange : str = "rows", page : int = 1):
         super().__init__(State.TYPE_LAYOUT)
 
+        if arrange is not None:
+            check_enum(arrange, ("rows", "cols"), self._get_error_message)
+
         self.nrow = nrow
         self.ncol = ncol
         self.arrange = arrange
@@ -62,8 +66,17 @@ class LayoutState(State):
 class LabelState(State):
     def __init__(self, varnames : list = []):
         super().__init__(State.TYPE_LABELS)
-
+        
+        # TODO: Should we verify this is a list??
         self.varnames = varnames
+
+    def check_with_data(self, df: pd.DataFrame):
+        extra_columns = set(self.varnames) - set(df.columns)
+        if len(extra_columns) > 0:
+           raise ValueError(f"Label variables not found in data: {extra_columns}")
+
+        return True
+
 
 class SortState(State):
     DIR_ASCENDING = "asc"
