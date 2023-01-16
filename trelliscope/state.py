@@ -29,6 +29,15 @@ class State():
 
         return json.dumps(self.to_dict(), indent=indent_value)
 
+    def check_with_data(self, df : pd.DataFrame):
+        """
+        Ensure that the state is consistent with this dataset.
+
+        This function should be overridden by subclasses to do any
+        state specific checks that need to be done.
+        """
+        return True
+
     def _get_error_message(self, text):
         return f"While checking a {self.type} state definition: {text}"
     
@@ -43,6 +52,12 @@ class LayoutState(State):
         self.ncol = ncol
         self.arrange = arrange
         self.page = page
+
+    def check_with_data(self, df: pd.DataFrame):
+      # This comment is in the R version:
+      # TODO: could check to see if "page" makes sense after applying filters
+      # and accounting for nrow and ncol
+      return True
 
 class LabelState(State):
     def __init__(self, varnames : list = []):

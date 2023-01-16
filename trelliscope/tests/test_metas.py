@@ -1,23 +1,11 @@
 from trelliscope.metas import Meta, NumberMeta, StringMeta
 #from sklearn.datasets import load_iris
-import statsmodels.api as sm
 import pandas as pd
 import pytest
 import json
 
-import ssl
-
-def get_iris_dataset():
-    # Python on macOS needs to have certificates installed.
-    # This can be done in the OS, or we can allow unsafe certificates.
-    # See: https://stackoverflow.com/questions/50236117/scraping-ssl-certificate-verify-failed-error-for-http-en-wikipedia-org
-    ssl._create_default_https_context = ssl._create_unverified_context
-    iris_df = sm.datasets.get_rdataset('iris').data
-
-    return iris_df
-
-def test_string_meta_init():
-    iris_df = get_iris_dataset()
+def test_string_meta_init(iris_df):
+    #iris_df = get_iris_dataset()
     meta = StringMeta(varname="Species", label="label", tags=[])
     
     assert meta.type == "string"
@@ -33,8 +21,8 @@ def test_string_meta_init():
     with pytest.raises(ValueError):
         meta.check_variable(iris_df)
 
-def test_number_meta_init():
-    iris_df = get_iris_dataset()
+def test_number_meta_init(iris_df):
+    #iris_df = get_iris_dataset()
 
     number_meta = NumberMeta("Sepal.Length")
     assert number_meta.type == "number"
@@ -46,8 +34,8 @@ def test_number_meta_init():
 
     number_meta.check_variable(iris_df)
 
-def test_number_meta_with_string():
-    iris_df = get_iris_dataset()
+def test_number_meta_with_string(iris_df):
+    #iris_df = get_iris_dataset()
 
     number_meta = NumberMeta("Species")
     assert number_meta.type == "number"
@@ -60,8 +48,8 @@ def test_number_meta_with_string():
     with pytest.raises(ValueError):
         number_meta.check_variable(iris_df)
 
-def test_check_varname():
-    iris_df = get_iris_dataset()
+def test_check_varname(iris_df):
+    #iris_df = get_iris_dataset()
 
     meta = NumberMeta("Sepal.Length", tags="stuff")
     meta.check_with_data(iris_df)
@@ -70,8 +58,8 @@ def test_check_varname():
     with pytest.raises(ValueError):
         meta.check_with_data(iris_df)
 
-def test_check_with_data():
-    iris_df = get_iris_dataset()
+def test_check_with_data(iris_df):
+    #iris_df = get_iris_dataset()
 
     meta = NumberMeta("Sepal.Length", tags="stuff")
 
@@ -94,8 +82,9 @@ def test_check_with_data():
 
 
 
-def test_number_meta():
-    iris_df = get_iris_dataset()
+def test_number_meta(iris_df):
+    #iris_df = get_iris_dataset()
+
     meta = NumberMeta("Sepal.Length", tags="stuff")
 
     # TODO: verify this is expected behavior
