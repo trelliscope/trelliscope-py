@@ -1,7 +1,7 @@
 import pytest
 import ssl
 import statsmodels.api as sm
-from datetime import date
+from datetime import date, timedelta, datetime
 
 import pandas as pd
 import os
@@ -54,10 +54,12 @@ def iris_plus_df(iris_df: pd.DataFrame):
     """
     Returns a copy of the iris dataset with extra columns for id and dates.
     """
-    iris_df["id"] = str(iris_df.index + 1)
-    iris_df["date"] = date.today()
-    iris_df["datetime"] = date.today().ctime()
-    iris_df["datestring"] = date.today().isoformat()
+    iris_df.insert(0, 'id', range(len(iris_df)))
+    # iris_df["id"] = iris_df.apply(lambda row: str(int(row.index) + 1))
+    iris_df["date"] = iris_df.apply(lambda row: datetime(2023, 2, 24) + timedelta(days=row["id"], minutes=row["id"]), axis=1)
+    iris_df["datetime"] = iris_df.apply(lambda row: row["date"].isoformat(), axis=1)
+    iris_df["datestring"] = iris_df.apply(lambda row: row["date"].date().isoformat(), axis=1)
 
+    #print(iris_df.head())
     return iris_df
 

@@ -1,5 +1,5 @@
-from trelliscope.state import LabelState, SortState, DisplayState, LayoutState
-from trelliscope.metas import DateMeta
+from trelliscope.state import State, FilterState, LabelState, SortState, DisplayState, LayoutState, CategoryFilterState
+from trelliscope.metas import Meta, DateMeta, StringMeta, FactorMeta
 import pytest
 
 import json
@@ -67,3 +67,46 @@ def test_sort_state(iris_plus_df):
 
     with pytest.raises(ValueError, match=r"must be one of"):
         state3 = SortState("date", dir="ascc")
+
+def test_category_filter_state_init(iris_plus_df):
+    state = CategoryFilterState("the var", "regex_to_find", ["a", "b", "c"])
+    assert state.varname == "the var"
+    assert state.regexp == "regex_to_find"
+    assert state.values == ["a", "b", "c"]
+    assert set(state.applies_to) == {Meta.TYPE_STRING, Meta.TYPE_FACTOR}
+    assert state.type == State.TYPE_FILTER
+    assert state.FILTERTYPE_CATEGORY == FilterState.FILTERTYPE_CATEGORY
+
+
+def test_category_filter_state(iris_plus_df):
+    state = CategoryFilterState("datestring", values="2023-02-24")
+    meta1 = StringMeta("datastring")
+    
+    # TODO: Add in when implemented
+    #meta2 = FactorMeta("datastring")
+    #meta3 = DateMeta("date")
+
+    state.check_with_data(iris_plus_df)
+    state.check_with_meta(meta1)
+
+    # TODO: Add in when implemented
+    #state.check_with_meta(meta2)
+    # with pytest.raises(ValueError, match=r"is not compatible with this filter"):
+    #     state.check_with_meta(meta3)
+
+    actual_dict = state.to_dict()
+    assert state.to_dict() == {"values":["2023-02-24"],
+                                "regexp":None,
+                                "filtertype":"category",
+                                "varname":"datestring",
+                                "type":"filter"}
+    
+    actual_json = state.to_json(pretty=False)
+    expected_json = '{"values":["2023-02-24"],"regexp":null,"filtertype":"category","varname":"datestring","type":"filter"}'
+    assert json.loads(actual_json) == json.loads(expected_json)
+    
+def test_category_filter_state_bad_values(iris_plus_df):
+    state = CategoryFilterState("datestring", values="stuff")
+    with pytest.raises(ValueError, match=r"could not find the value"):
+        state.check_with_data(iris_plus_df)
+    

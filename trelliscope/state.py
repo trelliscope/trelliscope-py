@@ -20,6 +20,10 @@ class State():
 
     def to_dict(self) -> dict:
         # Default __dict__ behavior is sufficient, because we don't have custom inner types
+        result = self.__dict__
+
+        result.pop("applies_to", None)
+
         return self.__dict__
 
     def to_json(self, pretty: bool = True):
@@ -137,17 +141,29 @@ class FilterState(State):
         
 class CategoryFilterState(FilterState):
     def __init__(self, varname : str, regexp : str = None, values : list = None):
+        """
+        Params:
+            varname: The variable name
+            regexp: Regular expression to apply
+            values: Either a string for the value or a list of possible values
+        """
         super().__init__(varname=varname,
             filtertype=FilterState.FILTERTYPE_CATEGORY,
             applies_to=[Meta.TYPE_STRING, Meta.TYPE_FACTOR])
         
         self.regexp = regexp
-        self.values = values
+
+        # TODO: Verify that this should work for a list and a single value
+        # The R unit test indicates that it should
+        if type(values) == str:
+            self.values = [values]
+        else:
+            self.values = values
 
     def check_with_data(self, df: pd.DataFrame):
         super().check_with_data(df)
 
-        diff = set(self.values) - set(df.columns)
+        diff = set(self.values) - set(df[self.varname].unique())
         if len(diff) > 0:
             raise ValueError(self._get_data_error_message(f"could not find the value(s): {diff} in the variable '{self.varname}'"))
 
