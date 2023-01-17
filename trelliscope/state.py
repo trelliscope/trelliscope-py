@@ -2,9 +2,10 @@ import json
 import pandas as pd
 import logging
 from collections import OrderedDict
+from datetime import date, datetime
 
 from .metas import Meta
-from .utils import check_enum
+from .utils import check_enum, check_is_list, custom_json_serializer
                 
 class State():
     """
@@ -19,12 +20,14 @@ class State():
         self.type = type
 
     def to_dict(self) -> dict:
-        # Default __dict__ behavior is sufficient, because we don't have custom inner types
         result = self.__dict__
 
         result.pop("applies_to", None)
 
-        return self.__dict__
+        # result = {}
+        # result["type"] = self.type
+
+        return result
 
     def to_json(self, pretty: bool = True):
         indent_value = None
@@ -32,7 +35,7 @@ class State():
         if pretty:
             indent_value = 2
 
-        return json.dumps(self.to_dict(), indent=indent_value)
+        return json.dumps(self.to_dict(), default=custom_json_serializer, indent=indent_value)
 
     def check_with_data(self, df : pd.DataFrame):
         """
@@ -60,6 +63,14 @@ class LayoutState(State):
         self.ncol = ncol
         self.arrange = arrange
         self.page = page
+
+    # def to_dict(self) -> dict:
+    #     result = super().to_dict()
+    #     result["nrow"] = self.nrow
+    #     result["ncol"] = self.ncol
+
+
+    #     return result
 
     def check_with_data(self, df: pd.DataFrame):
       # This comment is in the R version:
@@ -121,13 +132,20 @@ class FilterState(State):
         """
         super().__init__(State.TYPE_FILTER)
 
-        # TODO: Add a check to make sure filter type is in the valid list
+        check_enum(filtertype, (FilterState.FILTERTYPE_CATEGORY,
+                            FilterState.FILTERTYPE_NUMBER_RANGE,
+                            FilterState.FILTERTYPE_DATE_RANGE,
+                            FilterState.FILTERTYPE_DATETIME_RANGE),
+                            self._get_error_message)
+        
+        check_is_list(applies_to, self._get_error_message)
 
         self.varname = varname
         self.filtertype = filtertype
         self.applies_to = applies_to
 
     def check_with_data(self, df : pd.DataFrame):
+        super().check_with_data(df)
         if self.varname not in df.columns:
             raise ValueError(self._get_data_error_message(f"'{self.varname}' not found in the dataset that the {self.type} state definition is being applied to."))
     
@@ -168,7 +186,7 @@ class CategoryFilterState(FilterState):
             raise ValueError(self._get_data_error_message(f"could not find the value(s): {diff} in the variable '{self.varname}'"))
 
 class RangeFilterState(FilterState):
-    def __init__(self, varname : str, filtertype : str, applies_to : list, min : int = None, max : int = None):
+    def __init__(self, varname : str, filtertype : str, applies_to : list, min = None, max = None):
         super().__init__(varname=varname, filtertype=filtertype, applies_to=applies_to)
         
         self.min = min
@@ -176,25 +194,60 @@ class RangeFilterState(FilterState):
 
 class NumberRangeFilterState(RangeFilterState):
     def __init__(self, varname : str, min : int = None, max : int = None):
+        """
+        Params:
+            varname: The variable name
+            min: Minimum value for the range
+            max: Maximum value for the range
+        """
         super().__init__(varname=varname,
             filtertype=FilterState.FILTERTYPE_NUMBER_RANGE,
-            applies_to=Meta.TYPE_NUMBER,
+            applies_to=[Meta.TYPE_NUMBER],
             min=min,
             max=max)
         
 class DateRangeFilterState(RangeFilterState):
-    def __init__(self, varname : str, min : int = None, max : int = None):
+    def __init__(self, varname : str, min : date = None, max : date = None):
+        """
+        Params:
+            varname: The variable name
+            min: Minimum date
+            max: Maximum date
+        """
         super().__init__(varname=varname,
             filtertype=FilterState.FILTERTYPE_DATE_RANGE,
-            applies_to=Meta.TYPE_DATE,
+            applies_to=[Meta.TYPE_DATE],
             min=min,
             max=max)
 
+    # def to_dict(self) -> dict:
+    #     result = super().to_dict()
+        
+    #     if self.min is None:
+    #         result["min"] = None
+    #     else:
+    #         result["min"] = self.min.isoformat()
+        
+    #     if self.max is None:
+    #         result["max"] = None
+    #     else:
+    #         result["max"] = self.max.isoformat()
+
+    #     return result
+        
+
+
 class DatetimeRangeFilterState(RangeFilterState):
-    def __init__(self, varname : str, min : int = None, max : int = None):
+    def __init__(self, varname : str, min : datetime = None, max : datetime = None):
+        """
+        Params:
+            varname: The variable name
+            min: Minimum datetime
+            max: Maximum datetime
+        """
         super().__init__(varname=varname,
             filtertype=FilterState.FILTERTYPE_DATETIME_RANGE,
-            applies_to=Meta.TYPE_DATETIME,
+            applies_to=[Meta.TYPE_DATETIME],
             min=min,
             max=max)
 

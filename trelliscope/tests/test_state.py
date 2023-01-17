@@ -1,8 +1,9 @@
-from trelliscope.state import State, FilterState, LabelState, SortState, DisplayState, LayoutState, CategoryFilterState
-from trelliscope.metas import Meta, DateMeta, StringMeta, FactorMeta
 import pytest
-
 import json
+from datetime import date, datetime
+
+from trelliscope.state import State, FilterState, LabelState, SortState, DisplayState, LayoutState, CategoryFilterState, NumberRangeFilterState, DateRangeFilterState, DatetimeRangeFilterState
+from trelliscope.metas import Meta, DateMeta, StringMeta, FactorMeta, NumberMeta
 # Note, when using json results, we are converting the json to dictionaries
 # and comparing those to ignore any differences in order or whitespace
 
@@ -75,7 +76,7 @@ def test_category_filter_state_init(iris_plus_df):
     assert state.values == ["a", "b", "c"]
     assert set(state.applies_to) == {Meta.TYPE_STRING, Meta.TYPE_FACTOR}
     assert state.type == State.TYPE_FILTER
-    assert state.FILTERTYPE_CATEGORY == FilterState.FILTERTYPE_CATEGORY
+    assert state.filtertype == FilterState.FILTERTYPE_CATEGORY
 
 
 def test_category_filter_state(iris_plus_df):
@@ -110,3 +111,121 @@ def test_category_filter_state_bad_values(iris_plus_df):
     with pytest.raises(ValueError, match=r"could not find the value"):
         state.check_with_data(iris_plus_df)
     
+    state2 = CategoryFilterState("bad_var_name", values="stuff")
+    with pytest.raises(ValueError, match=r"'bad_var_name' not found in the dataset"):
+        state2.check_with_data(iris_plus_df)
+
+def test_number_range_filter_state_init():
+    state = NumberRangeFilterState("the var", min=2, max=3)
+    assert state.varname == "the var"
+    assert state.min == 2
+    assert state.max == 3
+    assert set(state.applies_to) == {Meta.TYPE_NUMBER}
+    assert state.type == State.TYPE_FILTER
+    assert state.filtertype == FilterState.FILTERTYPE_NUMBER_RANGE
+
+def test_number_range_filter_state(iris_plus_df):
+    state = NumberRangeFilterState("Sepal.Length", min=1)
+    meta1 = NumberMeta("Sepal.Length")
+    meta2 = StringMeta("Species")
+
+    state.check_with_data(iris_plus_df)
+    state.check_with_meta(meta1)
+
+    with pytest.raises(ValueError, match=r"is not compatible with this filter"):
+        state.check_with_meta(meta2)
+
+    actual_dict = state.to_dict()
+    expected_dict = {"max":None, "min":1, "filtertype":"numberrange",
+                        "varname":"Sepal.Length", "type":"filter"}
+    assert actual_dict == expected_dict
+
+    actual_json = state.to_json(pretty=False)
+    expected_json = '{"max":null,"min":1,"filtertype":"numberrange","varname":"Sepal.Length","type":"filter"}'
+    assert json.loads(actual_json) == json.loads(expected_json)
+
+def test_number_range_filter_state_bad_values(iris_plus_df):
+    state = NumberRangeFilterState("stuff", min=1)
+    with pytest.raises(ValueError, match=r"not found in the dataset"):
+        state.check_with_data(iris_plus_df)
+
+def test_date_range_filter_state_init():
+    state = DateRangeFilterState("the var", min=date(2022, 12, 25), max=date(2022, 12, 29))
+    assert state.varname == "the var"
+    assert state.min == date(2022, 12, 25)
+    assert state.max == date(2022, 12, 29)
+    assert set(state.applies_to) == {Meta.TYPE_DATE}
+    assert state.type == State.TYPE_FILTER
+    assert state.filtertype == FilterState.FILTERTYPE_DATE_RANGE
+
+def test_date_range_filter_state(iris_plus_df):
+    state = DateRangeFilterState("date", min=date(2010, 1, 1))
+
+    # TODO: ADD this back in 
+    #meta1 = DateMeta("date")
+    meta2 = StringMeta("Species")
+
+    state.check_with_data(iris_plus_df)
+    # TODO: ADD this back in 
+    #state.check_with_meta(meta1)
+
+    with pytest.raises(ValueError, match=r"is not compatible with this filter"):
+        state.check_with_meta(meta2)
+
+    actual_dict = state.to_dict()
+    expected_dict = {"max":None, "min":date(2010, 1, 1), "filtertype":"daterange",
+                        "varname":"date", "type":"filter"}
+    assert actual_dict == expected_dict
+
+    actual_json = state.to_json(pretty=False)
+    expected_json = '{"max":null,"min":"2010-01-01","filtertype":"daterange","varname":"date","type":"filter"}'
+    assert json.loads(actual_json) == json.loads(expected_json)
+
+def test_date_range_filter_state_bad_values(iris_plus_df):
+    state = DateRangeFilterState("stuff", min=date(2010, 1, 1))
+    with pytest.raises(ValueError, match=r"not found in the dataset"):
+        state.check_with_data(iris_plus_df)
+
+    # TODO: Consider adding test to make sure min and max do not allow ints
+    # (they must be dates)
+
+
+def test_datetime_range_filter_state_init():
+    state = DatetimeRangeFilterState("the var", min=datetime(2022, 12, 25, 1, 20, 30), max=datetime(2022, 12, 29, 2, 40, 50))
+    assert state.varname == "the var"
+    assert state.min == datetime(2022, 12, 25, 1, 20, 30)
+    assert state.max == datetime(2022, 12, 29, 2, 40, 50)
+    assert set(state.applies_to) == {Meta.TYPE_DATETIME}
+    assert state.type == State.TYPE_FILTER
+    assert state.filtertype == FilterState.FILTERTYPE_DATETIME_RANGE
+
+def test_datetime_range_filter_state(iris_plus_df):
+    state = DatetimeRangeFilterState("datetime", min=datetime(2010, 1, 1))
+
+    # TODO: ADD this back in 
+    #meta1 = DatetimeMeta("datetime")
+    meta2 = StringMeta("Species")
+
+    state.check_with_data(iris_plus_df)
+    # TODO: ADD this back in 
+    #state.check_with_meta(meta1)
+
+    with pytest.raises(ValueError, match=r"is not compatible with this filter"):
+        state.check_with_meta(meta2)
+
+    actual_dict = state.to_dict()
+    expected_dict = {"max":None, "min":datetime(2010, 1, 1), "filtertype":"datetimerange",
+                        "varname":"datetime", "type":"filter"}
+    assert actual_dict == expected_dict
+
+    actual_json = state.to_json(pretty=False)
+    expected_json = '{"max":null,"min":"2010-01-01T00:00:00","filtertype":"datetimerange","varname":"datetime","type":"filter"}'
+    assert json.loads(actual_json) == json.loads(expected_json)
+
+def test_date_range_filter_state_bad_values(iris_plus_df):
+    state = DatetimeRangeFilterState("stuff", min=datetime(2010, 1, 1))
+    with pytest.raises(ValueError, match=r"not found in the dataset"):
+        state.check_with_data(iris_plus_df)
+
+    # TODO: Consider adding test to make sure min and max do not allow ints
+    # (they must be dates)
