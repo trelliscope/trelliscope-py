@@ -22,10 +22,8 @@ class State():
     def to_dict(self) -> dict:
         result = self.__dict__
 
+        # Remove any unwanted items
         result.pop("applies_to", None)
-
-        # result = {}
-        # result["type"] = self.type
 
         return result
 
@@ -63,14 +61,6 @@ class LayoutState(State):
         self.ncol = ncol
         self.arrange = arrange
         self.page = page
-
-    # def to_dict(self) -> dict:
-    #     result = super().to_dict()
-    #     result["nrow"] = self.nrow
-    #     result["ncol"] = self.ncol
-
-
-    #     return result
 
     def check_with_data(self, df: pd.DataFrame):
       # This comment is in the R version:
@@ -220,23 +210,6 @@ class DateRangeFilterState(RangeFilterState):
             min=min,
             max=max)
 
-    # def to_dict(self) -> dict:
-    #     result = super().to_dict()
-        
-    #     if self.min is None:
-    #         result["min"] = None
-    #     else:
-    #         result["min"] = self.min.isoformat()
-        
-    #     if self.max is None:
-    #         result["max"] = None
-    #     else:
-    #         result["max"] = self.max.isoformat()
-
-    #     return result
-        
-
-
 class DatetimeRangeFilterState(RangeFilterState):
     def __init__(self, varname : str, min : datetime = None, max : datetime = None):
         """
@@ -346,4 +319,4 @@ class DisplayState():
 
         dict_to_serialize = self.to_dict()
 
-        return json.dumps(dict_to_serialize, indent=indent_value)
+        return json.dumps(dict_to_serialize, indent=indent_value, default=custom_json_serializer)
