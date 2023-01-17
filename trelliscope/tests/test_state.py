@@ -14,6 +14,10 @@ def test_empty_display_state():
     expected_json = '{"layout":null,"labels":null,"sort":[],"filter":[]}'
     assert json.loads(actual_json) == json.loads(expected_json)
 
+def test_state_bad_values():
+    with pytest.raises(ValueError):
+        state = State("bad type")
+
 def test_layout_state_init():
     state = LayoutState(nrow=2, ncol=3, arrange="cols", page=4)
 
@@ -33,7 +37,6 @@ def test_label_state_init():
     state = LabelState(["one", "two"])
     assert type(state.varnames) == list
     assert state.varnames == ["one", "two"]
-    
 
 def test_label_state(iris_plus_df):
     state = LabelState(["Species", "date"])
@@ -43,6 +46,10 @@ def test_label_state(iris_plus_df):
         state2 = LabelState(["Species", "date", "stuff"])
         state2.check_with_data(iris_plus_df)
     
+def test_label_state_bad_values():
+    with pytest.raises(ValueError, match=r"Expected value .* to be a list"):
+        state = LabelState("Species")
+
 def test_sort_state_init():
     state = SortState("the var", SortState.DIR_DESCENDING)
     assert state.varname == "the var"

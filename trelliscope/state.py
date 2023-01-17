@@ -19,7 +19,18 @@ class State():
     def __init__(self, type : str):
         self.type = type
 
+        # Waiting to check the type until after setting
+        # the member variable, otherwise, the get error message
+        # function will have an error
+        check_enum(type, (State.TYPE_LAYOUT, State.TYPE_LABELS,
+                            State.TYPE_SORT, State.TYPE_FILTER),
+                            self._get_error_message)
+
+
     def to_dict(self) -> dict:
+        """
+        Returns a dictionary that can be serialized to json.
+        """
         result = self.__dict__
 
         # Remove any unwanted items
@@ -28,6 +39,9 @@ class State():
         return result
 
     def to_json(self, pretty: bool = True):
+        """
+        Returns a json version of this object that can be saved to output.
+        """
         indent_value = None
 
         if pretty:
@@ -52,6 +66,13 @@ class State():
 
 class LayoutState(State):
     def __init__(self, nrow : int = 1, ncol : int = 1, arrange : str = "rows", page : int = 1):
+        """
+        Params:
+            nrow: int - Number of rows
+            ncol: int - Number of cols
+            arrange: str ("rows" or "cols") - How to arrange
+            page: int - Number of pages
+        """
         super().__init__(State.TYPE_LAYOUT)
 
         if arrange is not None:
@@ -68,11 +89,16 @@ class LayoutState(State):
       # and accounting for nrow and ncol
       return True
 
+
 class LabelState(State):
     def __init__(self, varnames : list = []):
+        """
+        Params:
+            varnames: list - The list of variable names to filter
+        """
         super().__init__(State.TYPE_LABELS)
         
-        # TODO: Should we verify this is a list??
+        check_is_list(varnames, self._get_data_error_message)
         self.varnames = varnames
 
     def check_with_data(self, df: pd.DataFrame):
@@ -88,6 +114,11 @@ class SortState(State):
     DIR_DESCENDING = "desc"
 
     def __init__(self, varname : str, dir : str = DIR_ASCENDING):
+        """
+        Params:
+            varname: str - The variable name
+            dir: str ("asc" or "desc") - The direction of the sort
+        """
         super().__init__(State.TYPE_SORT)
 
         check_enum(dir, (SortState.DIR_ASCENDING, SortState.DIR_DESCENDING), self._get_error_message)
@@ -96,6 +127,7 @@ class SortState(State):
         self.dir = dir
 
     def check_with_data(self, df : pd.DataFrame):
+        super().check_with_data(df)
         if self.varname not in df.columns:
             raise ValueError(self._get_data_error_message(f"'{self.varname}' not found in the dataset that the {self.type} state definition is being applied to."))
         
@@ -116,9 +148,9 @@ class FilterState(State):
     def __init__(self, varname : str, filtertype : str, applies_to : list = None):
         """
         Params:
-            varname: Variable Name
-            filtertype: Type of Filter (see available constants)
-            applies_to: List of meta types. None indicates this applies to all meta definitions.
+            varname: str - Variable Name
+            filtertype: str - Type of Filter (see available constants)
+            applies_to: list - List of meta types. None indicates this applies to all meta definitions.
         """
         super().__init__(State.TYPE_FILTER)
 
@@ -177,6 +209,17 @@ class CategoryFilterState(FilterState):
 
 class RangeFilterState(FilterState):
     def __init__(self, varname : str, filtertype : str, applies_to : list, min = None, max = None):
+        """
+        This base class init function should likely only be called by
+        sub class init functions.
+
+        Params:
+            varname: str - The variable name
+            filtertype: str - The filter type
+            applies_to: list - List of meta types. None indicates this applies to all meta definitions.
+            min: (int or date) - The minimum value for the range
+            max: (int or date) - The maximum value for the range
+        """
         super().__init__(varname=varname, filtertype=filtertype, applies_to=applies_to)
         
         self.min = min
@@ -288,6 +331,9 @@ class DisplayState():
                 self.filter[varname] = state
 
     def to_dict(self) -> dict:
+        """
+        Returns a dictionary that can be serialized to json.
+        """
         result = {}
 
         layout_dict = None
@@ -312,6 +358,9 @@ class DisplayState():
         return result
 
     def to_json(self, pretty: bool = True) -> str:
+        """
+        Returns a json version of this object that can be saved to output.
+        """
         indent_value = None
 
         if pretty:
