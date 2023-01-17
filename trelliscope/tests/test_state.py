@@ -3,7 +3,7 @@ import json
 from datetime import date, datetime
 
 from trelliscope.state import State, FilterState, LabelState, SortState, DisplayState, LayoutState, CategoryFilterState, NumberRangeFilterState, DateRangeFilterState, DatetimeRangeFilterState
-from trelliscope.metas import Meta, DateMeta, StringMeta, FactorMeta, NumberMeta
+from trelliscope.metas import Meta, DateMeta, StringMeta, FactorMeta, NumberMeta, DatetimeMeta
 # Note, when using json results, we are converting the json to dictionaries
 # and comparing those to ignore any differences in order or whitespace
 
@@ -57,11 +57,10 @@ def test_sort_state_init():
 
 def test_sort_state(iris_plus_df):
     state = SortState("date")
-    #meta = DateMeta()
+    meta = DateMeta("date")
 
     state.check_with_data(iris_plus_df)
-    # TODO: Add this check in when DateMeta is finished
-    # state.check_with_meta(meta)
+    state.check_with_meta(meta)
 
     assert state.to_dict() == {"dir":"asc", "varname":"date", "type":"sort"}
 
@@ -90,17 +89,15 @@ def test_category_filter_state(iris_plus_df):
     state = CategoryFilterState("datestring", values="2023-02-24")
     meta1 = StringMeta("datastring")
     
-    # TODO: Add in when implemented
-    #meta2 = FactorMeta("datastring")
-    #meta3 = DateMeta("date")
+    meta2 = FactorMeta("datastring")
+    meta3 = DateMeta("date")
 
     state.check_with_data(iris_plus_df)
     state.check_with_meta(meta1)
 
-    # TODO: Add in when implemented
-    #state.check_with_meta(meta2)
-    # with pytest.raises(ValueError, match=r"is not compatible with this filter"):
-    #     state.check_with_meta(meta3)
+    state.check_with_meta(meta2)
+    with pytest.raises(ValueError, match=r"is not compatible with this filter"):
+        state.check_with_meta(meta3)
 
     actual_dict = state.to_dict()
     assert state.to_dict() == {"values":["2023-02-24"],
@@ -168,13 +165,11 @@ def test_date_range_filter_state_init():
 def test_date_range_filter_state(iris_plus_df):
     state = DateRangeFilterState("date", min=date(2010, 1, 1))
 
-    # TODO: ADD this back in 
-    #meta1 = DateMeta("date")
+    meta1 = DateMeta("date")
     meta2 = StringMeta("Species")
 
     state.check_with_data(iris_plus_df)
-    # TODO: ADD this back in 
-    #state.check_with_meta(meta1)
+    state.check_with_meta(meta1)
 
     with pytest.raises(ValueError, match=r"is not compatible with this filter"):
         state.check_with_meta(meta2)
@@ -209,13 +204,11 @@ def test_datetime_range_filter_state_init():
 def test_datetime_range_filter_state(iris_plus_df):
     state = DatetimeRangeFilterState("datetime", min=datetime(2010, 1, 1))
 
-    # TODO: ADD this back in 
-    #meta1 = DatetimeMeta("datetime")
+    meta1 = DatetimeMeta("datetime")
     meta2 = StringMeta("Species")
 
     state.check_with_data(iris_plus_df)
-    # TODO: ADD this back in 
-    #state.check_with_meta(meta1)
+    state.check_with_meta(meta1)
 
     with pytest.raises(ValueError, match=r"is not compatible with this filter"):
         state.check_with_meta(meta2)

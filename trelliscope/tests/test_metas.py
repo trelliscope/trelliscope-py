@@ -123,7 +123,8 @@ def test_number_meta(iris_df):
     assert ex.match("must be logical")
 
     ######
-    ### TODO: Pick up here.
+    ### TODO: 1/16 Pick up here.
+    ### 1. Build out tests for additional meta types
     ### 2. Check for regular expression terms in expected exceptions.
     ### 3. Document dependencies (both in writing and in requirements.txt file)
     ###    pytest
