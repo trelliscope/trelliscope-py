@@ -1,4 +1,4 @@
-from trelliscope.metas import Meta, NumberMeta, StringMeta, CurrencyMeta
+from trelliscope.metas import Meta, NumberMeta, StringMeta, CurrencyMeta, DateMeta, DatetimeMeta, FactorMeta, GeoMeta
 #from sklearn.datasets import load_iris
 import pandas as pd
 import pytest
@@ -138,13 +138,32 @@ def test_currency_meta(iris_df):
         meta5 = CurrencyMeta("Sepal.Length", code="ASD")
 
 
+def test_string_meta(iris_df):
+    meta = StringMeta("Species")
+    meta.check_with_data(iris_df)
 
+def test_factor_meta(iris_df):
+    meta = FactorMeta("Species")
+    meta.check_with_data(iris_df)
 
+def test_data_meta(iris_plus_df):
+    meta = DateMeta("date")
+    meta.check_with_data(iris_plus_df)
+
+def test_datetime_meta(iris_plus_df):
+    meta = DatetimeMeta("datetime")
+    meta.check_with_data(iris_plus_df)
+
+def test_geo_meta(iris_plus_df):
+    meta = GeoMeta("coords", latvar="lat", longvar="long")
+    meta.check_with_data(iris_plus_df)
 
     ######
     ### TODO: 1/16 Pick up here.
     ### 1. Build out tests for additional meta types
-    ### 2. Document dependencies (both in writing and in requirements.txt file)
+    ###  -- Finish updating GeoMeta class
+    ### 2. Determine how to handle factors and dates
+    ### 3. Document dependencies (both in writing and in requirements.txt file)
     ###    pytest
     ###    pandas
     ###    statsmodels

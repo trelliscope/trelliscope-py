@@ -5,6 +5,7 @@ from datetime import date, timedelta, datetime
 
 import pandas as pd
 import os
+import numpy as np
 
 CACHE_DIR = ".cache"
 CACHE_IRIS_DF = ".cache/iris.data"
@@ -59,6 +60,8 @@ def iris_plus_df(iris_df: pd.DataFrame):
     iris_df["date"] = iris_df.apply(lambda row: datetime(2023, 2, 24) + timedelta(days=row["id"], minutes=row["id"]), axis=1)
     iris_df["datetime"] = iris_df.apply(lambda row: row["date"].isoformat(), axis=1)
     iris_df["datestring"] = iris_df.apply(lambda row: row["date"].date().isoformat(), axis=1)
+    iris_df["lat"] = np.random.uniform(-90, 90, iris_df.shape[0])
+    iris_df["long"] = np.random.uniform(0, 180, iris_df.shape[0])
 
     #print(iris_df.head())
     return iris_df
