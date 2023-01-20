@@ -1,11 +1,10 @@
-from trelliscope.metas import Meta, NumberMeta, StringMeta
+from trelliscope.metas import Meta, NumberMeta, StringMeta, CurrencyMeta
 #from sklearn.datasets import load_iris
 import pandas as pd
 import pytest
 import json
 
 def test_string_meta_init(iris_df):
-    #iris_df = get_iris_dataset()
     meta = StringMeta(varname="Species", label="label", tags=[])
     
     assert meta.type == "string"
@@ -22,35 +21,29 @@ def test_string_meta_init(iris_df):
         meta.check_variable(iris_df)
 
 def test_number_meta_init(iris_df):
-    #iris_df = get_iris_dataset()
-
     number_meta = NumberMeta("Sepal.Length")
     assert number_meta.type == "number"
     assert number_meta.varname == "Sepal.Length"
     assert number_meta.filterable == True
     assert number_meta.sortable == True
-    assert number_meta.label is "Sepal.Length"
+    assert number_meta.label is None
     assert number_meta.tags == []
 
     number_meta.check_variable(iris_df)
 
 def test_number_meta_with_string(iris_df):
-    #iris_df = get_iris_dataset()
-
     number_meta = NumberMeta("Species")
     assert number_meta.type == "number"
     assert number_meta.varname == "Species"
     assert number_meta.filterable == True
     assert number_meta.sortable == True
-    assert number_meta.label == "Species"
+    assert number_meta.label == None
     assert number_meta.tags == []
 
     with pytest.raises(ValueError):
         number_meta.check_variable(iris_df)
 
 def test_check_varname(iris_df):
-    #iris_df = get_iris_dataset()
-
     meta = NumberMeta("Sepal.Length", tags="stuff")
     meta.check_with_data(iris_df)
 
@@ -59,8 +52,6 @@ def test_check_varname(iris_df):
         meta.check_with_data(iris_df)
 
 def test_check_with_data(iris_df):
-    #iris_df = get_iris_dataset()
-
     meta = NumberMeta("Sepal.Length", tags="stuff")
 
     # This should not cause an exception
@@ -83,20 +74,15 @@ def test_check_with_data(iris_df):
 
 
 def test_number_meta(iris_df):
-    #iris_df = get_iris_dataset()
-
     meta = NumberMeta("Sepal.Length", tags="stuff")
-
-    # TODO: verify this is expected behavior
-    assert meta.label == "Sepal.Length"
 
     meta.check_with_data(iris_df)
 
     assert meta.tags == ["stuff"]
 
-    actual_json = json.loads(meta.to_json())
-    expected_json = json.loads('{"locale":true,"digits":null,"sortable":true,"filterable":true,"tags":["stuff"],"label":"Sepal.Length","type":"number","varname":"Sepal.Length"}')
-    assert actual_json == expected_json
+    actual_json = meta.to_json()
+    expected_json = '{"locale":true,"digits":null,"sortable":true,"filterable":true,"tags":["stuff"],"label":"Sepal.Length","type":"number","varname":"Sepal.Length"}'
+    assert json.loads(actual_json) == json.loads(expected_json)
 
     meta = NumberMeta("Sepal.Length", label="Sepal length of the iris")
     assert meta.label == "Sepal length of the iris"
@@ -105,28 +91,60 @@ def test_number_meta(iris_df):
     assert meta.digits == 2
     assert meta.locale == False
 
-    with pytest.raises(ValueError) as ex:
+    with pytest.raises(ValueError, match=r"Could not find variable"):
         meta.check_with_data(iris_df)
-    assert ex.match("Could not find variable")
 
-    with pytest.raises(ValueError) as ex:
-        meta = NumberMeta("Species")
+    meta = NumberMeta("Species")
+    with pytest.raises(ValueError, match=r"must be numeric"):
         meta.check_with_data(iris_df)
-    assert ex.match("must be numeric")
 
-    with pytest.raises(TypeError) as ex:
+    with pytest.raises(TypeError, match=r"must be an integer"):
         meta = NumberMeta("Sepal.Length", digits = "a")
-    assert ex.match("must be an integer")
 
-    with pytest.raises(TypeError) as ex:
+    with pytest.raises(TypeError, match=r"must be logical"):
         meta = NumberMeta("Sepal.Length", locale = "a")
-    assert ex.match("must be logical")
+
+def test_currency_meta(iris_df):
+    meta = CurrencyMeta("Sepal.Length", label="Sepal length of the iris",
+                tags="a tag", code="EUR")
+    assert meta.varname == "Sepal.Length"
+    assert meta.label == "Sepal length of the iris"
+    assert meta.tags == ["a tag"]
+    assert meta.code == "EUR"
+
+def test_currency_meta(iris_df):
+    meta = CurrencyMeta("Sepal.Length", tags="stuff")
+    
+    meta.check_with_data(iris_df)
+    assert meta.tags == ["stuff"]
+
+    actual_json = meta.to_json(pretty=False)
+    expected_json = '{"code":"USD","sortable":true,"filterable":true,"tags":["stuff"],"label":"Sepal.Length","type":"currency","varname":"Sepal.Length"}'
+    assert json.loads(actual_json) == json.loads(expected_json)
+
+    meta2 = CurrencyMeta("Sepal.Length", label="Sepal length of the iris")
+    assert meta2.varname == "Sepal.Length"
+    assert meta2.label == "Sepal length of the iris"
+
+    meta3 = CurrencyMeta("whatever")
+    with pytest.raises(ValueError, match=r"Could not find variable"):
+        meta3.check_with_data(iris_df)
+
+    meta4 = CurrencyMeta("Species")
+    with pytest.raises(ValueError, match=r"must be numeric"):
+        meta4.check_with_data(iris_df)
+
+    with pytest.raises(ValueError, match=r"must be one of"):
+        meta5 = CurrencyMeta("Sepal.Length", code="ASD")
+
+
+
+
 
     ######
     ### TODO: 1/16 Pick up here.
     ### 1. Build out tests for additional meta types
-    ### 2. Check for regular expression terms in expected exceptions.
-    ### 3. Document dependencies (both in writing and in requirements.txt file)
+    ### 2. Document dependencies (both in writing and in requirements.txt file)
     ###    pytest
     ###    pandas
     ###    statsmodels

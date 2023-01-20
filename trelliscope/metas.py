@@ -4,6 +4,7 @@ from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
 
 from .utils import check_enum
+from .currencies import get_valid_currencies
 
 class Meta():
     TYPE_STRING = "string"
@@ -37,11 +38,6 @@ class Meta():
         else:
             raise ValueError("Tags is an unrecognized type.")
 
-        if label is None:
-            # TODO: Verify this behavior. It seems to be expected by
-            # a unit test, but was not present in the R code...
-            self.label = varname
-
     def _get_error_message(self, error_text: str):
         return f"While defining a `{self.type}` meta variable for the variable `{self.varname}`: `{error_text}`"
 
@@ -50,7 +46,13 @@ class Meta():
 
     def to_dict(self) -> dict:
         # Default __dict__ behavior is sufficient, because we don't have custom inner types
-        return self.__dict__
+        result = self.__dict__
+
+        # We need a label when it gets serialized, so use varname if needed
+        if self.label is None:
+            result["label"] = self.varname
+
+        return result
 
     def to_json(self, pretty: bool = True):
         indent_value = None
@@ -60,7 +62,7 @@ class Meta():
 
         return json.dumps(self.to_dict(), indent=indent_value)
 
-    def check_varname(self, df: pd.DataFrame):
+    def check_varname(self, df: pd.DataFrame):        
         if self.varname not in df.columns:
             raise ValueError(self._get_error_message("Could not find variable {self.varname} is in the list of columns"))
 
@@ -97,8 +99,8 @@ class CurrencyMeta(Meta):
         super().__init__(type=Meta.TYPE_CURRENCY, varname=varname, label=label, tags=tags,
             filterable=True, sortable=True)
 
-        # TODO: determine the list of possible currencies
-        # check_enum...
+        # Ensure that this currency code is valid
+        check_enum(code, get_valid_currencies(), self._get_error_message)
 
         self.code = code
 
