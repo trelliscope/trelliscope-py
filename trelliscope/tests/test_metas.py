@@ -158,15 +158,4 @@ def test_geo_meta(iris_plus_df):
     meta = GeoMeta("coords", latvar="lat", longvar="long")
     meta.check_with_data(iris_plus_df)
 
-    ######
-    ### TODO: 1/16 Pick up here.
-    ### 1. Build out tests for additional meta types
-    ###  -- Finish updating GeoMeta class
-    ### 2. Determine how to handle factors and dates
-    ### 3. Document dependencies (both in writing and in requirements.txt file)
-    ###    pytest
-    ###    pandas
-    ###    statsmodels
-    ####
-
 
