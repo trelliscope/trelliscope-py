@@ -3,7 +3,7 @@ import pandas as pd
 from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
 
-from .utils import check_enum
+from .utils import check_enum, check_has_variable, check_latitude_variable, check_longitude_variable
 from .currencies import get_valid_currencies
 
 class Meta():
@@ -63,8 +63,7 @@ class Meta():
         return json.dumps(self.to_dict(), indent=indent_value)
 
     def check_varname(self, df: pd.DataFrame):        
-        if self.varname not in df.columns:
-            raise ValueError(self._get_error_message("Could not find variable {self.varname} is in the list of columns"))
+        check_has_variable(df, self.varname, self._get_error_message)
 
     def check_variable(self, df: pd.DataFrame):
         # To be overridden by sub classes
@@ -188,9 +187,15 @@ class GeoMeta(Meta):
         self.latvar = latvar
         self.longvar = longvar
 
-        # TODO: Add checks for these variables, to make sure:
-        # 1. The variables exist
-        # 2. They are valid lat/longs
+    def check_varname(self, df: pd.DataFrame):
+        check_has_variable(df, self.latvar, self._get_data_error_message)
+        check_has_variable(df, self.longvar, self._get_data_error_message)
+
+    def check_variable(self, df: pd.DataFrame):
+        check_latitude_variable(df, self.latvar, self._get_data_error_message)
+        check_longitude_variable(df, self.longvar, self._get_data_error_message)
+
+    # TODO: add a cast variable function that converts lat and long into a single var name
 
     def to_dict(self) -> dict:
         # Overriding to make it so latvar and longvar are not serialized
