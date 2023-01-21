@@ -124,13 +124,23 @@ class FactorMeta(Meta):
         super().__init__(type=Meta.TYPE_FACTOR, varname=varname, label=label, tags=tags,
             filterable=True, sortable=True)
         
-        # TODO: Determine how to approach factors in pandas.. Categories?
-
         self.levels = levels
 
+    def infer_levels(self, df: pd.DataFrame):
+        """
+        Infers the factor levels from the dataframe. If the column is
+        a category, the category levels will be used directly. If the column
+        is not, it will be cast as a category to pull the levels.
+        """
+        if df[self.varname].dtype == "category":
+            self.levels = df[self.varname].cat.categories.to_list()
+        else:
+            self.levels = df[self.varname].astype("category").cat.categories.to_list()
+
     def check_variable(self, df: pd.DataFrame):
-        # TODO: Implement this to verify the factor levels match
-        raise NotImplementedError()
+        # This seems a little dangerous to change the object in a check function.
+        # Could we have them call an infer method instead?
+        self.infer_levels(df)
     
     # TODO: Add a cast_variable function? Convert this to a string column?
 

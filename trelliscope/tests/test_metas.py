@@ -145,6 +145,7 @@ def test_string_meta(iris_df):
 def test_factor_meta(iris_df):
     meta = FactorMeta("Species")
     meta.check_with_data(iris_df)
+    assert set(meta.levels) == set(["setosa", "virginica", "versicolor"])
 
 def test_data_meta(iris_plus_df):
     meta = DateMeta("date")
@@ -157,5 +158,4 @@ def test_datetime_meta(iris_plus_df):
 def test_geo_meta(iris_plus_df):
     meta = GeoMeta("coords", latvar="lat", longvar="long")
     meta.check_with_data(iris_plus_df)
-
-
+    
