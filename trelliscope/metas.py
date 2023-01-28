@@ -3,7 +3,7 @@ import pandas as pd
 from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
 
-from .utils import check_enum, check_has_variable, check_latitude_variable, check_longitude_variable, check_exhaustive_levels
+from .utils import check_enum, check_has_variable, check_latitude_variable, check_longitude_variable, check_exhaustive_levels, check_graph_var
 from .currencies import get_valid_currencies
 
 class Meta():
@@ -194,6 +194,10 @@ class GraphMeta(Meta):
 
         self.direction = direction
         self.idvarname = idvarname
+
+    def check_variable(self, df: pd.DataFrame):
+        check_has_variable(df, self.idvarname, self._get_data_error_message)
+        check_graph_var(df, self.varname, self.idvarname, self._get_data_error_message)
 
 
 class GeoMeta(Meta):

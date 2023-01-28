@@ -108,3 +108,11 @@ def check_exhaustive_levels(df: pd.DataFrame, levels: list, varname: str, get_er
 
     if len(diff) > 0:
         raise ValueError(get_error_message_function(f"{varname} contains values not specified in levels:{levels}"))
+
+def check_graph_var(df: pd.DataFrame, varname: str, id_varname: str, get_error_message_function):
+    """
+    """
+    # TODO: After we have determined how to handle the graph data in Pandas,
+    # implement this method to verify it.
+
+    raise NotImplementedError()

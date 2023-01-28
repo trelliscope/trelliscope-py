@@ -1,4 +1,4 @@
-from trelliscope.metas import Meta, NumberMeta, StringMeta, CurrencyMeta, DateMeta, DatetimeMeta, FactorMeta, GeoMeta
+from trelliscope.metas import Meta, NumberMeta, StringMeta, CurrencyMeta, DateMeta, DatetimeMeta, FactorMeta, GeoMeta, GraphMeta, HrefMeta
 #from sklearn.datasets import load_iris
 import pandas as pd
 import pytest
@@ -174,4 +174,19 @@ def test_datetime_meta(iris_plus_df):
 def test_geo_meta(iris_plus_df):
     meta = GeoMeta("coords", latvar="lat", longvar="long")
     meta.check_with_data(iris_plus_df)
-    
+
+def test_graph_meta(iris_plus_df):
+    #TODO: The iris_plus_df will need to have extra columns added for this
+
+    meta = GraphMeta("lst", "id", "to")
+    meta.check_with_data(iris_plus_df)
+
+def test_href_meta(iris_plus_df):
+    # First use a proper href category
+    meta = HrefMeta("href")
+    meta.check_with_data(iris_plus_df)
+
+    # Try a numeric category (error)
+    meta2 = HrefMeta("Sepal.Length")
+    with pytest.raises(ValueError, match="Data type is not a string"):
+        meta2.check_with_data(iris_plus_df)

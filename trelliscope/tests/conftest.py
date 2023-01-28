@@ -62,6 +62,7 @@ def iris_plus_df(iris_df: pd.DataFrame):
     iris_df["datestring"] = iris_df.apply(lambda row: row["date"].date().isoformat(), axis=1)
     iris_df["lat"] = np.random.uniform(-90, 90, iris_df.shape[0])
     iris_df["long"] = np.random.uniform(0, 180, iris_df.shape[0])
+    iris_df["href"] = iris_df.apply(lambda row: f"https://www.google.com/{row['id']}", axis=1)
 
     #print(iris_df.head())
     return iris_df
