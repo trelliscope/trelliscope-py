@@ -12,6 +12,7 @@ import os
 import uuid
 import json
 import shutil
+import glob
 import pandas as pd
 from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
@@ -30,7 +31,7 @@ class Trelliscope:
     """
 
     DISPLAYS_DIR = "displays"
-    CONFIG_FILE_NAME = "config.jsonp"
+    CONFIG_FILE_NAME_PREFIX = "config"
     DISPLAY_LIST_FILE_NAME = "displayList.jsonp"
     DISPLAY_INFO_FILE_NAME = "displayInfo.jsonp"
     METADATA_FILE_NAME = "metaData.jsonp"
@@ -58,48 +59,49 @@ class Trelliscope:
 
         # TODO: Add lots of checks here to ensure the data types match etc
 
-        self._data_frame: pd.DateOffset = dataFrame
-        self._name: str = name
-        self._description: str = description
-        self._tags: list = tags
-        self._key_cols: list = key_cols
-        self._path: str = path
-        self._force_plot: bool = force_plot
-        self._panel_col = panel_col
-        self._debug = debug
+        self.data_frame: pd.DateOffset = dataFrame
+        self.name: str = name
+        self.description: str = description
+        self.tags: list = tags
+        self.key_cols: list = key_cols
+        self.path: str = path
+        self.force_plot: bool = force_plot
+        self.panel_col = panel_col
+        self.debug = debug
 
         #TODO: Is there a reason this is not a true uuid?
-        self._id = uuid.uuid4().hex[:8]
+        self.id = uuid.uuid4().hex[:8]
 
-        if self._description is None:
-            self._description = self._name
+        if self.description is None:
+            self.description = self.name
 
-        if self._tags is None:
-            self._tags = []
+        if self.tags is None:
+            self.tags = []
 
-        if self._key_cols is None:
+        if self.key_cols is None:
             # TODO: Infer this somehow or make sure it's set on the df...
-            self._key_cols = ["name"]
+            self.key_cols = ["name"]
 
-        self._metas = {}
-        self._columns_to_ignore = []
-        self._state = DisplayState()
+        self.metas = {}
+        self.columns_to_ignore = []
+        self.state = DisplayState()
         
-        self._views = {}
-        self._inputs = {}
-        self._type_type = None
+        self.views = {}
+        self.inputs = {}
+        self.panel_type = None
+        self.panels_written = False
 
     def set_meta(self, meta: Meta):
         if not issubclass(meta, Meta):
             raise ValueError("Error: Meta definition must be a valid Meta class instance.")
         
-        meta.check_with_data(self._data_frame)
+        meta.check_with_data(self.data_frame)
         name = meta.varname
 
-        if name in self._metas:
+        if name in self.metas:
             logging.info(f"Replacing existing meta variable {name}")
 
-        self._metas[name] = meta
+        self.metas[name] = meta
 
     def set_metas(self, meta_list: list):
         for meta in meta_list:
@@ -107,7 +109,7 @@ class Trelliscope:
 
     def add_meta(self, meta_name: str, meta: Meta):
         # TODO: Should we make a copy here??
-        self._metas[meta_name] = meta
+        self.metas[meta_name] = meta
 
         return self
 
@@ -117,38 +119,104 @@ class Trelliscope:
     def set_view(self, view: View):
         name  = view.name
 
-        if name in self._views:
+        if name in self.views:
             logging.info("Replacing existing view {name}")
 
-        self._views[name] = view
+        self.views[name] = view
 
     def set_input(self, input: Input):
         name = input.name
 
-        if name in self._inputs:
+        if name in self.inputs:
             logging.info("Replacing existing input {input}")
 
-        self._inputs[name] = input
+        self.inputs[name] = input
 
     def get_output_path(self) -> str:
         #TODO: See how to handle names with multiple words, etc.
         #TODO: Do we care about other special characters here?
-        name_dir = self._name.lower().replace(" ", "_")
+        name_dir = self.name.lower().replace(" ", "_")
 
-        return os.path.join(self._path, name_dir)
+        return os.path.join(self.path, name_dir)
 
     def get_displays_path(self) -> str:
         output_path = self.get_output_path()
         return os.path.join(output_path, Trelliscope.DISPLAYS_DIR)
     
-    # TODO: fill this in. In R, they first build a list and then to_json it here
-    # def to_json(self, pretty: bool = True):
+    def to_dict(self) -> dict:
+        result = {}
 
-    # TODO: fill thi in with a detailed listing of everything in the trelliscope
-    # def __repr__(self) -> str:
+        result["name"] = self.name
+        result["description"] = self.description
+        result["tags"] = self.tags
+        result["key_cols"] = self.key_cols
+        result["metas"] = self.metas.values()
+        result["state"] = self.state.to_dict()
+        result["views"] = self.views.values()
+        result["inputs"] = self.inputs.values()
+        result["panel_type"] = self.panel_type
+
+        return result
+
+    def to_json(self, pretty: bool = True) -> str:
+        indent_value = None
+
+        if pretty:
+            indent_value = 2
+
+        return json.dumps(self.to_dict(), indent=indent_value)
+    
+    def __repr__(self) -> str:
+        output = []
+        output.append("A trelliscope display")
+        output.append(f"* Name: {self.name}")
+        output.append(f"* Description: {self.description}")
+
+        if len(self.tags) == 0:
+            output.append(f"* Tags: None")
+        else:
+            output.append(f"* Tags: {self.tags}")
+
+        output.append(f"* Key columns: {self.key_cols}")
+        output.append(f"---")
+        output.append(f"* Path: {self.path}")
+        output.append(f"* Number of panels: {len(self.data_frame)}")
+        
+        written_str = "yes" if self.panels_written else "no"
+        output.append(f"* Panels written: {written_str}")
+        output.append(f"---")
+        output.append(f"* Meta Info:")
+
+        meta_info = self._get_meta_info_for_output()
+        output.extend(meta_info)
+
+        result = "\n".join(output)
+        return result
+
+    def _get_meta_info_for_output(self):
+        """
+        Returns a list of all the meta info that could be used for
+        ToString type purposes.
+        """
+        output = []
+
+        # TODO: Fill this in to iterate through the columns and metas
+        # to display their information
+
+        return output
+
+    def write_display(self, force_write: bool = False, jsonp: bool = True):
+        """
+        Write the contents of this display.
+        Params:
+            force_write: bool - Should the panels be forced to be written even
+                if they have already been written?
+            jsonp: bool - If true, app files are written as "jsonp" format, otherwise
+                "json" format. The "jsonp" format makes it possible to browse a
+                trelliscope app without the need for a web server.
+        """
         
 
-    def write_display(self):
         # TODO: Do we want to use the temp file context manager so our files are cleaned up after?
         # Or is the point to leave it around for a while?
         # https://docs.python.org/3/library/tempfile.html
@@ -158,23 +226,96 @@ class Trelliscope:
         # with tempfile.TemporaryDirectory() as tmpdirname:
 
         output_dir = self.get_output_path()
-        print(f"Saving to {output_dir}")
+        logging.info(f"Saving to {output_dir}")
 
         # Remove the targeted output dir if it already exists
         if os.path.exists(output_dir):
             shutil.rmtree(output_dir)
 
-        displays_dir = self.get_displays_path()
-        
+        # Create the output dir and the displays dir beneath it
+        displays_dir = self.get_displays_path()        
         os.makedirs(output_dir)
         os.makedirs(displays_dir)
 
-        tr = self.infer()
+        config = self._check_app_config(output_dir, jsonp)
 
-        tr._write_config_file(output_dir)
+        tr = self.infer()
         tr._write_displays(displays_dir)
 
         return tr
+    
+    def _check_app_config(self, app_dir, jsonp):
+        """
+        Gets the app config. If a config file exists in the `app_dir`
+        it will be used. Otherwise, a new config will be created and
+        returned.
+        Params:
+            app_dir: str - The displays directory
+            jsonp: bool - Should jsonp be used instead of json?
+        """
+        config_dict = {}
+
+        prefix = Trelliscope.CONFIG_FILE_NAME_PREFIX
+        config_filename = f"{prefix}.jsonp" if jsonp else "{prefix}.json"
+        config_file = os.path.join(app_dir, config_filename)
+
+        # Note: in the r version, they check for either kind of config file
+        # but it seems like we could simplify and only check for the kind
+        # that they are wanting to use.
+        # TODO: Verify this assumption.
+
+        # Find the config.json or config.jsonp file to use
+        # filename_pattern = os.path.join(app_dir, "config.json*")
+        # files = glob.glob(filename_pattern)
+        # if len(files) > 0:
+        #     config_file = files[0]
+        #     config_dict = self.__read_jsonp(config_file)
+        if os.path.exists(config_file):
+            config_dict = Trelliscope.__read_jsonp(config_file)
+        else:
+            # No config file found, generating new info
+            config_dict["name"] = "Trelliscope App"
+            config_dict["data_type"] = "jsonp" if jsonp else "json"
+            # TODO: Verify that this is the correct id here
+            # We might just want to get a random hash based on the current time
+            config_dict["id"] = self.id
+
+            wrap_text_dict = Trelliscope.__get_jsonp_wrap_text_dict(jsonp, f"__loadAppConfig__{config_dict['id']}")
+            content = wrap_text_dict["start"] + json.dumps(config_dict, indent=2) + wrap_text_dict["end"]
+            with open(config_file, "w") as output_file:
+                output_file.write(content)
+
+        return config_dict
+
+    @staticmethod
+    def __get_jsonp_wrap_text_dict(jsonp, function_name):
+        """
+        Gets the starting and ending text to use for the config file.
+        If it is jsonp, it will have a function name and ()'s. If it is
+        not (ie, regular json), it will have empty strings.
+        """
+        text_dict = {}
+        if jsonp:
+            text_dict["start"] = f"{function_name}("
+            text_dict["end"] = ")"
+        else:
+            text_dict["start"] = ""
+            text_dict["end"] = ""
+
+        return text_dict
+
+    @staticmethod
+    def __read_jsonp(self, file):
+        raise NotImplementedError()
+        # TODO: fill in this function to gather all the JSON we need
+        # likely we will need to handle the function wrapper, then
+        # use standard json.loads to handle the rest
+        content = ""
+        with open(file) as file_handle:
+            content = self.__read_jsonp(file_handle.read())
+
+        return {}
+
 
     def infer(self):
         tr = self._infer_metas()
@@ -192,10 +333,10 @@ class Trelliscope:
         tr = self.__copy()
 
         # get column names from the data frame
-        column_names = tr._data_frame.columns
+        column_names = tr.data_frame.columns
 
         # compare to metas that are already defined
-        existing_meta_names = tr._metas.keys()
+        existing_meta_names = tr.metas.keys()
 
         # go through each column name that does not have a corresponding meta
         metas_to_infer = set(column_names) - set(existing_meta_names)
@@ -206,7 +347,7 @@ class Trelliscope:
         metas_inferred = []
 
         for meta_name in metas_to_infer:
-            meta = tr._infer_meta_variable(tr._data_frame[meta_name], meta_name)
+            meta = tr._infer_meta_variable(tr.data_frame[meta_name], meta_name)
 
             if meta is None:
                 # Could not infer this meta, add to remove list
@@ -218,7 +359,7 @@ class Trelliscope:
                 tr.add_meta(meta_name, meta)
 
         # Add to the ignore list any that we could not infer
-        tr._columns_to_ignore.extend(metas_to_remove)
+        tr.columns_to_ignore.extend(metas_to_remove)
 
         logging.debug(f"Successfully inferred metas: {metas_inferred}")
 
@@ -264,7 +405,7 @@ class Trelliscope:
         # to make copies of the metas here before changing the label
         tr = self.__copy()
 
-        for meta in self._metas.values():
+        for meta in self.metas.values():
             if meta.label is None:
                 meta.label = meta.varname
 
@@ -272,19 +413,6 @@ class Trelliscope:
 
     def infer_state():
         pass
-
-    def _write_config_file(self, output_dir):
-        file_path = os.path.join(output_dir, Trelliscope.CONFIG_FILE_NAME)
-
-        config_dict = {"name": "Trelliscope App",
-                        "data_type": "jsonp",
-                        "id" : self._id}
-        config_json = json.dumps(config_dict, indent=2)
-
-        output_content = f"__loadAppConfig__{self._id}({config_json})"
-
-        with open(file_path, "w") as output_file:
-            output_file.write(output_content)
             
     def _write_displays(self, displays_dir: str):
         file_path = os.path.join(displays_dir, Trelliscope.DISPLAY_LIST_FILE_NAME)
@@ -294,18 +422,18 @@ class Trelliscope:
         #TODO: This is a list instead of a dictionary... is it possible to have more
         # than just this one item in the list??
         # If so the following should be in a loop
-        display_info_dict = {"name": self._name,
-                            "description": self._description,
-                            "tags": self._tags}
+        display_info_dict = {"name": self.name,
+                            "description": self.description,
+                            "tags": self.tags}
         display_list.append(display_info_dict)
 
-        self._write_single_display(self._name, displays_dir)
+        self._write_single_display(self.name, displays_dir)
 
         # TODO: End loop
 
         # Now, write out the display list file
         display_list_json = json.dumps(display_list, indent=2)
-        output_content = f"__loadDisplayList__{self._id}({display_list_json})"
+        output_content = f"__loadDisplayList__{self.id}({display_list_json})"
 
         with open(file_path, "w") as output_file:
             output_file.write(output_content)
@@ -328,10 +456,10 @@ class Trelliscope:
         # TODO: Fill in all the state variables based on actual settings
 
         display_info_dict = {
-            "name": self._name,
-            "description": self._description,
-            "tags": self._tags,
-            "key_cols": self._key_cols,
+            "name": self.name,
+            "description": self.description,
+            "tags": self.tags,
+            "key_cols": self.key_cols,
             "metas": metas_list,
             "state": {
                 "layout": {
@@ -354,13 +482,13 @@ class Trelliscope:
         }
 
         display_info_json = json.dumps(display_info_dict, indent=2)
-        output_content = f"__loadDisplayInfo__{self._id}({display_info_json})"
+        output_content = f"__loadDisplayInfo__{self.id}({display_info_json})"
 
         with open(file_path, "w") as output_file:
             output_file.write(output_content)
 
     def _get_metas_list(self) -> list:
-        meta_list = [meta.to_dict() for meta in self._metas.values()]
+        meta_list = [meta.to_dict() for meta in self.metas.values()]
         return meta_list
 
     def _write_meta_data(self, output_dir: str):
@@ -369,16 +497,16 @@ class Trelliscope:
         # define all the information, rather than passing in unique params
         file_path = os.path.join(output_dir, Trelliscope.METADATA_FILE_NAME)
 
-        if self._debug:
+        if self.debug:
             # Pretty print the json if in debug mode
-            meta_data_json = self._data_frame.to_json(orient="records", indent=2)
+            meta_data_json = self.data_frame.to_json(orient="records", indent=2)
         else:
-            meta_data_json = self._data_frame.to_json(orient="records")
+            meta_data_json = self.data_frame.to_json(orient="records")
 
         # Turn the escaped \/ into just /
         meta_data_json = meta_data_json.replace("\\/", "/")
 
-        output_content = f"__loadMetaData__{self._id}({meta_data_json})"
+        output_content = f"__loadMetaData__{self.id}({meta_data_json})"
 
         with open(file_path, "w") as output_file:
             output_file.write(output_content)
