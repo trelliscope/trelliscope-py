@@ -3,7 +3,7 @@ import pandas as pd
 from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
 
-from .utils import check_enum, check_has_variable, check_latitude_variable, check_longitude_variable
+from .utils import check_enum, check_has_variable, check_latitude_variable, check_longitude_variable, check_exhaustive_levels
 from .currencies import get_valid_currencies
 
 class Meta():
@@ -138,9 +138,16 @@ class FactorMeta(Meta):
             self.levels = df[self.varname].astype("category").cat.categories.to_list()
 
     def check_variable(self, df: pd.DataFrame):
-        # This seems a little dangerous to change the object in a check function.
-        # Could we have them call an infer method instead?
-        self.infer_levels(df)
+        # Infer levels if not provided
+        if self.levels is None:
+            # This seems a little dangerous to change the object in a check function.
+            # Could we have them call an infer method instead?
+            self.infer_levels(df)
+
+        # Ensure that levels match the data
+        check_exhaustive_levels(df, self.levels, self.varname, self._get_data_error_message)
+
+        
     
     # TODO: Add a cast_variable function? Convert this to a string column?
 

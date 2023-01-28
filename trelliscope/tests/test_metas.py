@@ -142,10 +142,26 @@ def test_string_meta(iris_df):
     meta = StringMeta("Species")
     meta.check_with_data(iris_df)
 
+    # TODO: Should this raise an error or work fine?
+    # The R unit test shows this should be fine, but it seems like
+    # it should raise an error.
+    meta2 = StringMeta("Sepal.Length")
+    meta2.check_with_data(iris_df)
+
 def test_factor_meta(iris_df):
+    # Try a case where we don't specify the levels but they get inferred
     meta = FactorMeta("Species")
     meta.check_with_data(iris_df)
     assert set(meta.levels) == set(["setosa", "virginica", "versicolor"])
+
+    # Try a case where the levels don't contain all the data (Error)
+    meta2 = FactorMeta("Species", levels=["setosa", "virginica"])
+    with pytest.raises(ValueError, match=r"contains values not specified"):
+        meta2.check_with_data(iris_df)
+
+    # Try a case where the levels have extra items (this is ok)
+    meta3 = FactorMeta("Species", levels=["setosa", "virginica", "versicolor", "stuff"])
+    meta3.check_with_data(iris_df)
 
 def test_data_meta(iris_plus_df):
     meta = DateMeta("date")

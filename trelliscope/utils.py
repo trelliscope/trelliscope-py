@@ -89,4 +89,22 @@ def custom_json_serializer(obj):
 
     if isinstance(obj, (datetime, date)):
         return obj.isoformat()
-    raise TypeError ("Type {type(obj)} is not serializable")
+    raise TypeError("Type {type(obj)} is not serializable")
+
+def check_exhaustive_levels(df: pd.DataFrame, levels: list, varname: str, get_error_message_function):
+    """
+    Verifies that the values in the `varname` column contains only those values specified
+    in `levels`. If any extras are found, an error is raised.
+    Params:
+        df: Pandas DataFrame
+        levels: list - The possible values
+        varname: The column to check
+        get_error_message_function: The function to call to get the error message template
+    """
+    actual_values = set(df[varname].unique())
+    expected_values = set(levels)
+
+    diff = actual_values - expected_values
+
+    if len(diff) > 0:
+        raise ValueError(get_error_message_function(f"{varname} contains values not specified in levels:{levels}"))
