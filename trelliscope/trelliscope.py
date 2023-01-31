@@ -519,10 +519,7 @@ class Trelliscope:
         display_info_list = []
 
         for file in files:
-            print(f"File: {file}")
             from_file = Trelliscope.__read_jsonp(file)
-            print("From file:")
-            print(from_file)
             keys_to_keep = ["name", "description", "tags"]
             display_info = {key: from_file[key] for key in keys_to_keep}
             display_info_list.append(display_info)
@@ -533,80 +530,6 @@ class Trelliscope:
         function_name = f"__loadDisplayList__{id}"
         content = json.dumps(display_info_list, indent=2)
         Trelliscope.__write_json_file(display_list_file, jsonp, function_name, content)
-
-
-    # def _write_displays(self, displays_dir: str):
-    #     file_path = os.path.join(displays_dir, Trelliscope.DISPLAY_LIST_FILE_NAME)
-
-    #     display_list = []
-
-    #     #TODO: This is a list instead of a dictionary... is it possible to have more
-    #     # than just this one item in the list??
-    #     # If so the following should be in a loop
-    #     display_info_dict = {"name": self.name,
-    #                         "description": self.description,
-    #                         "tags": self.tags}
-    #     display_list.append(display_info_dict)
-
-    #     self._write_single_display(self.name, displays_dir)
-
-    #     # TODO: End loop
-
-    #     # Now, write out the display list file
-    #     display_list_json = json.dumps(display_list, indent=2)
-    #     output_content = f"__loadDisplayList__{self.id}({display_list_json})"
-
-    #     with open(file_path, "w") as output_file:
-    #         output_file.write(output_content)
-
-    # def _write_single_display(self, name: str, displays_dir: str):
-    #     single_display_dir = os.path.join(displays_dir, name)
-    #     os.makedirs(single_display_dir)
-
-    #     self._write_display_info(single_display_dir)
-    #     self._write_meta_data(single_display_dir)
-
-    # def _write_display_info(self, output_dir: str):
-    #     # TODO: This will need to be refactored if there are more than
-    #     # one display info to print out. This assumes the member variables
-    #     # define all the information, rather than passing in unique params
-    #     file_path = os.path.join(output_dir, Trelliscope.DISPLAY_INFO_FILE_NAME)
-
-    #     metas_list = self._get_metas_list()
-
-    #     # TODO: Fill in all the state variables based on actual settings
-
-    #     display_info_dict = {
-    #         "name": self.name,
-    #         "description": self.description,
-    #         "tags": self.tags,
-    #         "key_cols": self.key_cols,
-    #         "metas": metas_list,
-    #         "state": {
-    #             "layout": {
-    #             "page": 1,
-    #             "arrange": "rows",
-    #             "ncol": 3,
-    #             "nrow": 2,
-    #             "type": "layout"
-    #             },
-    #             "labels": {
-    #             "varnames": ["name"],
-    #             "type": "labels"
-    #             },
-    #             "sort": [],
-    #             "filter": []
-    #         },
-    #         "views": [],
-    #         "inputs": [],
-    #         "panel_type": "img"
-    #     }
-
-    #     display_info_json = json.dumps(display_info_dict, indent=2)
-    #     output_content = f"__loadDisplayInfo__{self.id}({display_info_json})"
-
-    #     with open(file_path, "w") as output_file:
-    #         output_file.write(output_content)
 
     def _get_metas_list(self) -> list:
         meta_list = [meta.to_dict() for meta in self.metas.values()]
