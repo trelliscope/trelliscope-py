@@ -279,7 +279,11 @@ class Trelliscope:
 
         tr._write_display_info(jsonp, config["id"])
         tr._write_meta_data(jsonp, config["id"])
-        tr._update_display_list(self.path, jsonp, config["id"])
+
+        # TODO: Should this look in the path or the output path (ie. with the current name on it)
+        # In R it was just the path, but from my example run, it seemed to have the dataset
+        # name (ie. the output path)
+        tr._update_display_list(self.get_output_path(), jsonp, config["id"])
 
         return tr
 
@@ -366,17 +370,22 @@ class Trelliscope:
         return file_path
 
     @staticmethod
-    def __read_jsonp(self, file: str) -> dict():
-        raise NotImplementedError()
-        # TODO: fill in this function to gather all the JSON we need
-        # likely we will need to handle the function wrapper, then
-        # use standard json.loads to handle the rest
+    def __read_jsonp(file: str) -> dict():
+        
+        # TODO: Can we assume this is always jsonp, or do we need to
+        # handle json as well?
+
         content = ""
         with open(file) as file_handle:
-            content = self.__read_jsonp(file_handle.read())
+            content = file_handle.read()
 
-        return {}
+        open_paren_index = content.index("(")
+        close_paren_index = content.rindex(")")
 
+        json_content = content[open_paren_index + 1 : close_paren_index]
+
+        result = json.loads(json_content)
+        return result
 
     def infer(self):
         tr = self._infer_metas()
@@ -485,9 +494,45 @@ class Trelliscope:
 
         Trelliscope.__write_json_file(file, jsonp, function_name, content)
 
-    def _update_display_list(self, path:str, jsonp:bool, id:str):
-        # TODO: Fill this in
-        pass
+    def _update_display_list(self, app_path:str, jsonp:bool, id:str):
+        """
+        Update the list of all displays in an app directory.
+        Params:
+            app_path: str - The path where all of the displays are stored
+            jsonp: bool - If true, files are read and written as "jsonp" format,
+                otherwise "json" format. The "jsonp" format makes it possible to browse a
+                trelliscope app without the need for a web server.
+            id: str - The id of the display. Can be found in `config.json[p]`.
+        """
+        displays_dir = os.path.join(app_path, Trelliscope.DISPLAYS_DIR)
+        
+        if not os.path.exists(displays_dir):
+            raise ValueError(f"The directory {app_path} does not contain any displays.")
+        
+        ext = "jsonp" if jsonp else "json"
+        filename = f"{Trelliscope.DISPLAY_INFO_FILE_NAME}.{ext}"
+
+        pattern = os.path.join(app_path, Trelliscope.DISPLAYS_DIR, "*", filename)
+        # print("Pattern: " + pattern)
+        files = glob.glob(pattern)
+
+        display_info_list = []
+
+        for file in files:
+            print(f"File: {file}")
+            from_file = Trelliscope.__read_jsonp(file)
+            print("From file:")
+            print(from_file)
+            keys_to_keep = ["name", "description", "tags"]
+            display_info = {key: from_file[key] for key in keys_to_keep}
+            display_info_list.append(display_info)
+
+        display_list_file = Trelliscope.__get_file_path(self.get_displays_path(),
+                                                        Trelliscope.DISPLAY_LIST_FILE_NAME,
+                                                        jsonp)
+        function_name = f"__loadDisplayList__{id}"
+        content = json.dumps(display_info_list, indent=2)
+        Trelliscope.__write_json_file(display_list_file, jsonp, function_name, content)
 
 
     # def _write_displays(self, displays_dir: str):
