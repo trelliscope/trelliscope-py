@@ -133,8 +133,8 @@ class Trelliscope:
 
         self.inputs[name] = input
 
-    def _get_name_dir(self) -> str:
-        return Trelliscope.__sanitize(self.name)
+    def _get_name_dir(self, to_lower: bool = True) -> str:
+        return Trelliscope.__sanitize(self.name, to_lower)
 
     def get_output_path(self) -> str:
         return os.path.join(self.path, self._get_name_dir())
@@ -144,11 +144,13 @@ class Trelliscope:
         return os.path.join(output_path, Trelliscope.DISPLAYS_DIR)
     
     def get_dataset_display_path(self) -> str:
-        return os.path.join(self.get_displays_path(), self._get_name_dir())
+        return os.path.join(self.get_displays_path(), self._get_name_dir(False))
     
     @staticmethod
-    def __sanitize(text:str) -> str:
-        text = text.lower()
+    def __sanitize(text:str, to_lower=True) -> str:
+        if to_lower:
+            text = text.lower()
+        
         text = text.replace(" ", "_")
         text = re.sub(r"[^\w]", "", text)
 
