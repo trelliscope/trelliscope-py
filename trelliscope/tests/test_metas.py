@@ -10,7 +10,7 @@ def test_string_meta_init(iris_df):
     assert meta.type == "string"
     assert meta.varname == "Species"
     assert meta.filterable == True
-    assert meta.sortable == False
+    assert meta.sortable == True
     assert meta.label == "label"
     assert type(meta.tags) == list
 

@@ -12,6 +12,7 @@ import os
 import uuid
 import json
 import shutil
+import re
 import glob
 import pandas as pd
 from pandas.api.types import is_string_dtype
@@ -31,10 +32,10 @@ class Trelliscope:
     """
 
     DISPLAYS_DIR = "displays"
-    CONFIG_FILE_NAME_PREFIX = "config"
-    DISPLAY_LIST_FILE_NAME = "displayList.jsonp"
-    DISPLAY_INFO_FILE_NAME = "displayInfo.jsonp"
-    METADATA_FILE_NAME = "metaData.jsonp"
+    CONFIG_FILE_NAME = "config"
+    DISPLAY_LIST_FILE_NAME = "displayList"
+    DISPLAY_INFO_FILE_NAME = "displayInfo"
+    METADATA_FILE_NAME = "metaData"
 
     def __init__(self, dataFrame: pd.DataFrame, name: str, description: str = None, key_cols = None, tags = None,
             path = None, force_plot = False, panel_col = None, debug = False):
@@ -132,16 +133,26 @@ class Trelliscope:
 
         self.inputs[name] = input
 
-    def get_output_path(self) -> str:
-        #TODO: See how to handle names with multiple words, etc.
-        #TODO: Do we care about other special characters here?
-        name_dir = self.name.lower().replace(" ", "_")
+    def _get_name_dir(self) -> str:
+        return Trelliscope.__sanitize(self.name)
 
-        return os.path.join(self.path, name_dir)
+    def get_output_path(self) -> str:
+        return os.path.join(self.path, self._get_name_dir())
 
     def get_displays_path(self) -> str:
         output_path = self.get_output_path()
         return os.path.join(output_path, Trelliscope.DISPLAYS_DIR)
+    
+    def get_dataset_display_path(self) -> str:
+        return os.path.join(self.get_displays_path(), self._get_name_dir())
+    
+    @staticmethod
+    def __sanitize(text:str) -> str:
+        text = text.lower()
+        text = text.replace(" ", "_")
+        text = re.sub(r"[^\w]", "", text)
+
+        return text
     
     def to_dict(self) -> dict:
         result = {}
@@ -150,10 +161,10 @@ class Trelliscope:
         result["description"] = self.description
         result["tags"] = self.tags
         result["key_cols"] = self.key_cols
-        result["metas"] = self.metas.values()
+        result["metas"] = [meta.to_dict() for meta in self.metas.values()]
         result["state"] = self.state.to_dict()
-        result["views"] = self.views.values()
-        result["inputs"] = self.inputs.values()
+        result["views"] = [view.to_dict() for view in self.views.values()]
+        result["inputs"] = [input.to_dict() for input in self.inputs.values()]
         result["panel_type"] = self.panel_type
 
         return result
@@ -164,6 +175,7 @@ class Trelliscope:
         if pretty:
             indent_value = 2
 
+        dict_to_serialize = self.to_dict()
         return json.dumps(self.to_dict(), indent=indent_value)
     
     def __repr__(self) -> str:
@@ -228,34 +240,64 @@ class Trelliscope:
         output_dir = self.get_output_path()
         logging.info(f"Saving to {output_dir}")
 
+        # TODO: Verify that we want to remove this rather than
+        # just overwriting / appending...
+
         # Remove the targeted output dir if it already exists
         if os.path.exists(output_dir):
             shutil.rmtree(output_dir)
 
         # Create the output dir and the displays dir beneath it
-        displays_dir = self.get_displays_path()        
         os.makedirs(output_dir)
-        os.makedirs(displays_dir)
+        os.makedirs(self.get_displays_path())
+        os.makedirs(self.get_dataset_display_path())
 
         config = self._check_app_config(output_dir, jsonp)
 
-        tr = self.infer()
-        tr._write_displays(displays_dir)
+        config_using_jsonp = False
+        if "data_type" in config.keys() and config["data_type"] == "jsonp":
+            config_using_jsonp = True
+
+        if config_using_jsonp != jsonp:
+            jsonp = config_using_jsonp
+            logging.info(f"Using jsonp={jsonp}")
+
+        tr = self.__copy()
+
+        # TODO: Determine how to check if the panel column is writable.
+        # In R they check to make sure it doesn't inherit from img_panel or iframe_panel
+        writable = True
+
+        if ((not tr.panels_written) or force_write) and writable:
+            tr = tr.write_panels()
+
+        tr = tr.infer()
+        
+        tr._check_panels()
+
+        tr._write_display_info(jsonp, config["id"])
+        tr._write_meta_data(jsonp, config["id"])
+        tr._update_display_list(self.path, jsonp, config["id"])
 
         return tr
-    
-    def _check_app_config(self, app_dir, jsonp):
+
+    def _check_panels(self):
+        tr = self.__copy()
+
+        return tr
+
+    def _check_app_config(self, app_dir, jsonp) -> dict():
         """
         Gets the app config. If a config file exists in the `app_dir`
         it will be used. Otherwise, a new config will be created and
-        returned.
+        the config information returned.
         Params:
             app_dir: str - The displays directory
             jsonp: bool - Should jsonp be used instead of json?
         """
         config_dict = {}
 
-        prefix = Trelliscope.CONFIG_FILE_NAME_PREFIX
+        prefix = Trelliscope.CONFIG_FILE_NAME
         config_filename = f"{prefix}.jsonp" if jsonp else "{prefix}.json"
         config_file = os.path.join(app_dir, config_filename)
 
@@ -280,15 +322,15 @@ class Trelliscope:
             # We might just want to get a random hash based on the current time
             config_dict["id"] = self.id
 
-            wrap_text_dict = Trelliscope.__get_jsonp_wrap_text_dict(jsonp, f"__loadAppConfig__{config_dict['id']}")
-            content = wrap_text_dict["start"] + json.dumps(config_dict, indent=2) + wrap_text_dict["end"]
-            with open(config_file, "w") as output_file:
-                output_file.write(content)
+            # Write out a new config file
+            function_name = f"__loadAppConfig__{config_dict['id']}"
+            content = json.dumps(config_dict, indent=2)
+            Trelliscope.__write_json_file(config_file, jsonp, function_name, content)
 
         return config_dict
 
     @staticmethod
-    def __get_jsonp_wrap_text_dict(jsonp, function_name):
+    def __get_jsonp_wrap_text_dict(jsonp: bool, function_name: str) -> dict():
         """
         Gets the starting and ending text to use for the config file.
         If it is jsonp, it will have a function name and ()'s. If it is
@@ -305,7 +347,24 @@ class Trelliscope:
         return text_dict
 
     @staticmethod
-    def __read_jsonp(self, file):
+    def __write_json_file(file_path: str, jsonp: bool, function_name: str, content: str):
+        wrap_text_dict = Trelliscope.__get_jsonp_wrap_text_dict(jsonp, function_name)
+        wrapped_content = wrap_text_dict["start"] + content + wrap_text_dict["end"]
+
+        with open(file_path, "w") as output_file:
+            output_file.write(wrapped_content)
+
+    @staticmethod
+    def __get_file_path(directory: str, filename_no_ext: str, jsonp: bool):
+        file_ext = "jsonp" if jsonp else "json"
+        filename = f"{filename_no_ext}.{file_ext}"
+
+        file_path = os.path.join(directory, filename)
+
+        return file_path
+
+    @staticmethod
+    def __read_jsonp(self, file: str) -> dict():
         raise NotImplementedError()
         # TODO: fill in this function to gather all the JSON we need
         # likely we will need to handle the function wrapper, then
@@ -414,89 +473,103 @@ class Trelliscope:
     def infer_state():
         pass
             
-    def _write_displays(self, displays_dir: str):
-        file_path = os.path.join(displays_dir, Trelliscope.DISPLAY_LIST_FILE_NAME)
+    def _write_display_info(self, jsonp, id):
+        file = Trelliscope.__get_file_path(self.get_dataset_display_path(),
+                                            Trelliscope.DISPLAY_INFO_FILE_NAME,
+                                            jsonp)
+    
+        content = self.to_json(True)
+        function_name = f"__loadDisplayInfo__{id}"
 
-        display_list = []
+        Trelliscope.__write_json_file(file, jsonp, function_name, content)
 
-        #TODO: This is a list instead of a dictionary... is it possible to have more
-        # than just this one item in the list??
-        # If so the following should be in a loop
-        display_info_dict = {"name": self.name,
-                            "description": self.description,
-                            "tags": self.tags}
-        display_list.append(display_info_dict)
+    def _update_display_list(self, path:str, jsonp:bool, id:str):
+        # TODO: Fill this in
+        pass
 
-        self._write_single_display(self.name, displays_dir)
 
-        # TODO: End loop
+    # def _write_displays(self, displays_dir: str):
+    #     file_path = os.path.join(displays_dir, Trelliscope.DISPLAY_LIST_FILE_NAME)
 
-        # Now, write out the display list file
-        display_list_json = json.dumps(display_list, indent=2)
-        output_content = f"__loadDisplayList__{self.id}({display_list_json})"
+    #     display_list = []
 
-        with open(file_path, "w") as output_file:
-            output_file.write(output_content)
+    #     #TODO: This is a list instead of a dictionary... is it possible to have more
+    #     # than just this one item in the list??
+    #     # If so the following should be in a loop
+    #     display_info_dict = {"name": self.name,
+    #                         "description": self.description,
+    #                         "tags": self.tags}
+    #     display_list.append(display_info_dict)
 
-    def _write_single_display(self, name: str, displays_dir: str):
-        single_display_dir = os.path.join(displays_dir, name)
-        os.makedirs(single_display_dir)
+    #     self._write_single_display(self.name, displays_dir)
 
-        self._write_display_info(single_display_dir)
-        self._write_meta_data(single_display_dir)
+    #     # TODO: End loop
 
-    def _write_display_info(self, output_dir: str):
-        # TODO: This will need to be refactored if there are more than
-        # one display info to print out. This assumes the member variables
-        # define all the information, rather than passing in unique params
-        file_path = os.path.join(output_dir, Trelliscope.DISPLAY_INFO_FILE_NAME)
+    #     # Now, write out the display list file
+    #     display_list_json = json.dumps(display_list, indent=2)
+    #     output_content = f"__loadDisplayList__{self.id}({display_list_json})"
 
-        metas_list = self._get_metas_list()
+    #     with open(file_path, "w") as output_file:
+    #         output_file.write(output_content)
 
-        # TODO: Fill in all the state variables based on actual settings
+    # def _write_single_display(self, name: str, displays_dir: str):
+    #     single_display_dir = os.path.join(displays_dir, name)
+    #     os.makedirs(single_display_dir)
 
-        display_info_dict = {
-            "name": self.name,
-            "description": self.description,
-            "tags": self.tags,
-            "key_cols": self.key_cols,
-            "metas": metas_list,
-            "state": {
-                "layout": {
-                "page": 1,
-                "arrange": "rows",
-                "ncol": 3,
-                "nrow": 2,
-                "type": "layout"
-                },
-                "labels": {
-                "varnames": ["name"],
-                "type": "labels"
-                },
-                "sort": [],
-                "filter": []
-            },
-            "views": [],
-            "inputs": [],
-            "panel_type": "img"
-        }
+    #     self._write_display_info(single_display_dir)
+    #     self._write_meta_data(single_display_dir)
 
-        display_info_json = json.dumps(display_info_dict, indent=2)
-        output_content = f"__loadDisplayInfo__{self.id}({display_info_json})"
+    # def _write_display_info(self, output_dir: str):
+    #     # TODO: This will need to be refactored if there are more than
+    #     # one display info to print out. This assumes the member variables
+    #     # define all the information, rather than passing in unique params
+    #     file_path = os.path.join(output_dir, Trelliscope.DISPLAY_INFO_FILE_NAME)
 
-        with open(file_path, "w") as output_file:
-            output_file.write(output_content)
+    #     metas_list = self._get_metas_list()
+
+    #     # TODO: Fill in all the state variables based on actual settings
+
+    #     display_info_dict = {
+    #         "name": self.name,
+    #         "description": self.description,
+    #         "tags": self.tags,
+    #         "key_cols": self.key_cols,
+    #         "metas": metas_list,
+    #         "state": {
+    #             "layout": {
+    #             "page": 1,
+    #             "arrange": "rows",
+    #             "ncol": 3,
+    #             "nrow": 2,
+    #             "type": "layout"
+    #             },
+    #             "labels": {
+    #             "varnames": ["name"],
+    #             "type": "labels"
+    #             },
+    #             "sort": [],
+    #             "filter": []
+    #         },
+    #         "views": [],
+    #         "inputs": [],
+    #         "panel_type": "img"
+    #     }
+
+    #     display_info_json = json.dumps(display_info_dict, indent=2)
+    #     output_content = f"__loadDisplayInfo__{self.id}({display_info_json})"
+
+    #     with open(file_path, "w") as output_file:
+    #         output_file.write(output_content)
 
     def _get_metas_list(self) -> list:
         meta_list = [meta.to_dict() for meta in self.metas.values()]
         return meta_list
 
-    def _write_meta_data(self, output_dir: str):
-        # TODO: This will need to be refactored if there is more than
-        # one display info to print out. This assumes the member variables
-        # define all the information, rather than passing in unique params
-        file_path = os.path.join(output_dir, Trelliscope.METADATA_FILE_NAME)
-
+    def _write_meta_data(self, jsonp:bool, id:str):
+        meta_data_file = Trelliscope.__get_file_path(self.get_dataset_display_path(),
+                                           Trelliscope.METADATA_FILE_NAME,
+                                           jsonp)
+                
         if self.debug:
             # Pretty print the json if in debug mode
             meta_data_json = self.data_frame.to_json(orient="records", indent=2)
@@ -506,11 +579,8 @@ class Trelliscope:
         # Turn the escaped \/ into just /
         meta_data_json = meta_data_json.replace("\\/", "/")
 
-        output_content = f"__loadMetaData__{self.id}({meta_data_json})"
-
-        with open(file_path, "w") as output_file:
-            output_file.write(output_content)
-
+        function_name = f"__loadMetaData__{id}"
+        Trelliscope.__write_json_file(meta_data_file, jsonp, function_name, meta_data_json)
 
     def write_panels(self):
         return self.__copy()

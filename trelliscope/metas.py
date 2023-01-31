@@ -111,7 +111,7 @@ class CurrencyMeta(Meta):
 class StringMeta(Meta):
     def __init__(self, varname: str, label: str = None, tags: list = None):
         super().__init__(type=Meta.TYPE_STRING, varname=varname, label=label, tags=tags,
-            filterable=True, sortable=False)
+            filterable=True, sortable=True)
         
     def check_variable(self, df: pd.DataFrame):
         if not is_string_dtype(df[self.varname]):
