@@ -22,7 +22,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 from .metas import Meta, StringMeta, NumberMeta, HrefMeta
-from .state import DisplayState
+from .state import DisplayState, LayoutState, LabelState
 from .view import View
 from .input import Input
 
@@ -42,7 +42,7 @@ class Trelliscope:
         """
         Instantiate a Trelliscope display object.
 
-        Args:
+        Params:
             dataFrame: A data frame that contains the metadata of the display as well as
                 a column that indicates the panels to be displayed.
             name: Name of the trelliscope display.
@@ -117,7 +117,10 @@ class Trelliscope:
     def set_state(self, state: DisplayState):
         self.state = state
 
-    def set_view(self, view: View):
+    # TODO: Verify this is acceptable as "add_view",
+    # It was the method for set_view, but add seems more appropriate
+    #def set_view(self, view: View):
+    def add_view(self, view: View):
         name  = view.name
 
         if name in self.views:
@@ -394,12 +397,16 @@ class Trelliscope:
     def infer(self):
         tr = self._infer_metas()
 
-        ## TODO: Fill out the state/view inferring methods
+        tr.state = tr._infer_state(tr.state)
 
-        # tr._state = self._state.infer_state(tr._data_frame, tr._key_cols, )
+        for view in tr.views:
+            view2:View = view._copy()
+            state = view2.state
 
-        # for view in tr._views:
-        #     view._state = view._state.infer_state(tr._data_frame, tr._key_cols)
+            view2.state = self._infer_state(state, view2.name)
+            tr.add_view(view2)
+            
+        tr = tr._infer_panel_type()
 
         return tr
 
@@ -485,9 +492,36 @@ class Trelliscope:
 
         return tr
 
-    def infer_state():
-        pass
-            
+    def _infer_state(self, state, view:str = None) -> DisplayState:
+        view_str = ""
+
+        if view is not None:
+            view_str = f" for view '{view}'"
+
+        state2:DisplayState = state._copy()
+
+        layout = state2.layout
+
+        if layout is None:
+            logging.info(f"No layout definition supplied{view_str}. Using Default.")
+            state2.layout = LayoutState(nrow=2, ncol=3)
+        
+        labels = state2.labels
+
+        if labels is None:
+            logging.info(f"No labels definition supplied{view_str}. Using Default.")
+            state2.labels = LabelState(self.key_cols)
+
+        return state2
+                
+    def _infer_panel_type(self):
+        tr = self.__copy()
+
+        # TODO: Implement this
+    
+        return tr
+
+
     def _write_display_info(self, jsonp, id):
         file = Trelliscope.__get_file_path(self.get_dataset_display_path(),
                                             Trelliscope.DISPLAY_INFO_FILE_NAME,
@@ -577,8 +611,8 @@ class Trelliscope:
     def set_filters(self):
         return self.__copy()
 
-    def add_view(self):
-        return self.__copy()
+    # def add_view(self):
+    #     return self.__copy()
 
     def add_inputs(self):
         return self.__copy()

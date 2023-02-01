@@ -1,5 +1,6 @@
-from .state import SortState, LabelState, DisplayState, FilterState, LayoutState
 import json
+import copy
+from .state import SortState, LabelState, DisplayState, FilterState, LayoutState
 
 class View():
     # TODO: Verify desirable API around passing in states
@@ -51,4 +52,8 @@ class View():
             indent_value = 2
 
         return json.dumps(self.to_dict(), indent=indent_value)
+    
+    def _copy(self):
+        # TODO: Shallow or deep copy??
+        return copy.deepcopy(self)
     

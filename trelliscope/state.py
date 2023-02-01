@@ -1,4 +1,5 @@
 import json
+import copy
 import pandas as pd
 import logging
 from collections import OrderedDict
@@ -63,6 +64,10 @@ class State():
     
     def _get_data_error_message(self, text):
         return f"While checking {self.type} state definition against the data: {text}"
+    
+    def _copy(self):
+        # TODO: Shallow or deep copy??
+        return copy.deepcopy(self)
 
 class LayoutState(State):
     def __init__(self, nrow : int = 1, ncol : int = 1, arrange : str = "rows", page : int = 1):
@@ -369,3 +374,8 @@ class DisplayState():
         dict_to_serialize = self.to_dict()
 
         return json.dumps(dict_to_serialize, indent=indent_value, default=custom_json_serializer)
+
+    def _copy(self):
+        # TODO: Shallow or deep copy??
+        return copy.deepcopy(self)
+
