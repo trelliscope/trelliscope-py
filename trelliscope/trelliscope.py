@@ -21,7 +21,7 @@ from pandas.api.types import is_numeric_dtype
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-from .metas import Meta, StringMeta, NumberMeta, HrefMeta
+from .metas import Meta, StringMeta, NumberMeta, HrefMeta, FactorMeta
 from .state import DisplayState, LayoutState, LabelState
 from .view import View
 from .input import Input
@@ -451,18 +451,17 @@ class Trelliscope:
     def _infer_meta_variable(self, meta_column: pd.Series, meta_name: str):
         meta = None
 
-        # TODO: Finish this list when all meta types are implemented
+        # TODO: Add Date and DateTime to this list
 
         if meta_column.dtype == "category":
-            raise NotImplementedError("category type is not implemented")
+            meta = FactorMeta(meta_name)
         elif is_numeric_dtype(meta_column.dtype):
             meta = NumberMeta(meta_name)
         elif is_string_dtype(meta_column.dtype):
             # this is a string column
-            
-            # TODO: Improve this way of inferring href
-            # For now, check if the first value starts with http
-            if str(meta_column[0]).startswith("http"):
+
+            # Check if all the entries start with http            
+            if meta_column.apply(lambda x: x.startswith("http")).all():
                 # This appears to be an href column
                 meta = HrefMeta(meta_name)
             else:
