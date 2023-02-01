@@ -5,6 +5,42 @@ import re
 
 from trelliscope import utils
 
+def get_error_message(text: str):
+    return f"error text contains {text}"
+
+def test_check_enum():
+    utils.check_enum("trucks", ["cars", "trucks", "bikes"], get_error_message)
+
+    with pytest.raises(ValueError, match="must be one of"):
+        utils.check_enum("planes", ["cars", "trucks", "bikes"], get_error_message)
+
+def test_check_is_list():
+    utils.check_is_list(["a", "b", "c"], get_error_message)
+
+    with pytest.raises(ValueError, match=r"Expected value .+ to be a list"):
+        utils.check_is_list("a", get_error_message)
+
+def test_check_has_variable(iris_df):
+    utils.check_has_variable(iris_df, "Sepal.Length", get_error_message)
+
+    with pytest.raises(ValueError, match="Could not find variable"):
+        utils.check_has_variable(iris_df, "stuff", get_error_message)
+
+def test_check_numeric(iris_df):
+    utils.check_numeric(iris_df, "Sepal.Length", get_error_message)
+
+    with pytest.raises(ValueError, match="must be numeric"):
+        utils.check_numeric(iris_df, "Species", get_error_message)
+
+def test_check_range(iris_df):
+    utils.check_range(iris_df, "Sepal.Length", 0, 10, get_error_message)
+
+    with pytest.raises(ValueError, match="must be in the range"):
+        utils.check_range(iris_df, "Sepal.Length", 11, 15, get_error_message)
+
+    with pytest.raises(ValueError, match="must be in the range"):
+        utils.check_range(iris_df, "Sepal.Length", 0, 0.5, get_error_message)
+
 def test_sanitize():
     actual = utils.sanitize("abc def")
     assert actual == "abc_def"
