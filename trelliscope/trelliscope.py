@@ -25,6 +25,7 @@ from .metas import Meta, StringMeta, NumberMeta, HrefMeta, FactorMeta
 from .state import DisplayState, LayoutState, LabelState
 from .view import View
 from .input import Input
+from . import utils
 
 class Trelliscope:
     """
@@ -137,7 +138,7 @@ class Trelliscope:
         self.inputs[name] = input
 
     def _get_name_dir(self, to_lower: bool = True) -> str:
-        return Trelliscope.__sanitize(self.name, to_lower)
+        return utils.sanitize(self.name, to_lower)
 
     def get_output_path(self) -> str:
         return os.path.join(self.path, self._get_name_dir())
@@ -149,15 +150,6 @@ class Trelliscope:
     def get_dataset_display_path(self) -> str:
         return os.path.join(self.get_displays_path(), self._get_name_dir(False))
     
-    @staticmethod
-    def __sanitize(text:str, to_lower=True) -> str:
-        if to_lower:
-            text = text.lower()
-        
-        text = text.replace(" ", "_")
-        text = re.sub(r"[^\w]", "", text)
-
-        return text
     
     def to_dict(self) -> dict:
         result = {}
@@ -313,9 +305,9 @@ class Trelliscope:
         # Look to see if there is an existing config file, and use it
 
         if os.path.exists(jsonp_config_file):
-            config_dict = Trelliscope.__read_jsonp(jsonp_config_file)
+            config_dict = utils.read_jsonp(jsonp_config_file)
         elif os.path.exists(json_config_file):
-            config_dict = Trelliscope.__read_jsonp(json_config_file)
+            config_dict = utils.read_jsonp(json_config_file)
         else:
             # No config file found, generating new info
             config_dict["name"] = "Trelliscope App"
@@ -328,71 +320,9 @@ class Trelliscope:
             function_name = f"__loadAppConfig__{config_dict['id']}"
             content = json.dumps(config_dict, indent=2)
             config_file = jsonp_config_file if jsonp else json_config_file
-            Trelliscope.__write_json_file(config_file, jsonp, function_name, content)
+            utils.write_json_file(config_file, jsonp, function_name, content)
 
         return config_dict
-
-    @staticmethod
-    def __get_jsonp_wrap_text_dict(jsonp: bool, function_name: str) -> dict():
-        """
-        Gets the starting and ending text to use for the config file.
-        If it is jsonp, it will have a function name and ()'s. If it is
-        not (ie, regular json), it will have empty strings.
-        """
-        text_dict = {}
-        if jsonp:
-            text_dict["start"] = f"{function_name}("
-            text_dict["end"] = ")"
-        else:
-            text_dict["start"] = ""
-            text_dict["end"] = ""
-
-        return text_dict
-
-    @staticmethod
-    def __write_json_file(file_path: str, jsonp: bool, function_name: str, content: str):
-        wrap_text_dict = Trelliscope.__get_jsonp_wrap_text_dict(jsonp, function_name)
-        wrapped_content = wrap_text_dict["start"] + content + wrap_text_dict["end"]
-
-        with open(file_path, "w") as output_file:
-            output_file.write(wrapped_content)
-
-    @staticmethod
-    def __get_file_path(directory: str, filename_no_ext: str, jsonp: bool):
-        file_ext = "jsonp" if jsonp else "json"
-        filename = f"{filename_no_ext}.{file_ext}"
-
-        file_path = os.path.join(directory, filename)
-
-        return file_path
-
-    @staticmethod
-    def __read_jsonp(file: str) -> dict():
-        """
-        Reads the json content of the .json or .jsonp file. If the file is
-        a .jsonp file, the function name and ()'s will be ignored.
-        Params:
-            file: str - The full path to the file.
-        Returns:
-            dict - The content of the .json or .jsonp file.
-        """
-        content = ""
-        with open(file) as file_handle:
-            content = file_handle.read()
-
-        json_content = ""
-
-        if file.endswith(".json"):
-            json_content = content
-        elif file.endswith(".jsonp"):
-            open_paren_index = content.index("(")
-            close_paren_index = content.rindex(")")
-            json_content = content[open_paren_index + 1 : close_paren_index]
-        else:
-            raise ValueError(f"Unrecognized file extension for file {file}. Expected .json or .jsonp")
-
-        result = json.loads(json_content)
-        return result
 
     def infer(self):
         tr = self._infer_metas()
@@ -522,14 +452,14 @@ class Trelliscope:
 
 
     def _write_display_info(self, jsonp, id):
-        file = Trelliscope.__get_file_path(self.get_dataset_display_path(),
+        file = utils.get_file_path(self.get_dataset_display_path(),
                                             Trelliscope.DISPLAY_INFO_FILE_NAME,
                                             jsonp)
     
         content = self.to_json(True)
         function_name = f"__loadDisplayInfo__{id}"
 
-        Trelliscope.__write_json_file(file, jsonp, function_name, content)
+        utils.write_json_file(file, jsonp, function_name, content)
 
     def _update_display_list(self, app_path:str, jsonp:bool, id:str):
         """
@@ -556,24 +486,24 @@ class Trelliscope:
         display_info_list = []
 
         for file in files:
-            from_file = Trelliscope.__read_jsonp(file)
+            from_file = utils.read_jsonp(file)
             keys_to_keep = ["name", "description", "tags"]
             display_info = {key: from_file[key] for key in keys_to_keep}
             display_info_list.append(display_info)
 
-        display_list_file = Trelliscope.__get_file_path(self.get_displays_path(),
+        display_list_file = utils.get_file_path(self.get_displays_path(),
                                                         Trelliscope.DISPLAY_LIST_FILE_NAME,
                                                         jsonp)
         function_name = f"__loadDisplayList__{id}"
         content = json.dumps(display_info_list, indent=2)
-        Trelliscope.__write_json_file(display_list_file, jsonp, function_name, content)
+        utils.write_json_file(display_list_file, jsonp, function_name, content)
 
     def _get_metas_list(self) -> list:
         meta_list = [meta.to_dict() for meta in self.metas.values()]
         return meta_list
 
     def _write_meta_data(self, jsonp:bool, id:str):
-        meta_data_file = Trelliscope.__get_file_path(self.get_dataset_display_path(),
+        meta_data_file = utils.get_file_path(self.get_dataset_display_path(),
                                            Trelliscope.METADATA_FILE_NAME,
                                            jsonp)
                 
@@ -587,7 +517,7 @@ class Trelliscope:
         meta_data_json = meta_data_json.replace("\\/", "/")
 
         function_name = f"__loadMetaData__{id}"
-        Trelliscope.__write_json_file(meta_data_file, jsonp, function_name, meta_data_json)
+        utils.write_json_file(meta_data_file, jsonp, function_name, meta_data_json)
 
     def write_panels(self):
         return self.__copy()

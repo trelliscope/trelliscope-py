@@ -1,3 +1,6 @@
+import re
+import os
+import json
 from datetime import date, datetime
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
@@ -116,3 +119,70 @@ def check_graph_var(df: pd.DataFrame, varname: str, id_varname: str, get_error_m
     # implement this method to verify it.
 
     raise NotImplementedError()
+
+def sanitize(text:str, to_lower=True) -> str:
+    if to_lower:
+        text = text.lower()
+    
+    text = text.replace(" ", "_")
+    text = re.sub(r"[^\w]", "", text)
+
+    return text
+
+def get_jsonp_wrap_text_dict(jsonp: bool, function_name: str) -> dict():
+    """
+    Gets the starting and ending text to use for the config file.
+    If it is jsonp, it will have a function name and ()'s. If it is
+    not (ie, regular json), it will have empty strings.
+    """
+    text_dict = {}
+    if jsonp:
+        text_dict["start"] = f"{function_name}("
+        text_dict["end"] = ")"
+    else:
+        text_dict["start"] = ""
+        text_dict["end"] = ""
+
+    return text_dict
+
+def write_json_file(file_path: str, jsonp: bool, function_name: str, content: str):
+    wrap_text_dict = get_jsonp_wrap_text_dict(jsonp, function_name)
+    wrapped_content = wrap_text_dict["start"] + content + wrap_text_dict["end"]
+
+    with open(file_path, "w") as output_file:
+        output_file.write(wrapped_content)
+
+def get_file_path(directory: str, filename_no_ext: str, jsonp: bool):
+    file_ext = "jsonp" if jsonp else "json"
+    filename = f"{filename_no_ext}.{file_ext}"
+
+    file_path = os.path.join(directory, filename)
+
+    return file_path
+
+def read_jsonp(file: str) -> dict():
+    """
+    Reads the json content of the .json or .jsonp file. If the file is
+    a .jsonp file, the function name and ()'s will be ignored.
+    Params:
+        file: str - The full path to the file.
+    Returns:
+        dict - The content of the .json or .jsonp file.
+    """
+    content = ""
+    with open(file) as file_handle:
+        content = file_handle.read()
+
+    json_content = ""
+
+    if file.endswith(".json"):
+        json_content = content
+    elif file.endswith(".jsonp"):
+        open_paren_index = content.index("(")
+        close_paren_index = content.rindex(")")
+        json_content = content[open_paren_index + 1 : close_paren_index]
+    else:
+        raise ValueError(f"Unrecognized file extension for file {file}. Expected .json or .jsonp")
+
+    result = json.loads(json_content)
+    return result

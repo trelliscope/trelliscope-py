@@ -7,6 +7,8 @@ import pandas as pd
 import os
 import numpy as np
 
+from trelliscope.trelliscope import Trelliscope
+
 CACHE_DIR = ".cache"
 CACHE_IRIS_DF = ".cache/iris.data"
 
@@ -66,4 +68,9 @@ def iris_plus_df(iris_df: pd.DataFrame):
 
     #print(iris_df.head())
     return iris_df
+
+@pytest.fixture
+def iris_tr(iris_df: pd.DataFrame):
+    tr = Trelliscope(iris_df, name="iris")
+    return tr
 
