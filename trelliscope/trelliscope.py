@@ -304,22 +304,15 @@ class Trelliscope:
         config_dict = {}
 
         prefix = Trelliscope.CONFIG_FILE_NAME
-        config_filename = f"{prefix}.jsonp" if jsonp else "{prefix}.json"
-        config_file = os.path.join(app_dir, config_filename)
+        jsonp_config_file = os.path.join(app_dir, f"{prefix}.jsonp")
+        json_config_file = os.path.join(app_dir, f"{prefix}.json")
 
-        # Note: in the r version, they check for either kind of config file
-        # but it seems like we could simplify and only check for the kind
-        # that they are wanting to use.
-        # TODO: Verify this assumption.
+        # Look to see if there is an existing config file, and use it
 
-        # Find the config.json or config.jsonp file to use
-        # filename_pattern = os.path.join(app_dir, "config.json*")
-        # files = glob.glob(filename_pattern)
-        # if len(files) > 0:
-        #     config_file = files[0]
-        #     config_dict = self.__read_jsonp(config_file)
-        if os.path.exists(config_file):
-            config_dict = Trelliscope.__read_jsonp(config_file)
+        if os.path.exists(jsonp_config_file):
+            config_dict = Trelliscope.__read_jsonp(jsonp_config_file)
+        elif os.path.exists(json_config_file):
+            config_dict = Trelliscope.__read_jsonp(json_config_file)
         else:
             # No config file found, generating new info
             config_dict["name"] = "Trelliscope App"
@@ -331,6 +324,7 @@ class Trelliscope:
             # Write out a new config file
             function_name = f"__loadAppConfig__{config_dict['id']}"
             content = json.dumps(config_dict, indent=2)
+            config_file = jsonp_config_file if jsonp else json_config_file
             Trelliscope.__write_json_file(config_file, jsonp, function_name, content)
 
         return config_dict
@@ -371,18 +365,28 @@ class Trelliscope:
 
     @staticmethod
     def __read_jsonp(file: str) -> dict():
-        
-        # TODO: Can we assume this is always jsonp, or do we need to
-        # handle json as well?
-
+        """
+        Reads the json content of the .json or .jsonp file. If the file is
+        a .jsonp file, the function name and ()'s will be ignored.
+        Params:
+            file: str - The full path to the file.
+        Returns:
+            dict - The content of the .json or .jsonp file.
+        """
         content = ""
         with open(file) as file_handle:
             content = file_handle.read()
 
-        open_paren_index = content.index("(")
-        close_paren_index = content.rindex(")")
+        json_content = ""
 
-        json_content = content[open_paren_index + 1 : close_paren_index]
+        if file.endswith(".json"):
+            json_content = content
+        elif file.endswith(".jsonp"):
+            open_paren_index = content.index("(")
+            close_paren_index = content.rindex(")")
+            json_content = content[open_paren_index + 1 : close_paren_index]
+        else:
+            raise ValueError(f"Unrecognized file extension for file {file}. Expected .json or .jsonp")
 
         result = json.loads(json_content)
         return result
