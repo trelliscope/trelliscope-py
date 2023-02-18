@@ -2,10 +2,64 @@ import re
 import os
 import json
 from datetime import date, datetime
+from collections.abc import Iterable
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
 
-def check_enum(value_to_check, possible_values, get_error_message_function):
+def __generic_error_message(text:str):
+    """
+    This function can be used if a custom error message function is not provided.
+    It simply returns the text it was passed.
+    """
+    return text
+
+def check_int(value_to_check, name:str, get_error_message_function=__generic_error_message):
+    """
+    Verify that the provided value is an integer. If not, this will raise
+    an error.
+    Params:
+        value_to_check: The value in question.
+        name: The variable name for the error message.
+        get_error_message_function: The function to call to get the error message template.
+    Raises:
+        TypeError - If the check fails.
+    """
+    if not isinstance(value_to_check, int):
+        message = get_error_message_function(f"{name} must be an integer.")
+        raise TypeError(message)
+
+def check_bool(value_to_check, name:str, get_error_message_function=__generic_error_message):
+    """
+    Verify that the provided value is a boolean. If not, this will raise
+    an error.
+    Params:
+        value_to_check: The value in question.
+        name: The variable name for the error message.
+        get_error_message_function: The function to call to get the error message template.
+    Raises:
+        TypeError - If the check fails.
+    """
+    if not isinstance(value_to_check, bool):
+        message = get_error_message_function(f"{name} must be a boolean value (must be logical).")
+        raise TypeError(message)
+
+def check_scalar(value_to_check, name:str, get_error_message_function=__generic_error_message):
+    """
+    Verify that the provided value is a scalar value, meaning, that it is NOT
+    a iterable. Note that for these purposes strings are considered scalars,
+    even though they are technically iterable.
+    Params:
+        value_to_check: The value in question.
+        name: The variable name for the error message.
+        get_error_message_function: The function to call to get the error message template.
+    Raises:
+        TypeError - If the check fails.
+    """
+    if not isinstance(value_to_check, str) and isinstance(value_to_check, Iterable):
+        message = get_error_message_function(f"{name} must be a scalar (not a list or other iterable type).")
+        raise TypeError(message)
+
+def check_enum(value_to_check, possible_values, get_error_message_function=__generic_error_message):
     """
     Verify that the provided value is in a list of possible values.
     Params:

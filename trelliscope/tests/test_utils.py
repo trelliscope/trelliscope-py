@@ -2,11 +2,80 @@ import pytest
 import os
 import tempfile
 import re
-
+import pandas as pd
 from trelliscope import utils
+
 
 def get_error_message(text: str):
     return f"error text contains {text}"
+
+def test_check_int():
+    utils.check_int(3, "the var", get_error_message)
+    utils.check_int(0, "the var", get_error_message)
+    utils.check_int(-3, "the var", get_error_message)
+
+    with pytest.raises(TypeError, match=r"the var.*must be an integer"):
+        utils.check_int(3.6, "the var", get_error_message)
+
+    with pytest.raises(TypeError, match=r"the var.*must be an integer"):
+        utils.check_int([3], "the var", get_error_message)
+
+    with pytest.raises(TypeError, match=r"the var.*must be an integer"):
+        utils.check_int("stuff", "the var", get_error_message)
+
+def test_check_bool():
+    utils.check_bool(True, "the var", get_error_message)
+    utils.check_bool(False, "the var", get_error_message)
+
+    with pytest.raises(TypeError, match=r"the var.*must be a boolean"):
+        utils.check_bool(3, "the var", get_error_message)
+
+    with pytest.raises(TypeError, match=r"the var.*must be a boolean"):
+        utils.check_bool(3.6, "the var", get_error_message)
+
+    with pytest.raises(TypeError, match=r"the var.*must be a boolean"):
+        utils.check_bool([3], "the var", get_error_message)
+
+    with pytest.raises(TypeError, match=r"the var.*must be a boolean"):
+        utils.check_bool("stuff", "the var", get_error_message)
+
+def test_check_scalar(iris_df:pd.DataFrame):
+    utils.check_scalar(3, "the var", get_error_message)
+    utils.check_scalar(0, "the var", get_error_message)
+    utils.check_scalar(-3, "the var", get_error_message)
+    utils.check_scalar(3.6, "the var", get_error_message)
+    utils.check_scalar("stuff", "the var", get_error_message)
+    utils.check_scalar("more stuff", "the var", get_error_message)
+
+    with pytest.raises(TypeError, match=r"the var.*must be a scalar"):
+        utils.check_scalar([3], "the var", get_error_message)
+
+    with pytest.raises(TypeError, match=r"the var.*must be a scalar"):
+        utils.check_scalar([3, 6], "the var", get_error_message)
+
+    # We are not going to check (3), because python will automatically
+    # unwrap this to be a single scalar value.
+
+    with pytest.raises(TypeError, match=r"the var.*must be a scalar"):
+        utils.check_scalar((3, 6), "the var", get_error_message)
+
+    with pytest.raises(TypeError, match=r"the var.*must be a scalar"):
+        utils.check_scalar({3}, "the var", get_error_message)
+
+    with pytest.raises(TypeError, match=r"the var.*must be a scalar"):
+        utils.check_scalar({3, 6}, "the var", get_error_message)
+
+    with pytest.raises(TypeError, match=r"the var.*must be a scalar"):
+        utils.check_scalar({"k":3}, "the var", get_error_message)
+
+    with pytest.raises(TypeError, match=r"the var.*must be a scalar"):
+        utils.check_scalar({"a":3, "b":6}, "the var", get_error_message)
+
+    with pytest.raises(TypeError, match=r"the var.*must be a scalar"):
+        utils.check_scalar(iris_df["Sepal.Length"], "the var", get_error_message)
+
+    with pytest.raises(TypeError, match=r"the var.*must be a scalar"):
+        utils.check_scalar(iris_df, "the var", get_error_message)
 
 def test_check_enum():
     utils.check_enum("trucks", ["cars", "trucks", "bikes"], get_error_message)

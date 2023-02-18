@@ -3,10 +3,15 @@ import pandas as pd
 from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
 
-from .utils import check_enum, check_has_variable, check_latitude_variable, check_longitude_variable, check_exhaustive_levels, check_graph_var
+from trelliscope import utils
+#from .utils import check_enum, check_has_variable, check_latitude_variable, check_longitude_variable, check_exhaustive_levels, check_graph_var
 from .currencies import get_valid_currencies
 
 class Meta():
+    """
+    The base class for all Meta variants.
+    """
+
     TYPE_STRING = "string"
     TYPE_HREF = "href"
     TYPE_FACTOR = "factor"
@@ -17,9 +22,6 @@ class Meta():
     TYPE_GRAPH = "graph"
     TYPE_GEO = "geo"
 
-    """
-    The base class for all Meta variants.
-    """
     def __init__(self, type: str, varname: str, filterable: bool, sortable: bool, label: str = None, tags: list = None):
         self.type = type
         self.varname = varname
@@ -39,12 +41,29 @@ class Meta():
             raise ValueError("Tags is an unrecognized type.")
 
     def _get_error_message(self, error_text: str):
+        """
+        Returns a generic error message string using the provided text,
+        combined with the the Meta type and varname.
+        Params:
+            error_text: str - the text of the message to include
+        """
         return f"While defining a `{self.type}` meta variable for the variable `{self.varname}`: `{error_text}`"
 
     def _get_data_error_message(self, error_text: str):
+        """
+        Returns a data specific error message string using the provided text,
+        combined with the the varname.
+        Params:
+            error_text: str - the text of the message to include
+        """
         return f"While checking meta variable definition for variable `{self.varname}` against the data: `{error_text}`"
 
     def to_dict(self) -> dict:
+        """
+        Gets a dictionary containing the attributes of the meta. This
+        could be used directly, but if JSON is desired, consider using the
+        `to_json` method instead, which calls this one internally.
+        """
         # Default __dict__ behavior is sufficient, because we don't have custom inner types
         result = self.__dict__
 
@@ -54,7 +73,13 @@ class Meta():
 
         return result
 
-    def to_json(self, pretty: bool = True):
+    def to_json(self, pretty: bool = True) -> str:
+        """
+        Gets a JSON string containing all the attributes of a meta. This
+        is used when serializing.
+        Params:
+            pretty: bool - Whether to pretty print the JSON for the string.
+        """
         indent_value = None
 
         if pretty:
@@ -62,14 +87,40 @@ class Meta():
 
         return json.dumps(self.to_dict(), indent=indent_value)
 
-    def check_varname(self, df: pd.DataFrame):        
-        check_has_variable(df, self.varname, self._get_error_message)
+    def check_varname(self, df: pd.DataFrame):
+        """
+        Ensures that the varname exists as a column in the provided
+        pandas DataFrame. If it does not, this will raise an error.
+        Params:
+            df: Pandas DataFrame - The dataframe that should contain the column.
+        Raises:
+            ValueError - If the varname is not found.
+        """
+        utils.check_has_variable(df, self.varname, self._get_error_message)
 
     def check_variable(self, df: pd.DataFrame):
+        """
+        Overridden in sub-classes to contain any variable checks specific
+        to that type. If the check fails, this will raise an error.
+        Params:
+            df: Pandas DataFrame - The dataframe that to check against.
+        Raises:
+            ValueError - If the check fails.
+        """
         # To be overridden by sub classes
         pass
 
     def check_with_data(self, df: pd.DataFrame):
+        """
+        Runs all checks of this meta against the data. Calls methods
+        to check that the variable exists in the dataframe and any
+        additional checks for specific sub classes. If these checks fail,
+        this will raise an error.
+        Params:
+            df: Pandas DataFrame - The dataframe to check against.
+        Raises:
+            ValueError - If the check fails.
+        """
         self.check_varname(df)
         self.check_variable(df)
 
@@ -79,11 +130,13 @@ class NumberMeta(Meta):
         super().__init__(type=Meta.TYPE_NUMBER, varname=varname, label=label, tags=tags,
             filterable=True, sortable=True)
 
-        if digits is not None and not isinstance(digits, int):
-            raise TypeError("Digits must be an integer")
-
-        if locale is not None and not isinstance(locale, bool):
-            raise TypeError("Locale must be logical (boolean)")
+        if digits is not None:
+            utils.check_scalar(digits, "digits", self._get_error_message)
+            utils.check_int(digits, "digits", self._get_error_message)
+        
+        if locale is not None:
+            utils.check_scalar(digits, "locale", self._get_error_message)
+            utils.check_bool(locale, "locale", self._get_data_error_message)
 
         self.digits = digits
         self.locale = locale
@@ -99,7 +152,7 @@ class CurrencyMeta(Meta):
             filterable=True, sortable=True)
 
         # Ensure that this currency code is valid
-        check_enum(code, get_valid_currencies(), self._get_error_message)
+        utils.check_enum(code, get_valid_currencies(), self._get_error_message)
 
         self.code = code
 
@@ -145,7 +198,7 @@ class FactorMeta(Meta):
             self.infer_levels(df)
 
         # Ensure that levels match the data
-        check_exhaustive_levels(df, self.levels, self.varname, self._get_data_error_message)
+        utils.check_exhaustive_levels(df, self.levels, self.varname, self._get_data_error_message)
 
         
     
@@ -190,14 +243,14 @@ class GraphMeta(Meta):
         super().__init__(type=Meta.TYPE_GRAPH, varname=varname, label=label, tags=tags,
             filterable=True, sortable=False)
         
-        check_enum(direction, ("none", "to", "from"), self._get_error_message)
+        utils.check_enum(direction, ("none", "to", "from"), self._get_error_message)
 
         self.direction = direction
         self.idvarname = idvarname
 
     def check_variable(self, df: pd.DataFrame):
-        check_has_variable(df, self.idvarname, self._get_data_error_message)
-        check_graph_var(df, self.varname, self.idvarname, self._get_data_error_message)
+        utils.check_has_variable(df, self.idvarname, self._get_data_error_message)
+        utils.check_graph_var(df, self.varname, self.idvarname, self._get_data_error_message)
 
 
 class GeoMeta(Meta):
@@ -209,12 +262,12 @@ class GeoMeta(Meta):
         self.longvar = longvar
 
     def check_varname(self, df: pd.DataFrame):
-        check_has_variable(df, self.latvar, self._get_data_error_message)
-        check_has_variable(df, self.longvar, self._get_data_error_message)
+        utils.check_has_variable(df, self.latvar, self._get_data_error_message)
+        utils.check_has_variable(df, self.longvar, self._get_data_error_message)
 
     def check_variable(self, df: pd.DataFrame):
-        check_latitude_variable(df, self.latvar, self._get_data_error_message)
-        check_longitude_variable(df, self.longvar, self._get_data_error_message)
+        utils.check_latitude_variable(df, self.latvar, self._get_data_error_message)
+        utils.check_longitude_variable(df, self.longvar, self._get_data_error_message)
 
     # TODO: add a cast variable function that converts lat and long into a single var name
 
