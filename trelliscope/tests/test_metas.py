@@ -1,6 +1,7 @@
 from trelliscope.metas import Meta, NumberMeta, StringMeta, CurrencyMeta, DateMeta, DatetimeMeta, FactorMeta, GeoMeta, GraphMeta, HrefMeta
 #from sklearn.datasets import load_iris
 import pandas as pd
+from pandas.api.types import is_string_dtype
 import pytest
 import json
 
@@ -142,11 +143,24 @@ def test_string_meta(iris_df):
     meta = StringMeta("Species")
     meta.check_with_data(iris_df)
 
-    # TODO: Should this raise an error or work fine?
-    # The R unit test shows this should be fine, but it seems like
-    # it should raise an error.
+    # For the following test, even though Sepal.Length is NOT a string
+    # this should work, because this type can be easily coerced to a string.
+    # So if the user has explicitly used a StringMeta and it can work,
+    # we should let it work.
     meta2 = StringMeta("Sepal.Length")
     meta2.check_with_data(iris_df)
+
+    assert not is_string_dtype(iris_df["Sepal.Length"])
+    new_df = meta2.cast_variable(iris_df)
+
+    # verify changed in the returned value
+    assert is_string_dtype(new_df["Sepal.Length"])
+
+    # verify changed in the original df
+    # NOTE: This may be a "feature" that is altered in the future
+    # to make it so the original data frame is left unchanged
+    assert is_string_dtype(iris_df["Sepal.Length"])
+
 
 def test_factor_meta(iris_df):
     # Try a case where we don't specify the levels but they get inferred

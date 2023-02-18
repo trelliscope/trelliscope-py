@@ -5,6 +5,10 @@ from datetime import date, datetime
 from collections.abc import Iterable
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
+from pandas.api.types import is_string_dtype
+from pandas.api.types import infer_dtype
+
+from .currencies import get_valid_currencies
 
 def __generic_error_message(text:str):
     """
@@ -66,6 +70,8 @@ def check_enum(value_to_check, possible_values, get_error_message_function=__gen
         value_to_check: The value in question
         possible_values: An iterable list of values
         get_error_message_function: The function to call to get the error message template
+    Raises:
+        ValueError - If the check fails.
     """
     if not value_to_check in possible_values:
         message = get_error_message_function(f"{value_to_check} must be one of {possible_values}")
@@ -77,6 +83,8 @@ def check_is_list(value_to_check, get_error_message_function):
     Params:
         value_to_check: The value in question
         get_error_message_function: The function to call to get the error message template
+    Raises:
+        ValueError - If the check fails.
     """
     if not type(value_to_check) == list:
         message = get_error_message_function(f"Expected value '{value_to_check}' to be a list")
@@ -89,6 +97,8 @@ def check_has_variable(df: pd.DataFrame, varname: str, get_error_message_functio
         df: Pandas DataFrame
         varname: The variable name to check
         get_error_message_function: The function to call to get the error message template
+    Raises:
+        ValueError - If the check fails.
     """
     if varname not in df.columns:
         raise ValueError(get_error_message_function(f"Could not find variable {varname} is in the list of columns"))
@@ -100,9 +110,49 @@ def check_numeric(df: pd.DataFrame, varname: str, get_error_message_function):
         df: Pandas DataFrame
         varname: The variable name to check
         get_error_message_function: The function to call to get the error message template
+    Raises:
+        ValueError - If the check fails.
     """
     if not is_numeric_dtype(df[varname]):
         raise ValueError(get_error_message_function(f"The variable '{varname}' must be numeric."))
+
+
+def check_string_datatype(df: pd.DataFrame, varname: str, get_error_message_function=__generic_error_message):
+    """
+    Verify that in the dataframe, the column 'varname' is a string datatype.
+    Params:
+        df: Pandas DataFrame
+        varname: The variable name to check
+        get_error_message_function: The function to call to get the error message template
+    Raises:
+        ValueError - If the check fails.
+    """
+    if not is_string_dtype(df[varname]):
+        raise ValueError(get_error_message_function(f"The variable '{varname}' is not a string."))
+
+def check_not_nested(df: pd.DataFrame, varname: str, get_error_message_function=__generic_error_message):
+    """
+    Verify that in the dataframe, the column 'varname' is not a nested type.
+    Params:
+        df: Pandas DataFrame
+        varname: The variable name to check
+        get_error_message_function: The function to call to get the error message template
+    Raises:
+        ValueError - If the check fails.
+    """
+    if infer_dtype(df[varname]) == "mixed":
+        raise ValueError(get_error_message_function(f"The variable '{varname}' is must be an atomic vector (not a nested type)."))
+
+def check_valid_currency(value_to_check: str, get_error_message_function):
+    """
+    Verify that the provided currency is a valid one (e.g., USD, EUR).
+    Params:
+        value_to_check: the value in question.
+        get_error_message_function: The function to call to get the error message template
+    Raises:
+        ValueError - If the check fails.
+    """
+    check_enum(value_to_check, get_valid_currencies(), get_error_message_function)
 
 def check_range(df: pd.DataFrame, varname: str, min: float, max: float, get_error_message_function):
     """
@@ -113,6 +163,8 @@ def check_range(df: pd.DataFrame, varname: str, min: float, max: float, get_erro
         min: float - The minimum value of the range (inclusive)
         max: float - The maximum value of the range (inclusive)
         get_error_message_function: The function to call to get the error message template
+    Raises:
+        ValueError - If the check fails.
     """
     if not df[varname].between(min, max, "both").all():
         raise ValueError(get_error_message_function(f"The variable '{varname}' must be in the range {min} to {max}."))
@@ -124,6 +176,8 @@ def check_latitude_variable(df: pd.DataFrame, varname: str, get_error_message_fu
         df: Pandas DataFrame
         varname: The latitude column
         get_error_message_function: The function to call to get the error message template
+    Raises:
+        ValueError - If the check fails.
     """
     check_numeric(df, varname, get_error_message_function)
     check_range(df, varname, -90, 90, get_error_message_function)
@@ -135,6 +189,8 @@ def check_longitude_variable(df: pd.DataFrame, varname: str, get_error_message_f
         df: Pandas DataFrame
         varname: The longitude column
         get_error_message_function: The function to call to get the error message template
+    Raises:
+        ValueError - If the check fails.
     """
     check_numeric(df, varname, get_error_message_function)
     check_range(df, varname, 0, 180, get_error_message_function)
@@ -157,6 +213,8 @@ def check_exhaustive_levels(df: pd.DataFrame, levels: list, varname: str, get_er
         levels: list - The possible values
         varname: The column to check
         get_error_message_function: The function to call to get the error message template
+    Raises:
+        ValueError - If the check fails.
     """
     actual_values = set(df[varname].unique())
     expected_values = set(levels)

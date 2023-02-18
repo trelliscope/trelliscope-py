@@ -1,11 +1,8 @@
 import json
 import pandas as pd
 from pandas.api.types import is_string_dtype
-from pandas.api.types import is_numeric_dtype
 
 from trelliscope import utils
-#from .utils import check_enum, check_has_variable, check_latitude_variable, check_longitude_variable, check_exhaustive_levels, check_graph_var
-from .currencies import get_valid_currencies
 
 class Meta():
     """
@@ -126,6 +123,7 @@ class Meta():
 
 
 class NumberMeta(Meta):
+    """ A Meta for numeric data. """
     def __init__(self, varname: str, label: str = None, tags: list = None, digits: int = None, locale: bool = True):
         super().__init__(type=Meta.TYPE_NUMBER, varname=varname, label=label, tags=tags,
             filterable=True, sortable=True)
@@ -142,35 +140,61 @@ class NumberMeta(Meta):
         self.locale = locale
 
     def check_variable(self, df: pd.DataFrame):
-        if not is_numeric_dtype(df[self.varname]):
-            raise ValueError(self._get_data_error_message("Data type must be numeric"))
-
+        """
+        Verifies that the column in the data frame specified by
+        the varname is numeric.
+        """
+        utils.check_numeric(df, self.varname, self._get_data_error_message)
 
 class CurrencyMeta(Meta):
+    """ A Meta for currency data. """
     def __init__(self, varname, label: str = None, tags: list = None, code = "USD"):
         super().__init__(type=Meta.TYPE_CURRENCY, varname=varname, label=label, tags=tags,
             filterable=True, sortable=True)
 
-        # Ensure that this currency code is valid
-        utils.check_enum(code, get_valid_currencies(), self._get_error_message)
+        if code is not None:
+            utils.check_scalar(code, "code", self._get_error_message)
+
+            # Ensure that this currency code is valid
+            utils.check_valid_currency(code, self._get_error_message)
 
         self.code = code
 
     def check_variable(self, df: pd.DataFrame):
-        if not is_numeric_dtype(df[self.varname]):
-            raise ValueError(self._get_data_error_message("Data type must be numeric"))
-
+        """
+        Verifies that the column in the data frame specified by
+        the varname is numeric.
+        """
+        utils.check_numeric(df, self.varname, self._get_data_error_message)
 
 class StringMeta(Meta):
+    """ A Meta for string data. """
     def __init__(self, varname: str, label: str = None, tags: list = None):
         super().__init__(type=Meta.TYPE_STRING, varname=varname, label=label, tags=tags,
             filterable=True, sortable=True)
         
     def check_variable(self, df: pd.DataFrame):
-        if not is_string_dtype(df[self.varname]):
-            raise ValueError(self._get_data_error_message("Data type is not a string"))
+        """
+        Verifies that the column in the data frame is an atomic vector
+        (not a nested type). It does not have to be a string, rather
+        anything that can easily be coerced to it.
+        """
+        # This would check that hte datatype is actually a string:
+        #utils.check_string_datatype(df, self.varname, self._get_data_error_message)
+        
+        utils.check_not_nested(df, self.varname, self._get_data_error_message)
 
-    # TODO: Add a cast variable method?
+    def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Converts the `self.varname` column in the data frame to be a string type.
+        This will change the original data frame.
+        Params:
+            df: Pandas DataFrame
+        Returns:
+            The updated Pandas DataFrame
+        """
+        df[self.varname] = df[self.varname].astype(str)
+        return df
 
 class FactorMeta(Meta):
     def __init__(self, varname: str, label: str = None, tags: list = None, levels: list = None):
