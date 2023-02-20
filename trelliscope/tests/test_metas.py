@@ -17,9 +17,11 @@ def test_string_meta_init(iris_df):
 
     meta.check_variable(iris_df)
 
+    # This is expected behavior. Even though the column is an integer
+    # if the user wants to explicitly put a StringMeta, we allow that because
+    # it can be easily coerced.
     meta.varname = "Sepal.Length"
-    with pytest.raises(ValueError):
-        meta.check_variable(iris_df)
+    meta.check_variable(iris_df)
 
 def test_number_meta_init(iris_df):
     number_meta = NumberMeta("Sepal.Length")

@@ -181,7 +181,7 @@ class StringMeta(Meta):
         """
         # This would check that hte datatype is actually a string:
         #utils.check_string_datatype(df, self.varname, self._get_data_error_message)
-        
+
         utils.check_not_nested(df, self.varname, self._get_data_error_message)
 
     def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -197,10 +197,17 @@ class StringMeta(Meta):
         return df
 
 class FactorMeta(Meta):
+    """ A meta for a categorical, factor variable. """
     def __init__(self, varname: str, label: str = None, tags: list = None, levels: list = None):
         super().__init__(type=Meta.TYPE_FACTOR, varname=varname, label=label, tags=tags,
             filterable=True, sortable=True)
-        
+
+        if levels is not None:
+            # TODO: Add appropriate checks here depending on how we want to
+            # pass this in store this variable. In R, the levels seems to be a
+            # column in the dataframe, but I don't think that will be the cas here.
+            pass
+
         self.levels = levels
 
     def infer_levels(self, df: pd.DataFrame):
@@ -215,19 +222,34 @@ class FactorMeta(Meta):
             self.levels = df[self.varname].astype("category").cat.categories.to_list()
 
     def check_variable(self, df: pd.DataFrame):
+        """
+        Infers the levels for this factor and verifies that the dataframe matches.
+        """
         # Infer levels if not provided
         if self.levels is None:
+            # TODO: Verify that this is the behavior we want.
             # This seems a little dangerous to change the object in a check function.
             # Could we have them call an infer method instead?
             self.infer_levels(df)
 
         # Ensure that levels match the data
         utils.check_exhaustive_levels(df, self.levels, self.varname, self._get_data_error_message)
-
-        
     
-    # TODO: Add a cast_variable function? Convert this to a string column?
-
+    def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Converts the `self.varname` column in the data frame to be a string type.
+        This will change the original data frame.
+        Params:
+            df: Pandas DataFrame
+        Returns:
+            The updated Pandas DataFrame
+        """
+        # TODO: This seems we should cast it to a categorical variable
+        # rather than just a string. And it seems like this would be a
+        # better place to actual infer the levels than the "check_variable"
+        # function above.
+        df[self.varname] = df[self.varname].astype(str)
+        return df
 
 class DateMeta(Meta):
     def __init__(self, varname: str, label: str = None, tags: list = None):
