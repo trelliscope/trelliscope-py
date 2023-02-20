@@ -1,6 +1,4 @@
 import pytest
-import ssl
-import statsmodels.api as sm
 from datetime import date, timedelta, datetime
 
 import pandas as pd
@@ -9,38 +7,20 @@ import numpy as np
 
 from trelliscope.trelliscope import Trelliscope
 
-CACHE_DIR = ".cache"
-CACHE_IRIS_DF = ".cache/iris.data"
+DATA_DIR = "test-data"
+IRIS_DF_FILENAME = "iris.data"
 
-def pytest_configure(config):
-    if not os.path.exists(CACHE_DIR):
-        os.makedirs(CACHE_DIR)
+# def pytest_configure(config):
+#     if not os.path.exists(CACHE_DIR):
+#         os.makedirs(CACHE_DIR)
 
 @pytest.fixture(scope="session")
 def loaded_iris_df() -> pd.DataFrame:
     """
-    Tries to load the iris dataset from a cached file if it can,
-    if not, loads it from the web.
+    Loads the iris dataset from a file in the test-data directory.
     """
-    df = None
-    if os.path.exists(CACHE_IRIS_DF):
-        df = pd.read_pickle(CACHE_IRIS_DF)
-    else:
-        df = load_iris_df_from_web()
-        df.to_pickle(CACHE_IRIS_DF)
-
-    return df
-
-
-def load_iris_df_from_web() -> pd.DataFrame:
-    """
-    Loads the iris dataset from the web.
-    """
-    # Python on macOS needs to have certificates installed.
-    # This can be done in the OS, or we can allow unsafe certificates.
-    # See: https://stackoverflow.com/questions/50236117/scraping-ssl-certificate-verify-failed-error-for-http-en-wikipedia-org
-    ssl._create_default_https_context = ssl._create_unverified_context
-    df = sm.datasets.get_rdataset('iris').data
+    iris_path = os.path.join(DATA_DIR, IRIS_DF_FILENAME)
+    df = pd.read_pickle(iris_path)
 
     return df
 

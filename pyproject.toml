@@ -21,7 +21,6 @@ classifiers = [
 dev = [
 ]
 test = [
-    "statsmodels"
 ]
 
 [tool.pytest.ini_options]
