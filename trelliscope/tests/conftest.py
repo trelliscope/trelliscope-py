@@ -1,5 +1,7 @@
 import pytest
+from io import BytesIO
 from datetime import date, timedelta, datetime
+import pkgutil
 
 import pandas as pd
 import os
@@ -7,7 +9,7 @@ import numpy as np
 
 from trelliscope.trelliscope import Trelliscope
 
-DATA_DIR = "test-data"
+DATA_DIR = "external_data"
 IRIS_DF_FILENAME = "iris.data"
 
 # def pytest_configure(config):
@@ -20,7 +22,9 @@ def loaded_iris_df() -> pd.DataFrame:
     Loads the iris dataset from a file in the test-data directory.
     """
     iris_path = os.path.join(DATA_DIR, IRIS_DF_FILENAME)
-    df = pd.read_pickle(iris_path)
+
+    data = pkgutil.get_data(__name__, iris_path)
+    df = pd.read_pickle(BytesIO(data))
 
     return df
 
