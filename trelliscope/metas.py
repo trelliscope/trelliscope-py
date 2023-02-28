@@ -182,7 +182,7 @@ class StringMeta(Meta):
         # This would check that hte datatype is actually a string:
         #utils.check_string_datatype(df, self.varname, self._get_data_error_message)
 
-        utils.check_not_nested(df, self.varname, self._get_data_error_message)
+        utils.check_atomic_vector(df, self.varname, self._get_data_error_message)
 
     def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
         """

@@ -25,7 +25,7 @@ def main():
     df = get_iris_df()
     name = "Iris"
 
-    tr = Trelliscope(df, name, path=output_dir, debug=True).write_display()
+    tr = Trelliscope(df, name, path=output_dir, pretty_meta_data=True).write_display()
 
 if __name__ == "__main__":
     main()

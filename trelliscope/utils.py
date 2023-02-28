@@ -32,6 +32,39 @@ def check_int(value_to_check, name:str, get_error_message_function=__generic_err
         message = get_error_message_function(f"{name} must be an integer.")
         raise TypeError(message)
 
+def check_positive_numeric(value_to_check, name:str, get_error_message_function=__generic_error_message):
+    """
+    Verify that the provided value is a positive number (int or float). If not, this will raise
+    an error.
+    Params:
+        value_to_check: The value in question.
+        name: The variable name for the error message.
+        get_error_message_function: The function to call to get the error message template.
+    Raises:
+        TypeError - If the check fails.
+    """
+    if (isinstance(value_to_check, int) or isinstance(value_to_check, float)) and value_to_check > 0:
+        pass
+    else:
+        message = get_error_message_function(f"{name} must be a positive number.")
+        raise ValueError(message)
+
+
+def check_int(value_to_check, name:str, get_error_message_function=__generic_error_message):
+    """
+    Verify that the provided value is an integer. If not, this will raise
+    an error.
+    Params:
+        value_to_check: The value in question.
+        name: The variable name for the error message.
+        get_error_message_function: The function to call to get the error message template.
+    Raises:
+        TypeError - If the check fails.
+    """
+    if not isinstance(value_to_check, int):
+        message = get_error_message_function(f"{name} must be an integer.")
+        raise TypeError(message)
+
 def check_bool(value_to_check, name:str, get_error_message_function=__generic_error_message):
     """
     Verify that the provided value is a boolean. If not, this will raise
@@ -130,9 +163,10 @@ def check_string_datatype(df: pd.DataFrame, varname: str, get_error_message_func
     if not is_string_dtype(df[varname]):
         raise ValueError(get_error_message_function(f"The variable '{varname}' is not a string."))
 
-def check_not_nested(df: pd.DataFrame, varname: str, get_error_message_function=__generic_error_message):
+def check_atomic_vector(df: pd.DataFrame, varname: str, get_error_message_function=__generic_error_message):
     """
-    Verify that in the dataframe, the column 'varname' is not a nested type.
+    Verify that in the dataframe, the column 'varname' is an atomic vector, or
+    in other words, not a nested type.
     Params:
         df: Pandas DataFrame
         varname: The variable name to check
@@ -231,6 +265,30 @@ def check_graph_var(df: pd.DataFrame, varname: str, id_varname: str, get_error_m
     # implement this method to verify it.
 
     raise NotImplementedError()
+
+valid_image_extensions = {"apng", "avif", "gif", "jpg", "jpeg", "jfif", "pjpeg",
+  "pjp", "png", "svg", "webp"}
+
+def check_image_extension(list_to_check:list, get_error_message_function=__generic_error_message):
+    """
+    Verify that each element in the list has a valid image extension.
+    Params:
+        list_to_check: The list of strings.
+        get_error_message_function: The function to call to get the error message template
+    Raises:
+        ValueError - If the check fails.
+    """
+    for item in list_to_check:
+        filename, ext = os.path.splitext(item)
+        
+        # Get rid of the leading . in .jpg
+        ext = ext.removeprefix(".")
+        
+        if ext not in valid_image_extensions:
+            # Found invalid file extension
+            message = get_error_message_function(f"Extension {ext} is not valid. All file extensions must be one of: {valid_image_extensions}")
+            raise ValueError(message)
+
 
 def sanitize(text:str, to_lower=True) -> str:
     if to_lower:

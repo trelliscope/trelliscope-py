@@ -39,7 +39,7 @@ class Trelliscope:
     METADATA_FILE_NAME = "metaData"
 
     def __init__(self, dataFrame: pd.DataFrame, name: str, description: str = None, key_cols = None, tags = None,
-            path = None, force_plot = False, panel_col = None, debug = False):
+            path = None, force_plot = False, panel_col = None, pretty_meta_data = False):
         """
         Instantiate a Trelliscope display object.
 
@@ -68,8 +68,10 @@ class Trelliscope:
         self.key_cols: list = key_cols
         self.path: str = path
         self.force_plot: bool = force_plot
+        self.pretty_meta_data = pretty_meta_data
+
         self.panel_col = panel_col
-        self.debug = debug
+        #self.panel_col = Trelliscope.__check_and_get_panel_col(dataFrame)
 
         #TODO: Is there a reason this is not a true uuid?
         self.id = uuid.uuid4().hex[:8]
@@ -201,6 +203,15 @@ class Trelliscope:
 
         result = "\n".join(output)
         return result
+
+    # @staticmethod
+    # def __check_and_get_panel_col(df: pd.DataFrame):
+    #     """
+    #     Look for a column with one of the following classes:
+    #     * ImagePanel (which includes ImagePanelLocal)
+    #     * TrelliscopePanel
+    #     """
+    #     #possible_panels = df.
 
     def _get_meta_info_for_output(self):
         """
@@ -507,7 +518,7 @@ class Trelliscope:
                                            Trelliscope.METADATA_FILE_NAME,
                                            jsonp)
                 
-        if self.debug:
+        if self.pretty_meta_data:
             # Pretty print the json if in debug mode
             meta_data_json = self.data_frame.to_json(orient="records", indent=2)
         else:

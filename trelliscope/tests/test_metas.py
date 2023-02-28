@@ -179,7 +179,7 @@ def test_factor_meta(iris_df):
     meta3 = FactorMeta("Species", levels=["setosa", "virginica", "versicolor", "stuff"])
     meta3.check_with_data(iris_df)
 
-def test_data_meta(iris_plus_df):
+def test_date_meta(iris_plus_df):
     meta = DateMeta("date")
     meta.check_with_data(iris_plus_df)
 

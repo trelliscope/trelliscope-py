@@ -253,3 +253,26 @@ def test_write_jsonp_with_json():
     finally:
         tmp.close()
         os.unlink(tmp.name)
+
+def test_check_image_extension():
+    files = ["a.jpg", "b.png", "c.svg"]
+    utils.check_image_extension(files)
+
+    files.append("/a/b.c/d.gif")
+    utils.check_image_extension(files)
+
+    files.append("bad.docx")
+    with pytest.raises(ValueError, match=r"All file extensions must be one of"):
+        utils.check_image_extension(files)
+
+def test_check_positive_numeric():
+    utils.check_positive_numeric(1, "x")
+    utils.check_positive_numeric(1000000, "x")
+    utils.check_positive_numeric(3.6, "x")
+    utils.check_positive_numeric(0.000001, "x")
+
+    with pytest.raises(ValueError, match=r"must be a positive number"):
+        utils.check_positive_numeric("stuff", "x")
+
+    with pytest.raises(ValueError, match=r"must be a positive number"):
+        utils.check_positive_numeric(-3, "x")
