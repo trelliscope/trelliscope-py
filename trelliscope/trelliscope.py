@@ -6,7 +6,7 @@
 # from typing import Self
 
 
-#import tempfile
+import tempfile
 import copy
 import os
 import uuid
@@ -25,6 +25,7 @@ from .metas import Meta, StringMeta, NumberMeta, HrefMeta, FactorMeta
 from .state import DisplayState, LayoutState, LabelState
 from .view import View
 from .input import Input
+from .panels import Panel, ImagePanel, IFramePanel
 from . import utils
 
 class Trelliscope:
@@ -39,7 +40,7 @@ class Trelliscope:
     METADATA_FILE_NAME = "metaData"
 
     def __init__(self, dataFrame: pd.DataFrame, name: str, description: str = None, key_cols = None, tags = None,
-            path = None, force_plot = False, panel_col = None, pretty_meta_data = False):
+            path = None, force_plot = False, panel_col:str = None, panel: Panel = None, pretty_meta_data = False):
         """
         Instantiate a Trelliscope display object.
 
@@ -70,7 +71,28 @@ class Trelliscope:
         self.force_plot: bool = force_plot
         self.pretty_meta_data = pretty_meta_data
 
-        self.panel_col = panel_col
+        self.panel: Panel = panel
+
+        if panel is not None and panel_col is not None:
+            # They have supplied both a panel and a panel column name
+            # They really should have only given one or the other
+            # Let's see if they match (and then we can ignore the panel
+            # column), of if they don't (in which case we have two panels
+            # to work with)
+
+            # TODO: Fill this in
+            pass
+        elif panel_col is not None:
+            # This is the case where they have specified a panel column
+            # but not an actual panel, so we can create the panel for them
+            self.panel = Panel.create_panel(self.data_frame, panel_col)
+        
+        # Note, if neither the panel nor the panel_col params were specified,
+        # then we will leave self.panel as None, and it can either be set
+        # explicitly by the user later, or it can be inferred when writing
+
+        # SB 3/25/23: This should not be needed anymore with the new panel approach
+        # self.panel_col = panel_col
         #self.panel_col = Trelliscope.__check_and_get_panel_col(dataFrame)
 
         #TODO: Is there a reason this is not a true uuid?
@@ -95,8 +117,17 @@ class Trelliscope:
         self.panel_type = None
         self.panels_written = False
 
+    def set_panel(self, panel: Panel):
+        # TODO: Should we make a copy here??
+        if not isinstance(panel, Panel):
+            raise ValueError("Error: Panel must be a valid Panel class instance.")
+        
+        self.panel = panel
+
+        return self
+
     def set_meta(self, meta: Meta):
-        if not issubclass(meta, Meta):
+        if not isinstance(meta, Meta):
             raise ValueError("Error: Meta definition must be a valid Meta class instance.")
         
         meta.check_with_data(self.data_frame)
@@ -235,15 +266,20 @@ class Trelliscope:
                 "json" format. The "jsonp" format makes it possible to browse a
                 trelliscope app without the need for a web server.
         """
-        
 
         # TODO: Do we want to use the temp file context manager so our files are cleaned up after?
         # Or is the point to leave it around for a while?
+        # The mkdtemp means that it will stick around and we have to clean it up
+        # tempfile.mkdtemp()
+        # The TemporaryDirectory() approach uses a context object and cleans it up for us
         # https://docs.python.org/3/library/tempfile.html
         # if self._path is None:
         #     self.path = tempfile.TemporaryDirectory()
         # the context object is used like this:
         # with tempfile.TemporaryDirectory() as tmpdirname:
+
+        if self.path is None:
+            self.path = tempfile.mkdtemp()
 
         output_dir = self.get_output_path()
         logging.info(f"Saving to {output_dir}")

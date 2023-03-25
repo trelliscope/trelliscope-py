@@ -1,5 +1,5 @@
 import pandas as pd
-from .trelliscope import utils
+from trelliscope import utils
 
 # TODO: Determine how to work with image panels.
 
@@ -37,6 +37,19 @@ class Panel:
 
         # Check that the extension matches
         # TODO: Add this in
+        pass
+
+    @staticmethod
+    def create_panel(df: pd.DataFrame, panel_col: str):
+        """
+        A factory method to create a new panel object. This method
+        infers the type and other parameters based on the data found in the
+        `panel_col` column in the data frame.
+        """
+        # TODO: Fill in the inference logic here
+        
+        # For now, just return an image panel for test purposes
+        return ImagePanel(panel_col)
 
 class ImagePanel(Panel):
     def __init__(self, varname: str, aspect_ratio: float = 1.5, is_local: bool = False,) -> None:
