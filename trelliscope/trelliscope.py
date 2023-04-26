@@ -318,6 +318,7 @@ class Trelliscope:
         tr = tr.infer()
         
         tr._check_panels()
+        #tr._get_thumbnail_url()
 
         tr._write_display_info(jsonp, config["id"])
         tr._write_meta_data(jsonp, config["id"])
@@ -330,9 +331,25 @@ class Trelliscope:
         return tr
 
     def _check_panels(self):
+        """
+        Checks the files in the panels directory, then compares them against the
+        key columns in the dataframe. If there are key columns that do not have
+        corresponding files, it will throw an error specifying the extra key columns
+        that were discovered.
+        
+        Throws:
+            ValueError
+        """
         tr = self.__copy()
 
+        panel_path = os.path.join(tr.get_displays_path(), "panels")
+
+        # TODO: Fill this in
+
         return tr
+    
+    def _get_thumbnail_url(self):
+        pass
 
     def _check_app_config(self, app_dir, jsonp) -> dict():
         """
@@ -567,6 +584,7 @@ class Trelliscope:
         utils.write_json_file(meta_data_file, jsonp, function_name, meta_data_json)
 
     def write_panels(self):
+        #self.panels_written = True
         return self.__copy()
 
     def add_meta_defs(self):

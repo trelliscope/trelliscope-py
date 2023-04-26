@@ -11,7 +11,7 @@
             "program": "${workspaceFolder}/trelliscope/examples/fruit.py",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "python": "${workspaceFolder}/venv/bin/python"
+            "python": "${workspaceFolder}/tr-dev-env/bin/python"
         },
         {
             "name": "Examples - Iris",
@@ -20,7 +20,16 @@
             "program": "${workspaceFolder}/trelliscope/examples/iris.py",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "python": "${workspaceFolder}/venv/bin/python"
+            "python": "${workspaceFolder}/tr-dev-env/bin/python"
+        },
+        {
+            "name": "Examples - Mars Rover",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/trelliscope/examples/mars.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "python": "${workspaceFolder}/tr-dev-env/bin/python"
         },
         {
             "name": "Meta debugging",
@@ -29,7 +38,7 @@
             "program": "${workspaceFolder}/trelliscope/examples/meta_debugging.py",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "python": "${workspaceFolder}/venv/bin/python"
+            "python": "${workspaceFolder}/tr-dev-env/bin/python"
         },
         // {
         //     "name": "Meta tests",
