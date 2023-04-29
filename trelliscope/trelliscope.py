@@ -291,7 +291,7 @@ class Trelliscope:
         """
         self._create_output_dirs()
 
-        config = self._check_app_config(output_dir, jsonp)
+        config = self._check_app_config(self.get_output_path(), jsonp)
 
         config_using_jsonp = False
         if "data_type" in config.keys() and config["data_type"] == "jsonp":
@@ -323,6 +323,8 @@ class Trelliscope:
         # In R it was just the path, but from my example run, it seemed to have the dataset
         # name (ie. the output path)
         tr._update_display_list(self.get_output_path(), jsonp, config["id"])
+
+        tr._write_javascript_lib()
 
         return tr
 
