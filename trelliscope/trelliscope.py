@@ -308,9 +308,9 @@ class Trelliscope:
             tr = tr.write_panels()
 
         tr = tr.infer()
-        tr.__infer_panel_type()
+        tr = tr.__infer_panel_type()
 
-        tr._check_panels()
+        tr = tr._check_panels()
         #tr._get_thumbnail_url()
 
         tr._write_display_info(jsonp, config["id"])
@@ -531,7 +531,7 @@ class Trelliscope:
             tr.panel_type = "img"
             tr.panel_aspect = tr.panel.aspect_ratio
             tr.panels_written = False
-            tr.data_frame.rename(columns={tr.panel.varname: "__PANEL_KEY__"})
+            tr.data_frame = tr.data_frame.rename(columns={tr.panel.varname: "__PANEL_KEY__"})
             tr.panel = "__PANEL_KEY__"
 
         return tr
