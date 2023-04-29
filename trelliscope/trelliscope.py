@@ -14,7 +14,6 @@ import json
 import shutil
 import re
 import glob
-from importlib import resources
 import pandas as pd
 from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
@@ -28,6 +27,7 @@ from .view import View
 from .input import Input
 from .panels import Panel, ImagePanel, IFramePanel
 from . import utils
+from . import html_utils
 
 class Trelliscope:
     """
@@ -325,6 +325,7 @@ class Trelliscope:
         tr._update_display_list(self.get_output_path(), jsonp, config["id"])
 
         tr._write_javascript_lib()
+        tr._write_widget()
 
         return tr
 
@@ -673,16 +674,11 @@ class Trelliscope:
         Writes the JavaScript libraries to the output directory
         """
         output_path = self.get_output_path()
+        html_utils.write_javascript_lib(output_path)
 
-        for file in resources.files("trelliscope.resources.javascript").iterdir():
-            if file.is_dir():
-                # base_name = os.path.basename(file)
-                dir_name = file.name
 
-                new_output = os.path.join(output_path, dir_name)
-
-                # TODO: verify that this works if the package is zipped, etc.
-                shutil.copytree(file, new_output)
+    def write_widget(self):
+        pass
 
     def write_panels(self):
         #self.panels_written = True
