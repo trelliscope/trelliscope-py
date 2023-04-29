@@ -350,6 +350,23 @@ class Trelliscope:
     def _get_thumbnail_url(self):
         pass
 
+    def _get_existing_config_filename(self) -> str:
+        output_dir = self.get_output_path()
+
+        prefix = Trelliscope.CONFIG_FILE_NAME
+        jsonp_config_file = os.path.join(output_dir, f"{prefix}.jsonp")
+        json_config_file = os.path.join(output_dir, f"{prefix}.json")
+
+        # Look to see if there is an existing config file, and use it
+        filename = None
+
+        if os.path.exists(jsonp_config_file):
+            filename = jsonp_config_file
+        elif os.path.exists(json_config_file):
+            filename = json_config_file
+
+        return filename
+
     def _check_app_config(self, app_dir, jsonp) -> dict():
         """
         Gets the app config. If a config file exists in the `app_dir`
@@ -676,9 +693,15 @@ class Trelliscope:
         output_path = self.get_output_path()
         html_utils.write_javascript_lib(output_path)
 
+    def _write_widget(self):
+        output_path = self.get_output_path()
+        config_path =  self._get_existing_config_filename()
+        config_file = os.path.basename(config_path)
 
-    def write_widget(self):
-        pass
+        id = self.id
+        is_spa = True
+
+        html_utils.write_widget(output_path, id, config_file, is_spa)
 
     def write_panels(self):
         #self.panels_written = True

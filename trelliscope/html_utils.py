@@ -4,6 +4,8 @@ and other widgets needed for Trelliscope viewing.
 """
 import os
 import shutil
+import uuid
+import json
 from importlib import resources
 
 JAVASCRIPT_SOURCE_PACKAGE = "trelliscope.resources.javascript"
@@ -26,3 +28,58 @@ def write_javascript_lib(output_path:str) -> None:
             # TODO: verify that this works if the package is zipped, etc.
             shutil.copytree(file, new_output)
 
+def write_widget(output_path:str, trelliscope_id:str, config_info:str, is_spa:bool) -> None:
+    html_content = _get_index_html_content(output_path, trelliscope_id, config_info, is_spa)
+    html_file = os.path.join(output_path, "index.html")
+    
+    with open(html_file, "w") as output_file:
+        output_file.write(html_content)
+
+def _get_index_html_content(output_path:str, trelliscope_id:str, config_info:str, is_spa:bool) -> str:
+    # TODO: Decide how to handle Javascript file version numbers to include
+    HTML_WIDGET_FILE = "lib/htmlwidgets-1.6.2/htmlwidgets.js"
+    CSS_FILE = "lib/trelliscope_widget-0.6.0/css/main.ad4a7154.css"
+    TRELLISCOPE_WIDGET_FILE = "lib/trelliscope_widget-0.6.0/js/main.0084bd3e.js"
+    TRELLISCOPE_WIDGET_BINDING_FILE = "lib/trelliscope_widget-binding-0.1.0/trelliscope_widget.js"
+
+    # TODO: What is this? Where does it come from?
+    # It is something like "376b27d6688cc9ba8689"
+    html_widget_id = uuid.uuid4().hex
+
+    width = ""
+    height = ""
+
+    if is_spa:
+        width = "100vw"
+        height = "100vh"
+
+    widget_params = {"x": {
+        "id": trelliscope_id,
+        "config_info": config_info,
+        "spa": is_spa
+        },
+        "evals": [],
+        "jsHooks": []
+    }
+
+    widget_params_str = json.dumps(widget_params)
+
+    # Note that because this is a format string and {}'s need to be escaped by doubling
+    index_html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<style>body{{background-color:white;}}</style>
+<script src="{HTML_WIDGET_FILE}"></script>
+<link href="{CSS_FILE}" rel="stylesheet" />
+<script src="{TRELLISCOPE_WIDGET_FILE}"></script>
+<script src="{TRELLISCOPE_WIDGET_BINDING_FILE}"></script>
+
+</head>
+<body>
+<div id="htmlwidget-{html_widget_id}" style="width:{width};height:{height};" class="trelliscope_widget html-widget "></div>
+<script type="application/json" data-for="htmlwidget-{html_widget_id}">{widget_params_str}</script>
+</body>
+</html>
+"""
+    return index_html_content
