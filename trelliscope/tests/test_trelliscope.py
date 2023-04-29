@@ -3,6 +3,10 @@ import pandas as pd
 from trelliscope.trelliscope import Trelliscope
 from trelliscope.panels import Panel, ImagePanel, IFramePanel
 
+def test_mars_df(mars_df: pd.DataFrame):
+    assert len(mars_df) > 0
+    assert len(mars_df.columns) > 0
+
 def test_init(iris_tr: Trelliscope):
     assert iris_tr.name == "iris"
 

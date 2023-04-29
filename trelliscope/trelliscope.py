@@ -116,6 +116,7 @@ class Trelliscope:
         self.inputs = {}
         self.panel_type = None
         self.panels_written = False
+        self.panel_aspect = None
 
     def set_panel(self, panel: Panel):
         # TODO: Should we make a copy here??
@@ -235,15 +236,6 @@ class Trelliscope:
         result = "\n".join(output)
         return result
 
-    # @staticmethod
-    # def __check_and_get_panel_col(df: pd.DataFrame):
-    #     """
-    #     Look for a column with one of the following classes:
-    #     * ImagePanel (which includes ImagePanelLocal)
-    #     * TrelliscopePanel
-    #     """
-    #     #possible_panels = df.
-
     def _get_meta_info_for_output(self):
         """
         Returns a list of all the meta info that could be used for
@@ -316,7 +308,8 @@ class Trelliscope:
             tr = tr.write_panels()
 
         tr = tr.infer()
-        
+        tr.__infer_panel_type()
+
         tr._check_panels()
         #tr._get_thumbnail_url()
 
@@ -399,8 +392,12 @@ class Trelliscope:
 
             view2.state = self._infer_state(state, view2.name)
             tr.add_view(view2)
-            
-        tr = tr._infer_panel_type()
+        
+        panels = tr.__check_and_get_panel_col()
+        
+        if len(panels) == 0:
+            # No panels were found. Try to infer them.
+            tr = tr._infer_panels()
 
         return tr
 
@@ -454,8 +451,8 @@ class Trelliscope:
         elif is_string_dtype(meta_column.dtype):
             # this is a string column
 
-            # Check if all the entries start with http            
-            if meta_column.apply(lambda x: x.startswith("http")).all():
+            # Check if all the entries start with http
+            if utils.is_all_remote(meta_column):
                 # This appears to be an href column
                 meta = HrefMeta(meta_name)
             else:
@@ -506,15 +503,98 @@ class Trelliscope:
             state2.labels = LabelState(self.key_cols)
 
         return state2
-                
-    def _infer_panel_type(self):
+
+    def __infer_panel_type(self):
+        """
+        Find the Panel column, then use that to set the
+        .panel_type attribute, and also rename the column
+        to be __PANEL_KEY as appropriate.
+        """
+
+        # TODO: Refer back to the panels approach. In the PanelSeries
+        # approach, the as_trelliscope method first checks for any
+        # columns that implement PanelSeries, and if they don't exist
+        # one is inferred if possible.
+        # Then, after creating a Trelliscope Display object, a separate
+        # call to inferPanelType is made to essentially find the
+        # PanelSeries columns that have been created.
+
         tr = self.__copy()
 
-        # TODO: Implement this
-    
+        if tr.panel is None:
+            raise ValueError("A panel must be in place.")
+        
+        # TODO: In R, there are lots of checks here,
+        # for _server_, nested_panels, image_panel, and iframe_panel
+        # It seems like this could be done better using polymorphism.
+        if isinstance(tr.panel, ImagePanel):
+            tr.panel_type = "img"
+            tr.panel_aspect = tr.panel.aspect_ratio
+            tr.panels_written = False
+            tr.data_frame.rename(columns={tr.panel.varname: "__PANEL_KEY__"})
+            tr.panel = "__PANEL_KEY__"
+
         return tr
 
+    def _infer_panels(self):
+        tr = self.__copy()
+        # In R, this logic is found in the as_trelliscope function
+        
+        panel_cols = self.__check_and_get_panel_col()
 
+        if len(panel_cols) == 0:
+            # No panels were found
+            # Check for an image col
+            image_columns = utils.find_image_columns(tr.data_frame)
+            
+            if len(image_columns) > 1:
+                # TODO: Decide how to handle this case...
+                # Use the first?
+                # Make the user specify?
+                logging.warning(f"Warning, found multiple image columns `{image_columns}`, so none were used as a panel.")
+            elif len(image_columns) == 1:
+                # Found exactly one image column
+                panel_col = image_columns[0]
+
+                panel_col_series = tr.data_frame[panel_col]
+                is_remote = utils.is_all_remote(panel_col_series)
+                
+                # The logic in this function is about being remote
+                # but the image column is defined in terms of being
+                # local, which is the opposite
+                is_local = not is_remote
+
+                # In R, this creates a new ImagePanelSeries and overwrites
+                # the Series in the dataframe with the new derived type.
+                # We may come back and try that here, but for now, we will
+                # create an ImagePanel that refers back to the varname in
+                # the table instead.
+                # tr[panel_col] = ImagePanelSeries(panel_col_series, is_local=is_local)
+                tr.panel = ImagePanel(panel_col, is_local=is_local)
+                logging.info(f"Using {panel_col} col as an image panel.")
+
+        return tr
+
+    def __check_and_get_panel_col(self):
+        """
+        Look for panels that have previously been defined.
+
+        Returns:
+            A list of the col names that are defined as panels.
+            If none are found, an empty list is returned.
+        """
+        panels = []
+
+        # TODO: If we use the PanelSeries approach, look for
+        # all columns that inherit from PanelSeries.
+
+        # Not using the PanelSeries approach, we can simply check
+        # if the panel attribute is empty
+        if self.panel is not None:
+            panels.append(self.panel.varname)
+
+        return panels
+        
     def _write_display_info(self, jsonp, id):
         file = utils.get_file_path(self.get_dataset_display_path(),
                                             Trelliscope.DISPLAY_INFO_FILE_NAME,

@@ -276,3 +276,49 @@ def test_check_positive_numeric():
 
     with pytest.raises(ValueError, match=r"must be a positive number"):
         utils.check_positive_numeric(-3, "x")
+
+def test_is_all_remote_with_local(mars_df:pd.DataFrame):
+    assert utils.is_all_remote(mars_df["img_src"])
+
+    # Change one to not be remote
+    mars_df["img_src"][0] = "local.png"
+    assert not utils.is_all_remote(mars_df["img_src"])
+
+def test_extension_matches():
+    text = "file.png"
+    assert utils._extension_matches(text, "png")
+    assert not utils._extension_matches(text, "jpg")
+    assert not utils._extension_matches(text, "doc")
+    assert not utils._extension_matches(text, "")
+
+    text = "file"
+    assert not utils._extension_matches(text, "png")
+    assert not utils._extension_matches(text, "jpg")
+    assert not utils._extension_matches(text, "doc")
+    assert  utils._extension_matches(text, "")
+
+    text = "file.jpg"
+    assert not utils._extension_matches(text, "png")
+    assert utils._extension_matches(text, "jpg")
+    assert not utils._extension_matches(text, "doc")
+    assert not utils._extension_matches(text, "")
+
+def test_find_image_columns(mars_df:pd.DataFrame):
+    cols = utils.find_image_columns(mars_df)
+    assert len(cols) == 1
+    assert cols[0] == "img_src"
+
+    # Try changing the extension of one image and make
+    # sure it is no longer a valid column
+    mars_df["img_src"][0] = "test.doc"
+    cols = utils.find_image_columns(mars_df)
+    assert len(cols) == 0
+
+    # Try changing the extension of one image
+    # to another (but different) image extension
+    # and make sure it is no longer a valid column
+    mars_df["img_src"][0] = "test.png"
+    cols = utils.find_image_columns(mars_df)
+    assert len(cols) == 0
+
+

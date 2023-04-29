@@ -11,6 +11,7 @@ from trelliscope.trelliscope import Trelliscope
 
 DATA_DIR = "external_data"
 IRIS_DF_FILENAME = "iris.data"
+MARS_DF_FILENAME = "mars_rover.csv"
 
 # def pytest_configure(config):
 #     if not os.path.exists(CACHE_DIR):
@@ -57,4 +58,24 @@ def iris_plus_df(iris_df: pd.DataFrame):
 def iris_tr(iris_df: pd.DataFrame):
     tr = Trelliscope(iris_df, name="iris")
     return tr
+
+@pytest.fixture(scope="session")
+def loaded_mars_df() -> pd.DataFrame:
+    """
+    Loads the mars rover dataset from a file in the test-data directory.
+    """
+    mars_path = os.path.join(DATA_DIR, MARS_DF_FILENAME)
+
+    data = pkgutil.get_data(__name__, mars_path)
+    df = pd.read_csv(BytesIO(data))
+
+    return df
+
+@pytest.fixture
+def mars_df(loaded_mars_df : pd.DataFrame):
+    """
+    Returns a copy of the mars rover dataset.
+    """
+    df_copy = loaded_mars_df.copy(deep=True)
+    return df_copy
 

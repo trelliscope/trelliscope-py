@@ -58,3 +58,7 @@ class ImagePanel(Panel):
 class IFramePanel(Panel):
     def __init__(self, varname: str, aspect_ratio: float = 1.5, is_local: bool = False,) -> None:
         super().__init__(varname, aspect_ratio, is_local, is_image=False)
+
+# class ImagePanelSeries(pd.Series):
+#     def __init__(self) -> None:
+#         super().__init__()

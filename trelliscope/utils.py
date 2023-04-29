@@ -269,6 +269,44 @@ def check_graph_var(df: pd.DataFrame, varname: str, id_varname: str, get_error_m
 valid_image_extensions = {"apng", "avif", "gif", "jpg", "jpeg", "jfif", "pjpeg",
   "pjp", "png", "svg", "webp"}
 
+def _extension_matches(text:str, ext_to_match:str):
+    """
+    Returns true if the extension of `text` matches the provided
+    `ext_to_match`.
+
+    Params:
+        text: str - The filepath
+        ext_to_match: str - The extension not including the . (pass "jpg" not ".jpg")
+
+    Designed to be used as a "lambda" function in an apply method.
+    """
+    (_, ext) = os.path.splitext(text)
+
+    # Get rid of the leading . in .jpg
+    ext = ext.removeprefix(".")
+
+    return ext == ext_to_match
+
+def find_image_columns(df:pd.DataFrame):
+    image_cols = []
+    str_cols = [col for col in df.columns if is_string_dtype(df[col])]
+
+    for col in str_cols:
+        # Get the extension of the first item
+        (_, ext) = os.path.splitext(df[col][0])
+
+        # Get rid of the leading . in .jpg
+        ext = ext.removeprefix(".")
+
+        if ext in valid_image_extensions:
+            # The first row had a valid image extension, now check if
+            # they all have this same extension
+            if df[col].apply(lambda x: _extension_matches(x, ext)).all():
+                # All rows in this column have this extension
+                image_cols.append(col)
+
+    return image_cols
+
 def check_image_extension(list_to_check:list, get_error_message_function=__generic_error_message):
     """
     Verify that each element in the list has a valid image extension.
@@ -289,6 +327,12 @@ def check_image_extension(list_to_check:list, get_error_message_function=__gener
             message = get_error_message_function(f"Extension {ext} is not valid. All file extensions must be one of: {valid_image_extensions}")
             raise ValueError(message)
 
+def is_all_remote(col:pd.Series):
+    """
+    Determines if every value in the provided `col` column is
+    remote, meaning that they all begin with `http:`.
+    """
+    return col.apply(lambda x: x.startswith("http")).all()
 
 def sanitize(text:str, to_lower=True) -> str:
     if to_lower:
