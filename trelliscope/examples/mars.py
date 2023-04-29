@@ -14,7 +14,6 @@ def get_mars_rover_df() -> pd.DataFrame:
     Loads the Mars Rover dataset from a file in the test-data directory.
     """
     df_path = os.path.join(DATA_DIR, MARS_ROVER_DF_FILENAME)
-    # df = pd.read_pickle(iris_path)
     df = pd.read_csv(df_path)
 
     return df

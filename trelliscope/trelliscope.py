@@ -14,6 +14,7 @@ import json
 import shutil
 import re
 import glob
+from importlib import resources
 import pandas as pd
 from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
@@ -247,18 +248,8 @@ class Trelliscope:
         # to display their information
 
         return output
-
-    def write_display(self, force_write: bool = False, jsonp: bool = True):
-        """
-        Write the contents of this display.
-        Params:
-            force_write: bool - Should the panels be forced to be written even
-                if they have already been written?
-            jsonp: bool - If true, app files are written as "jsonp" format, otherwise
-                "json" format. The "jsonp" format makes it possible to browse a
-                trelliscope app without the need for a web server.
-        """
-
+    
+    def _create_output_dirs(self):
         # TODO: Do we want to use the temp file context manager so our files are cleaned up after?
         # Or is the point to leave it around for a while?
         # The mkdtemp means that it will stick around and we have to clean it up
@@ -287,6 +278,18 @@ class Trelliscope:
         os.makedirs(output_dir)
         os.makedirs(self.get_displays_path())
         os.makedirs(self.get_dataset_display_path())
+
+    def write_display(self, force_write: bool = False, jsonp: bool = True):
+        """
+        Write the contents of this display.
+        Params:
+            force_write: bool - Should the panels be forced to be written even
+                if they have already been written?
+            jsonp: bool - If true, app files are written as "jsonp" format, otherwise
+                "json" format. The "jsonp" format makes it possible to browse a
+                trelliscope app without the need for a web server.
+        """
+        self._create_output_dirs()
 
         config = self._check_app_config(output_dir, jsonp)
 
@@ -662,6 +665,22 @@ class Trelliscope:
 
         function_name = f"__loadMetaData__{id}"
         utils.write_json_file(meta_data_file, jsonp, function_name, meta_data_json)
+
+    def _write_javascript_lib(self):
+        """
+        Writes the JavaScript libraries to the output directory
+        """
+        output_path = self.get_output_path()
+
+        for file in resources.files("trelliscope.resources.javascript").iterdir():
+            if file.is_dir():
+                # base_name = os.path.basename(file)
+                dir_name = file.name
+
+                new_output = os.path.join(output_path, dir_name)
+
+                # TODO: verify that this works if the package is zipped, etc.
+                shutil.copytree(file, new_output)
 
     def write_panels(self):
         #self.panels_written = True

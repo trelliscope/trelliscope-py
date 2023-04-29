@@ -1,4 +1,5 @@
 import pytest
+import os
 import pandas as pd
 from trelliscope.trelliscope import Trelliscope
 from trelliscope.panels import Panel, ImagePanel, IFramePanel
@@ -49,3 +50,11 @@ def test_standard_setup(iris_df: pd.DataFrame):
     tr = Trelliscope(iris_df, "Iris")
     tr.set_panel(ImagePanel("img_panel"))
     tr.write_display()
+
+def test_write_javascript(mars_df: pd.DataFrame):
+    tr = Trelliscope(mars_df, "mars_rover")
+    tr._create_output_dirs()
+    tr._write_javascript_lib()
+
+    expected_lib_dir = os.path.join(tr.get_output_path(), "lib")
+    assert os.path.isdir(expected_lib_dir)
