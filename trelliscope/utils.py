@@ -269,7 +269,7 @@ def check_graph_var(df: pd.DataFrame, varname: str, id_varname: str, get_error_m
 valid_image_extensions = {"apng", "avif", "gif", "jpg", "jpeg", "jfif", "pjpeg",
   "pjp", "png", "svg", "webp"}
 
-def _extension_matches(text:str, ext_to_match:str):
+def _extension_matches(text:str, ext_to_match:str, match_case:bool = False):
     """
     Returns true if the extension of `text` matches the provided
     `ext_to_match`.
@@ -285,7 +285,14 @@ def _extension_matches(text:str, ext_to_match:str):
     # Get rid of the leading . in .jpg
     ext = ext.removeprefix(".")
 
-    return ext == ext_to_match
+    is_match = False
+
+    if match_case:
+        is_match = (ext == ext_to_match)
+    else:
+        is_match = (ext.lower() == ext_to_match.lower())
+
+    return is_match
 
 def find_image_columns(df:pd.DataFrame):
     image_cols = []

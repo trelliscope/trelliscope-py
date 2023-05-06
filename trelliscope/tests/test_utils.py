@@ -303,6 +303,14 @@ def test_extension_matches():
     assert not utils._extension_matches(text, "doc")
     assert not utils._extension_matches(text, "")
 
+def test_extension_matches_match_case():
+    text = "file.png"
+    assert utils._extension_matches(text, "png")
+    
+    assert utils._extension_matches(text, "PNG") # uses default value
+    assert utils._extension_matches(text, "PNG", False)
+    assert not utils._extension_matches(text, "PNG", True)
+
 def test_find_image_columns(mars_df:pd.DataFrame):
     cols = utils.find_image_columns(mars_df)
     assert len(cols) == 1
