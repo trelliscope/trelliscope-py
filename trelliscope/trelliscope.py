@@ -36,12 +36,14 @@ class Trelliscope:
 
     DISPLAYS_DIR = "displays"
     CONFIG_FILE_NAME = "config"
+    PANELS_DIR = "panels"
     DISPLAY_LIST_FILE_NAME = "displayList"
     DISPLAY_INFO_FILE_NAME = "displayInfo"
     METADATA_FILE_NAME = "metaData"
 
     def __init__(self, dataFrame: pd.DataFrame, name: str, description: str = None, key_cols = None, tags = None,
-            path = None, force_plot = False, panel_col:str = None, panel: Panel = None, pretty_meta_data = False):
+            path: str = None, force_plot: bool = False, panel_col: str = None, panel: Panel = None, pretty_meta_data: bool = False,
+            keysig:str = None, server:str = None):
         """
         Instantiate a Trelliscope display object.
 
@@ -71,6 +73,9 @@ class Trelliscope:
         self.path: str = path
         self.force_plot: bool = force_plot
         self.pretty_meta_data = pretty_meta_data
+        self.keysig: str = keysig
+        self.server: str = server
+        self.thumbnail_url: str = None
 
         self.panel: Panel = panel
 
@@ -118,6 +123,7 @@ class Trelliscope:
         self.panel_type = None
         self.panels_written = False
         self.panel_aspect = None
+        self.panel_format = None
 
     def set_panel(self, panel: Panel):
         # TODO: Should we make a copy here??
@@ -173,6 +179,9 @@ class Trelliscope:
         self.inputs[name] = input
 
     def _get_name_dir(self, to_lower: bool = True) -> str:
+        """
+        Returns the dataset name in directory form (sanitized)
+        """
         return utils.sanitize(self.name, to_lower)
 
     def get_output_path(self) -> str:
@@ -193,11 +202,23 @@ class Trelliscope:
         result["description"] = self.description
         result["tags"] = self.tags
         result["key_cols"] = self.key_cols
+        result["keysig"] = self.keysig
         result["metas"] = [meta.to_dict() for meta in self.metas.values()]
         result["state"] = self.state.to_dict()
         result["views"] = [view.to_dict() for view in self.views.values()]
-        result["inputs"] = [input.to_dict() for input in self.inputs.values()]
-        result["panel_type"] = self.panel_type
+
+        if self.inputs.values is None or len(self.inputs.values()) == 0:
+            result["inputs"] = None
+        else:
+            result["inputs"] = [input.to_dict() for input in self.inputs.values()]
+        result["paneltype"] = self.panel_type
+        result["panelformat"] = self.panel_format
+        result["panelaspect"] = self.panel.aspect_ratio
+        
+        # TODO: This needs to come from the right place
+        result["panelsource"] = {"type": "file"}
+        result["thumbnailurl"] = self.thumbnail_url
+
 
         return result
 
@@ -294,7 +315,7 @@ class Trelliscope:
         config = self._check_app_config(self.get_output_path(), jsonp)
 
         config_using_jsonp = False
-        if "data_type" in config.keys() and config["data_type"] == "jsonp":
+        if "datatype" in config.keys() and config["datatype"] == "jsonp":
             config_using_jsonp = True
 
         if config_using_jsonp != jsonp:
@@ -314,7 +335,7 @@ class Trelliscope:
         tr = tr.__infer_panel_type()
 
         tr = tr._check_panels()
-        #tr._get_thumbnail_url()
+        tr = tr._get_thumbnail_url()
 
         tr._write_display_info(jsonp, config["id"])
         tr._write_meta_data(jsonp, config["id"])
@@ -348,8 +369,35 @@ class Trelliscope:
         return tr
     
     def _get_thumbnail_url(self):
-        pass
+        """
+        Sets the self.thumbnail_url variable to the appropriate thumbnail url.
+        """
+        # TODO: Consider not using "get" in the filename here, but this matches R.
 
+        # Is it necessary to make a copy in this case? In R it was not
+        tr = self.__copy()
+
+        format = None
+        # TODO: add check of panel format here.
+        # format = tr.panel_format
+
+        if self.panel is None:
+            raise ValueError("A panel must be defined to be able to get the thumbnail url")
+        
+        key = self.data_frame[self.panel.varname][0]
+
+        thumbnail_url = ""
+        if format is not None:
+            name = self._get_name_dir()
+            filename = f"{key}.{format}"
+            thumbnail_url = os.path.join(Trelliscope.DISPLAYS_DIR, name, Trelliscope.PANELS_DIR, filename)
+        else:
+            thumbnail_url = key
+
+        tr.thumbnail_url = thumbnail_url
+
+        return tr
+    
     def _get_existing_config_filename(self) -> str:
         output_dir = self.get_output_path()
 
@@ -391,7 +439,7 @@ class Trelliscope:
         else:
             # No config file found, generating new info
             config_dict["name"] = "Trelliscope App"
-            config_dict["data_type"] = "jsonp" if jsonp else "json"
+            config_dict["datatype"] = "jsonp" if jsonp else "json"
             # TODO: Verify that this is the correct id here
             # We might just want to get a random hash based on the current time
             config_dict["id"] = self.id
@@ -555,7 +603,11 @@ class Trelliscope:
             tr.panel_aspect = tr.panel.aspect_ratio
             tr.panels_written = False
             tr.data_frame = tr.data_frame.rename(columns={tr.panel.varname: "__PANEL_KEY__"})
-            tr.panel = "__PANEL_KEY__"
+            
+            # In R, they set the panel attribute directly, but currently
+            # panel is a panel object
+            #tr.panel = "__PANEL_KEY__"
+            tr.panel.varname = "__PANEL_KEY__"
 
         return tr
 
@@ -654,7 +706,7 @@ class Trelliscope:
 
         for file in files:
             from_file = utils.read_jsonp(file)
-            keys_to_keep = ["name", "description", "tags"]
+            keys_to_keep = ["name", "description", "tags", "keysig", "thumbnailurl"]
             display_info = {key: from_file[key] for key in keys_to_keep}
             display_info_list.append(display_info)
 
@@ -705,6 +757,8 @@ class Trelliscope:
 
     def write_panels(self):
         #self.panels_written = True
+        # TODO: One of the things that needs to happen here is to set the keysig to a hash of the columns
+
         return self.__copy()
 
     def add_meta_defs(self):

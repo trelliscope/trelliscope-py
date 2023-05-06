@@ -58,3 +58,29 @@ def test_write_javascript(mars_df: pd.DataFrame):
 
     expected_lib_dir = os.path.join(tr.get_output_path(), "lib")
     assert os.path.isdir(expected_lib_dir)
+
+def test_get_thumbnail_url(mars_df: pd.DataFrame):
+    """
+    Tests the case where the thumbnail url is simply the first row
+    of the panel column.
+    """
+    tr = Trelliscope(mars_df, "mars_rover")
+    tr.set_panel(ImagePanel("img_src"))
+    
+    tr2 = tr._get_thumbnail_url()
+    first_value = mars_df["img_src"][0]
+
+    assert tr2.thumbnail_url == first_value
+    
+
+@pytest.mark.skip("panel format not implemented yet.")
+def test_get_thumbnail_url_with_format(mars_df: pd.DataFrame):
+    """
+    Tests the case where the thumbnail url comes from a panel_format,
+    in other words panels created by the trelliscope lib
+    """
+    raise NotImplementedError()
+
+    first_value = mars_df["img_src"][0]
+    filename = os.path.join(Trelliscope.DISPLAYS_DIR, "mars_rover", Trelliscope.PANELS_DIR)
+
