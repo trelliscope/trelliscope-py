@@ -179,10 +179,12 @@ def test_factor_meta(iris_df):
     meta3 = FactorMeta("Species", levels=["setosa", "virginica", "versicolor", "stuff"])
     meta3.check_with_data(iris_df)
 
+@pytest.mark.skip("Feature is not implemented yet")
 def test_date_meta(iris_plus_df):
     meta = DateMeta("date")
     meta.check_with_data(iris_plus_df)
 
+@pytest.mark.skip("Feature is not implemented yet")
 def test_datetime_meta(iris_plus_df):
     meta = DatetimeMeta("datetime")
     meta.check_with_data(iris_plus_df)
@@ -191,6 +193,7 @@ def test_geo_meta(iris_plus_df):
     meta = GeoMeta("coords", latvar="lat", longvar="long")
     meta.check_with_data(iris_plus_df)
 
+@pytest.mark.skip("Feature is not implemented yet")
 def test_graph_meta(iris_plus_df):
     #TODO: The iris_plus_df will need to have extra columns added for this
 

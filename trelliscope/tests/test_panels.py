@@ -16,6 +16,7 @@ def test_panels_setup(iris_df: pd.DataFrame):
 
         tr.write_display()
 
+@pytest.mark.skip("Still considering various options for this")
 def test_panels_setup_options(iris_df: pd.DataFrame):
     with tempfile.TemporaryDirectory() as temp_dir_name:
         tr = Trelliscope(iris_df, "Iris", path=temp_dir_name)

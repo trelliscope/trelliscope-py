@@ -213,7 +213,11 @@ class Trelliscope:
             result["inputs"] = [input.to_dict() for input in self.inputs.values()]
         result["paneltype"] = self.panel_type
         result["panelformat"] = self.panel_format
-        result["panelaspect"] = self.panel.aspect_ratio
+
+        if self.panel is None:
+            result["panelaspect"] = None
+        else:
+            result["panelaspect"] = self.panel.aspect_ratio
         
         # TODO: This needs to come from the right place
         result["panelsource"] = {"type": "file"}

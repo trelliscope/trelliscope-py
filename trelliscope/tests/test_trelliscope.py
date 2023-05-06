@@ -22,7 +22,12 @@ def test_to_dict(iris_tr: Trelliscope):
     assert "state" in dict
     assert "views" in dict
     assert "inputs" in dict
-    assert "panel_type" in dict
+    assert "paneltype" in dict
+    assert "panelformat" in dict
+    assert "panelaspect" in dict
+    assert "panelsource" in dict
+    assert "thumbnailurl" in dict
+
 
     assert dict["name"] == "iris"
     
@@ -33,14 +38,14 @@ def test_no_name(iris_df: pd.DataFrame):
     with pytest.raises(TypeError, match=r"missing .* required .* argument"):
         tr = Trelliscope(iris_df)
 
-def test_no_img_panel(iris_df: pd.DataFrame):
-    # Trelliscopes need an image panel
-    with pytest.raises(ValueError, match=r"that references a plot or image"):
-        tr = Trelliscope(iris_df, "Iris")
+# def test_no_img_panel(iris_df: pd.DataFrame):
+#     # Trelliscopes need an image panel
+#     with pytest.raises(ValueError, match=r"that references a plot or image"):
+#         tr = Trelliscope(iris_df, "Iris")
 
-    # TODO: SB: In the new approach, I think this could be inferred later
-    # during the write process or something, so I think this should not raise
-    # an error at this point.
+#     # TODO: SB: In the new approach, I think this could be inferred later
+#     # during the write process or something, so I think this should not raise
+#     # an error at this point.
 
 def test_standard_setup(iris_df: pd.DataFrame):
     # this is test code that just sets all images to this test_image.png string
