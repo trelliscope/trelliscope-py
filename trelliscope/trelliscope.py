@@ -111,8 +111,7 @@ class Trelliscope:
             self.tags = []
 
         if self.key_cols is None:
-            # TODO: Infer this somehow or make sure it's set on the df...
-            self.key_cols = ["name"]
+            self.key_cols = self._get_key_cols()
 
         self.metas = {}
         self.columns_to_ignore = []
@@ -402,6 +401,17 @@ class Trelliscope:
 
         return tr
     
+    def _get_key_cols(self):
+        """
+        Infers the columns that uniquely identify a row.
+
+        This method does not SET the attribute, but rather just returns the columns
+        """
+
+        # TODO: Fill this in
+
+        return []
+
     def _get_existing_config_filename(self) -> str:
         output_dir = self.get_output_path()
 
