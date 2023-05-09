@@ -1,5 +1,6 @@
 import pytest
 import os
+import tempfile
 import pandas as pd
 from trelliscope.trelliscope import Trelliscope
 from trelliscope.panels import Panel, ImagePanel, IFramePanel
@@ -48,21 +49,25 @@ def test_no_name(iris_df: pd.DataFrame):
 #     # an error at this point.
 
 def test_standard_setup(iris_df: pd.DataFrame):
-    # this is test code that just sets all images to this test_image.png string
-    # it is not a proper use of the images, but gives us something to use in testing.
-    iris_df["img_panel"] = "test_image.png"
+    with tempfile.TemporaryDirectory() as output_dir:        
+        # this is test code that just sets all images to this test_image.png string
+        # it is not a proper use of the images, but gives us something to use in testing.
+        iris_df["img_panel"] = "test_image.png"
 
-    tr = Trelliscope(iris_df, "Iris")
-    tr.set_panel(ImagePanel("img_panel"))
-    tr.write_display()
+        tr = Trelliscope(iris_df, "Iris", path=output_dir)
+        tr.set_panel(ImagePanel("img_panel"))
+        tr.write_display()
+
+        # Clean up
 
 def test_write_javascript(mars_df: pd.DataFrame):
-    tr = Trelliscope(mars_df, "mars_rover")
-    tr._create_output_dirs()
-    tr._write_javascript_lib()
+    with tempfile.TemporaryDirectory() as output_dir:
+        tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
+        tr._create_output_dirs()
+        tr._write_javascript_lib()
 
-    expected_lib_dir = os.path.join(tr.get_output_path(), "lib")
-    assert os.path.isdir(expected_lib_dir)
+        expected_lib_dir = os.path.join(tr.get_output_path(), "lib")
+        assert os.path.isdir(expected_lib_dir)
 
 def test_get_thumbnail_url(mars_df: pd.DataFrame):
     """
