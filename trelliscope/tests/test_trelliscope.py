@@ -32,7 +32,8 @@ def test_to_dict(iris_tr: Trelliscope):
 
     assert dict["name"] == "iris"
     
-def test_no_name(iris_df: pd.DataFrame):
+def test_no_name(iris_df_no_duplicates: pd.DataFrame):
+    iris_df = iris_df_no_duplicates
     tr = Trelliscope(iris_df, "iris")
 
     # Trelliscopes need a name param
@@ -48,7 +49,9 @@ def test_no_name(iris_df: pd.DataFrame):
 #     # during the write process or something, so I think this should not raise
 #     # an error at this point.
 
-def test_standard_setup(iris_df: pd.DataFrame):
+def test_standard_setup(iris_df_no_duplicates: pd.DataFrame):
+    iris_df = iris_df_no_duplicates
+
     with tempfile.TemporaryDirectory() as output_dir:        
         # this is test code that just sets all images to this test_image.png string
         # it is not a proper use of the images, but gives us something to use in testing.
@@ -77,7 +80,7 @@ def test_get_thumbnail_url(mars_df: pd.DataFrame):
     tr = Trelliscope(mars_df, "mars_rover")
     tr.set_panel(ImagePanel("img_src"))
     
-    tr2 = tr._get_thumbnail_url()
+    tr2 = tr._infer_thumbnail_url()
     first_value = mars_df["img_src"][0]
 
     assert tr2.thumbnail_url == first_value

@@ -4,7 +4,22 @@ import pandas as pd
 from trelliscope.trelliscope import Trelliscope
 from trelliscope.panels import Panel, ImagePanel, IFramePanel
 
-def test_panels_setup(iris_df: pd.DataFrame):
+def test_panels_setup_no_uniquely_identifying_columns(iris_df: pd.DataFrame):
+    
+    with tempfile.TemporaryDirectory() as temp_dir_name:
+        # this is test code that just sets all images to this test_image.png string
+        # it is not a proper use of the images, but gives us something to use in testing.
+        iris_df["img_panel"] = "test_image.png"
+        
+        pnl = ImagePanel("img_panel", aspect_ratio=1.5, is_local=True)
+
+        with pytest.raises(ValueError, match="Could not find columns"):
+            tr = Trelliscope(iris_df, "Iris", panel=pnl, path=temp_dir_name)
+
+            # tr.write_display()
+
+def test_panels_setup(iris_df_no_duplicates: pd.DataFrame):
+    iris_df = iris_df_no_duplicates
     
     with tempfile.TemporaryDirectory() as temp_dir_name:
         # this is test code that just sets all images to this test_image.png string
@@ -15,6 +30,7 @@ def test_panels_setup(iris_df: pd.DataFrame):
         tr = Trelliscope(iris_df, "Iris", panel=pnl, path=temp_dir_name)
 
         tr.write_display()
+
 
 @pytest.mark.skip("Still considering various options for this")
 def test_panels_setup_options(iris_df: pd.DataFrame):

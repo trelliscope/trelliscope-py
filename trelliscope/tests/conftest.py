@@ -38,6 +38,14 @@ def iris_df(loaded_iris_df : pd.DataFrame):
     return df_copy
 
 @pytest.fixture
+def iris_df_no_duplicates(iris_df: pd.DataFrame):
+    """
+    Returns a copy of the iris dataset with no duplicates
+    """
+    df = iris_df.drop_duplicates()
+    return df
+
+@pytest.fixture
 def iris_plus_df(iris_df: pd.DataFrame):
     """
     Returns a copy of the iris dataset with extra columns for id and dates.
@@ -55,8 +63,8 @@ def iris_plus_df(iris_df: pd.DataFrame):
     return iris_df
 
 @pytest.fixture
-def iris_tr(iris_df: pd.DataFrame):
-    tr = Trelliscope(iris_df, name="iris")
+def iris_tr(iris_df_no_duplicates: pd.DataFrame):
+    tr = Trelliscope(iris_df_no_duplicates, name="iris")
     return tr
 
 @pytest.fixture(scope="session")

@@ -76,6 +76,8 @@ class Trelliscope:
         self.keysig: str = keysig
         self.server: str = server
         self.thumbnail_url: str = None
+        
+        self.facet_cols: list = None
 
         self.panel: Panel = panel
 
@@ -119,6 +121,7 @@ class Trelliscope:
         
         self.views = {}
         self.inputs = {}
+
         self.panel_type = None
         self.panels_written = False
         self.panel_aspect = None
@@ -145,9 +148,13 @@ class Trelliscope:
 
         self.metas[name] = meta
 
+        return self
+
     def set_metas(self, meta_list: list):
         for meta in meta_list:
             self.set_meta(meta)
+
+        return self
 
     def add_meta(self, meta_name: str, meta: Meta):
         # TODO: Should we make a copy here??
@@ -157,6 +164,8 @@ class Trelliscope:
 
     def set_state(self, state: DisplayState):
         self.state = state
+
+        return self
 
     # TODO: Verify this is acceptable as "add_view",
     # It was the method for set_view, but add seems more appropriate
@@ -169,6 +178,8 @@ class Trelliscope:
 
         self.views[name] = view
 
+        return self
+
     def set_input(self, input: Input):
         name = input.name
 
@@ -176,6 +187,8 @@ class Trelliscope:
             logging.info("Replacing existing input {input}")
 
         self.inputs[name] = input
+
+        return self
 
     def _get_name_dir(self, to_lower: bool = True) -> str:
         """
@@ -338,7 +351,7 @@ class Trelliscope:
         tr = tr.__infer_panel_type()
 
         tr = tr._check_panels()
-        tr = tr._get_thumbnail_url()
+        tr = tr._infer_thumbnail_url()
 
         tr._write_display_info(jsonp, config["id"])
         tr._write_meta_data(jsonp, config["id"])
@@ -371,14 +384,14 @@ class Trelliscope:
 
         return tr
     
-    def _get_thumbnail_url(self):
+    def _infer_thumbnail_url(self):
         """
         Sets the self.thumbnail_url variable to the appropriate thumbnail url.
         """
-        # TODO: Consider not using "get" in the filename here, but this matches R.
+        # SB: In R this was called `get_thumbnail_url()` but it's not a getter
 
         # Is it necessary to make a copy in this case? In R it was not
-        tr = self.__copy()
+        # tr = self.__copy()
 
         format = None
         # TODO: add check of panel format here.
@@ -397,22 +410,47 @@ class Trelliscope:
         else:
             thumbnail_url = key
 
-        tr.thumbnail_url = thumbnail_url
+        self.thumbnail_url = thumbnail_url
 
-        return tr
+        return self
     
     def _get_key_cols(self):
         """
         Infers the columns that uniquely identify a row.
 
-        This method does not SET the attribute, but rather just returns the columns
+        Checks for key columns in this order:
+        1. self.facet_cols
+        2. self.key_cols
+        3. grouped columns on self.data_frame
+        4. all columns
+        
+        This method does not SET the attribute, but rather just returns the columns.
         """
 
-        # TODO: Fill this in
+        key_cols = None
 
-        return []
+        if self.facet_cols is not None:
+            key_cols = self.facet_cols
+        elif self.key_cols is not None:
+            key_cols = self.key_cols
+        elif utils.is_dataframe_grouped(self.data_frame):
+            key_cols = utils.get_dataframe_grouped_columns(self.data_frame)
+        else:
+            key_cols = utils.get_uniquely_identifying_cols(self.data_frame)
+
+            if len(key_cols) == 0:
+                raise ValueError("Could not find columns of the data that uniquely define each row.")
+
+        if self.facet_cols is None:
+            logging.info(f"Using {key_cols} to uniquely identify each row of the data.")
+
+        return key_cols
 
     def _get_existing_config_filename(self) -> str:
+        """
+        Gets the filename of the config file (.json or .jsonp) found on the filesystem.
+        If no config file is found, it returns `None`
+        """
         output_dir = self.get_output_path()
 
         prefix = Trelliscope.CONFIG_FILE_NAME
@@ -467,6 +505,13 @@ class Trelliscope:
         return config_dict
 
     def infer(self):
+        """
+        Infers:
+            - Metas
+            - State
+            - Views
+            - Panels
+        """
         tr = self._infer_metas()
 
         tr.state = tr._infer_state(tr.state)
@@ -547,6 +592,10 @@ class Trelliscope:
         return meta
         
     def _finalize_meta_labels(self):
+        """
+        Fill in the labels for any metas that do not have a label. It will
+        use the varname by default.
+        """
         # This is how this is inferred in the R code...
         # Finalize labels if NULL with the following priority:
         # 1. use from disp$meta_labels if defined
@@ -593,7 +642,7 @@ class Trelliscope:
         """
         Find the Panel column, then use that to set the
         .panel_type attribute, and also rename the column
-        to be __PANEL_KEY as appropriate.
+        to be __PANEL_KEY__ as appropriate.
         """
 
         # TODO: Refer back to the panels approach. In the PanelSeries
@@ -611,7 +660,7 @@ class Trelliscope:
         
         # TODO: In R, there are lots of checks here,
         # for _server_, nested_panels, image_panel, and iframe_panel
-        # It seems like this could be done better using polymorphism.
+        # Perhaps a polymorphic approach could be used instead?
         if isinstance(tr.panel, ImagePanel):
             tr.panel_type = "img"
             tr.panel_aspect = tr.panel.aspect_ratio
@@ -684,7 +733,10 @@ class Trelliscope:
 
         return panels
         
-    def _write_display_info(self, jsonp, id):
+    def _write_display_info(self, jsonp : bool, id : str):
+        """
+        Creates the displayInfo json file.
+        """
         file = utils.get_file_path(self.get_dataset_display_path(),
                                             Trelliscope.DISPLAY_INFO_FILE_NAME,
                                             jsonp)
@@ -713,7 +765,6 @@ class Trelliscope:
         filename = f"{Trelliscope.DISPLAY_INFO_FILE_NAME}.{ext}"
 
         pattern = os.path.join(app_path, Trelliscope.DISPLAYS_DIR, "*", filename)
-        # print("Pattern: " + pattern)
         files = glob.glob(pattern)
 
         display_info_list = []

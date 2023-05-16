@@ -407,3 +407,43 @@ def read_jsonp(file: str) -> dict():
 
     result = json.loads(json_content)
     return result
+
+def is_dataframe_grouped(df: pd.DataFrame) -> bool:
+    index_names = df.index.names
+    
+    is_empty_index = len(index_names) == 1 and index_names[0] is None
+    return not is_empty_index
+
+def get_dataframe_grouped_columns(df: pd.DataFrame) -> list:
+    return df.index.names
+
+def get_string_columns(df: pd.DataFrame) -> list:
+    char_cols = [c for c in df.columns if is_string_dtype(df[c])]
+    return char_cols
+
+def get_string_or_factor_columns(df: pd.DataFrame) -> list:
+    char_cols = [c for c in df.columns if is_string_dtype(df[c]) or df[c].dtype == "category"]
+    return char_cols
+
+def get_numeric_columns(df: pd.DataFrame) -> list:
+    return list(df.select_dtypes('number'))
+
+def get_uniquely_identifying_cols(df: pd.DataFrame) -> list:
+    unique_key_cols = []
+    
+    # Try all columns, beginning with characters
+    char_cols = get_string_columns(df)
+    numeric_cols = get_numeric_columns(df)
+    all_cols = char_cols + numeric_cols
+
+    key_cols = []
+
+    for col in all_cols:
+        key_cols.append(col)
+
+        if df.set_index(key_cols).index.is_unique:
+            # This set of key_cols uniquely identifies the rows
+            unique_key_cols = key_cols
+            break
+
+    return unique_key_cols

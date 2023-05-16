@@ -329,4 +329,84 @@ def test_find_image_columns(mars_df:pd.DataFrame):
     cols = utils.find_image_columns(mars_df)
     assert len(cols) == 0
 
+def test_is_dataframe_grouped(iris_df:pd.DataFrame):
+    assert not utils.is_dataframe_grouped(iris_df)
+    
+    grouped_df = iris_df.groupby("Species").mean()
+    assert utils.is_dataframe_grouped(grouped_df)
+
+def test_is_dataframe_grouped_multi_column(mars_df:pd.DataFrame):
+    assert not utils.is_dataframe_grouped(mars_df)
+    
+    grouped_df = mars_df.groupby("camera")[["sol"]].mean()
+    assert utils.is_dataframe_grouped(grouped_df)
+
+    grouped_df = mars_df.groupby("class")[["sol"]].mean()
+    assert utils.is_dataframe_grouped(grouped_df)
+
+    # Try multiple columns
+    grouped_df = mars_df.groupby(["camera", "class"])[["sol"]].mean()
+    assert utils.is_dataframe_grouped(grouped_df)
+
+def test_get_dataframe_grouped_columns(mars_df:pd.DataFrame):
+    cols = utils.get_dataframe_grouped_columns(mars_df)
+    assert len(cols) == 1
+    assert cols[0] is None
+    
+    grouped_df = mars_df.groupby("camera")[["sol"]].mean()
+    cols = utils.get_dataframe_grouped_columns(grouped_df)
+    assert len(cols) == 1
+    assert cols[0] == "camera"
+
+    grouped_df = mars_df.groupby("class")[["sol"]].mean()
+    cols = utils.get_dataframe_grouped_columns(grouped_df)
+    assert len(cols) == 1
+    assert cols[0] == "class"
+
+    # Try multiple columns
+    grouped_df = mars_df.groupby(["camera", "class"])[["sol"]].mean()
+    cols = utils.get_dataframe_grouped_columns(grouped_df)
+    assert len(cols) == 2
+    assert cols == ["camera", "class"]
+    
+def test_get_string_columns(mars_df:pd.DataFrame):
+    cols = utils.get_string_columns(mars_df)
+    assert set(cols) == {"camera", "earth_date", "class", "img_src"}
+
+def test_get_string_or_factor_columns(mars_df:pd.DataFrame):
+    mars_df["camera"] = mars_df["camera"].astype("category")
+
+    # Camera should not be in the list of strings
+    cols = utils.get_string_columns(mars_df)
+    assert set(cols) == {"earth_date", "class", "img_src"}
+
+    # Camera should be in this list
+    cols = utils.get_string_or_factor_columns(mars_df)
+    assert set(cols) == {"camera", "earth_date", "class", "img_src"}
+
+def test_get_numeric_columns(mars_df:pd.DataFrame):
+    cols = utils.get_numeric_columns(mars_df)
+    assert set(cols) == {"sol"}
+
+def test_get_uniquely_identifying_cols(mars_df:pd.DataFrame):
+    cols = utils.get_uniquely_identifying_cols(mars_df)
+    assert cols == ["camera", "earth_date", "class", "img_src"]
+
+    df = mars_df.drop(columns=["img_src"])
+
+    cols = utils.get_uniquely_identifying_cols(df)
+    # assert cols == ["camera", "earth_date", "class", "sol"]
+    assert cols == []
+
+    df = df.drop_duplicates()
+    cols = utils.get_uniquely_identifying_cols(df)
+    assert cols == ["camera", "earth_date", "class"]
+
+def test_get_uniquely_identifying_cols(iris_df:pd.DataFrame):
+    cols = utils.get_uniquely_identifying_cols(iris_df)
+    assert cols == []
+
+    df = iris_df.drop_duplicates()
+    cols = utils.get_uniquely_identifying_cols(df)
+    assert cols == ["Species", "Sepal.Length", "Sepal.Width", "Petal.Length", "Petal.Width"]
 
