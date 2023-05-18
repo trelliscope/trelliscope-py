@@ -25,7 +25,7 @@ from .metas import Meta, StringMeta, NumberMeta, HrefMeta, FactorMeta
 from .state import DisplayState, LayoutState, LabelState
 from .view import View
 from .input import Input
-from .panels import Panel, ImagePanel, IFramePanel
+from .panels import Panel, ImagePanel, IFramePanel, FigurePanel
 from . import utils
 from . import html_utils
 
@@ -40,6 +40,8 @@ class Trelliscope:
     DISPLAY_LIST_FILE_NAME = "displayList"
     DISPLAY_INFO_FILE_NAME = "displayInfo"
     METADATA_FILE_NAME = "metaData"
+    PANEL_OUTPUT_DIR = "facet_plots"
+    PANEL_OUTPUT_FILENAME = "facet_plot"
 
     def __init__(self, dataFrame: pd.DataFrame, name: str, description: str = None, key_cols = None, tags = None,
             path: str = None, force_plot: bool = False, panel_col: str = None, panel: Panel = None, pretty_meta_data: bool = False,
@@ -206,7 +208,10 @@ class Trelliscope:
     def get_dataset_display_path(self) -> str:
         return os.path.join(self.get_displays_path(), self._get_name_dir(False))
     
-    
+    def get_panel_output_path(self) -> str:
+        displays_path = self.get_displays_path()
+        return os.path.join(displays_path, Trelliscope.PANEL_OUTPUT_DIR)
+        
     def to_dict(self) -> dict:
         result = {}
 
@@ -342,9 +347,9 @@ class Trelliscope:
 
         # TODO: Determine how to check if the panel column is writable.
         # In R they check to make sure it doesn't inherit from img_panel or iframe_panel
-        writable = True
+        is_writeable = self.panel.is_writeable
 
-        if ((not tr.panels_written) or force_write) and writable:
+        if ((not tr.panels_written) or force_write) and is_writeable:
             tr = tr.write_panels()
 
         tr = tr.infer()
@@ -363,6 +368,8 @@ class Trelliscope:
 
         tr._write_javascript_lib()
         tr._write_widget()
+
+        logging.info(f"Trelliscope written to `{tr.get_output_path()}`")
 
         return tr
 
@@ -400,17 +407,21 @@ class Trelliscope:
         if self.panel is None:
             raise ValueError("A panel must be defined to be able to get the thumbnail url")
         
-        key = self.data_frame[self.panel.varname][0]
+        # TODO: Clean this up using polymorphism and better checks...
+        if isinstance(self.panel, ImagePanel):
+            key = self.data_frame[self.panel.varname][0]
 
-        thumbnail_url = ""
-        if format is not None:
-            name = self._get_name_dir()
-            filename = f"{key}.{format}"
-            thumbnail_url = os.path.join(Trelliscope.DISPLAYS_DIR, name, Trelliscope.PANELS_DIR, filename)
+            thumbnail_url = ""
+            if format is not None:
+                name = self._get_name_dir()
+                filename = f"{key}.{format}"
+                thumbnail_url = os.path.join(Trelliscope.DISPLAYS_DIR, name, Trelliscope.PANELS_DIR, filename)
+            else:
+                thumbnail_url = key
+
+            self.thumbnail_url = thumbnail_url
         else:
-            thumbnail_url = key
-
-        self.thumbnail_url = thumbnail_url
+            self.thumbnail_url = None
 
         return self
     
@@ -579,15 +590,22 @@ class Trelliscope:
         elif is_numeric_dtype(meta_column.dtype):
             meta = NumberMeta(meta_name)
         elif is_string_dtype(meta_column.dtype):
-            # this is a string column
 
-            # Check if all the entries start with http
-            if utils.is_all_remote(meta_column):
-                # This appears to be an href column
-                meta = HrefMeta(meta_name)
-            else:
-                # This appears to be a regular string column
-                meta = StringMeta(meta_name)
+            if isinstance(meta_column[0], str):
+                # this is a string column
+
+                # Check if all the entries start with http
+                if utils.is_all_remote(meta_column):
+                    # This appears to be an href column
+                    meta = HrefMeta(meta_name)
+                else:
+                    # This appears to be a regular string column
+                    meta = StringMeta(meta_name)
+            # else:
+            #     # This is not a good string column. For example, it could be a figure
+            #     # do NOT add it to the list
+            #     pass
+
 
         return meta
         
@@ -671,6 +689,12 @@ class Trelliscope:
             # panel is a panel object
             #tr.panel = "__PANEL_KEY__"
             tr.panel.varname = "__PANEL_KEY__"
+        elif isinstance(tr.panel, FigurePanel):
+            tr.panel_type = "img"
+            tr.panel_aspect = tr.panel.aspect_ratio
+            # TODO: check what we should put here...
+            # tr.panels_written = False
+            # tr.data_frame = tr.data_frame.rename(columns={tr.panel.varname: "__PANEL_KEY__"})
 
         return tr
 
@@ -791,11 +815,15 @@ class Trelliscope:
                                            Trelliscope.METADATA_FILE_NAME,
                                            jsonp)
                 
+        # TODO: Verify that we only want the meta columns here
+        meta_columns = [meta for meta in self.metas]
+        meta_df = self.data_frame[meta_columns]
+
         if self.pretty_meta_data:
             # Pretty print the json if in debug mode
-            meta_data_json = self.data_frame.to_json(orient="records", indent=2)
+            meta_data_json = meta_df.to_json(orient="records", indent=2)
         else:
-            meta_data_json = self.data_frame.to_json(orient="records")
+            meta_data_json = meta_df.to_json(orient="records")
 
         # Turn the escaped \/ into just /
         meta_data_json = meta_data_json.replace("\\/", "/")
@@ -820,8 +848,34 @@ class Trelliscope:
 
         html_utils.write_widget(output_path, id, config_file, is_spa)
 
+    @staticmethod
+    def __write_figure(row, fig_column, output_dir, extension):
+        fig = row[fig_column]
+        index = row.name
+
+        filename = os.path.join(output_dir, f"{Trelliscope.PANEL_OUTPUT_FILENAME}{index}.{extension}")
+        logging.debug(f"Saving image {filename}")
+        fig.write_image(filename)
+
+        return filename
+
     def write_panels(self):
-        #self.panels_written = True
+        self.panels_written = True
+
+        #if not isinstance(self.panel, FigurePanel):
+        if not self.panel.is_writeable:
+            raise ValueError("Error: Attempting to write a panel that is not writable")
+
+        panel_col = self.panel.varname
+        output_dir = self.get_panel_output_path()
+        extension = self.panel.get_extension()
+
+        if not os.path.isdir(output_dir):
+            os.makedirs(output_dir)
+
+        # TODO: Follow the logic in the R version to match filenames, etc.
+        self.data_frame["__PANEL_KEY__"] = self.data_frame.apply(lambda row: Trelliscope.__write_figure(row, panel_col, output_dir, extension), axis=1)
+
         # TODO: One of the things that needs to happen here is to set the keysig to a hash of the columns
 
         return self.__copy()

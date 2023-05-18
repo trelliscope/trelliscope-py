@@ -4,6 +4,10 @@ import pandas as pd
 from gapminder import gapminder
 import plotly.express as px
 from trelliscope.facets import facet_panels, write_panels
+from trelliscope.trelliscope import Trelliscope
+from trelliscope.panels import FigurePanel
+
+BASE_OUTPUT_DIR = "test-build-output"
 
 def main():
     image_dir = "test-build-image-output"
@@ -57,10 +61,16 @@ def main():
     
     # Join metas with panels
     joined_df = meta_df.join(panel_df)
+    joined_df = joined_df.reset_index()
     print(joined_df.head())
 
-    # joined_dat <- left_join(panel_dat, meta_dat, 
-    #                         by = join_by(country, continent))
+    output_dir = os.path.join(os.getcwd(), BASE_OUTPUT_DIR)
+
+    # Grammar of Dashboard
+    tr = (Trelliscope(joined_df, name="gapminder", path=output_dir, pretty_meta_data=True)
+          .set_panel(FigurePanel("facet_plot"))
+          .write_display()
+    )
 
     # # grammar of dashboard
     # trell <- joined_dat |>

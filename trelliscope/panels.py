@@ -15,13 +15,17 @@ from trelliscope import utils
 
 
 class Panel:
-    def __init__(self, varname:str, aspect_ratio:float=1.5, is_local:bool=False, is_image:bool=True) -> None:
+    def __init__(self, varname:str, aspect_ratio:float=1.5, is_local:bool=False, is_image:bool=True, writeable:bool=False) -> None:
         # TODO: Should we have a flag for HTML vs Image, or just infer it??
 
         self.varname = varname
         self.aspect_ratio = aspect_ratio
         self.is_local = is_local
         self.is_image = is_image
+        self.is_writeable = writeable
+
+    def get_extension(self) -> str:
+        raise NotImplementedError("This type of panel does not provide for extensions.")
 
     def _infer_params(self):
         """
@@ -52,12 +56,21 @@ class Panel:
         return ImagePanel(panel_col)
 
 class ImagePanel(Panel):
-    def __init__(self, varname: str, aspect_ratio: float = 1.5, is_local: bool = False,) -> None:
-        super().__init__(varname, aspect_ratio, is_local, is_image=True)
+    def __init__(self, varname: str, aspect_ratio: float = 1.5, is_local: bool = False) -> None:
+        super().__init__(varname, aspect_ratio, is_local, is_image=True, writeable=False)
 
 class IFramePanel(Panel):
-    def __init__(self, varname: str, aspect_ratio: float = 1.5, is_local: bool = False,) -> None:
-        super().__init__(varname, aspect_ratio, is_local, is_image=False)
+    def __init__(self, varname: str, aspect_ratio: float = 1.5, is_local: bool = False) -> None:
+        super().__init__(varname, aspect_ratio, is_local, is_image=False, writeable=False)
+
+class FigurePanel(Panel):
+    def __init__(self, varname: str, extension: str = "png", aspect_ratio: float = 1.5, is_local: bool = True) -> None:
+        super().__init__(varname, aspect_ratio, is_local, is_image=False, writeable=True)
+        self.extension = extension
+
+    def get_extension(self) -> str:
+        return self.extension
+
 
 # class ImagePanelSeries(pd.Series):
 #     def __init__(self) -> None:
