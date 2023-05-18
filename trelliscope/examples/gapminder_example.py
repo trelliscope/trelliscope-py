@@ -14,12 +14,25 @@ def main():
 
     df = gapminder
     df = df[:200]
+    print(df.columns)
 
     # Grammar of graphics
     panel_df = facet_panels(df, ["country", "continent"], px.scatter, {"x": "year", "y": "lifeExp"})
-    write_panels(panel_df, output_dir, "jpg")
+    #write_panels(panel_df, output_dir)
 
-    # meta_df = df.groupby(["country", "continent", ])
+    # Grammar of wrangling
+    meta_df = df.groupby(["country", "continent"]).agg(
+        mean_lifeExp = ("lifeExp", "mean"),
+        min_lifeExp = ("lifeExp", "min"),
+        max_lifeExp = ("lifeExp", "max"),
+        mean_gdp = ("gdpPercap", "mean"),
+        first_year = ("year", "min"),
+        # latitude = ("latitude", "first"),
+        # longitude = ("longitude", "first")
+    )
+    # TODO: Add some of the extra mutate columns here
+
+    print(meta_df.head())
 
     # # grammar of wrangling
     # meta_dat <- gapminder|>
@@ -42,6 +55,10 @@ def main():
     #     wiki_link = paste0("https://en.wikipedia.org/wiki/", country)
     # )
     
+    # Join metas with panels
+    joined_df = meta_df.join(panel_df)
+    print(joined_df.head())
+
     # joined_dat <- left_join(panel_dat, meta_dat, 
     #                         by = join_by(country, continent))
 
