@@ -27,5 +27,7 @@ def main():
 
     tr = Trelliscope(df, name, path=output_dir, pretty_meta_data=True).write_display()
 
+    print(f"Trelliscope saved to: {tr.get_output_path()}")
+    
 if __name__ == "__main__":
     main()

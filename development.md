@@ -69,3 +69,19 @@ When finished, if desired, you can deactivate the virtual environment:
 ```
 deactivate
 ```
+
+## Using Trelliscope in a Jupyter Notebook
+1. Follow the steps above to create a virtual environment and download and install the Trelliscope library.
+2. Install Jupyter notebook package (if not already installed)
+
+```
+pip install notebook
+```
+
+3. Start a Jupyter notebook server
+
+```
+jupyter notebook
+```
+
+4. Create a new notebook, or browse to the example notebook (`trelliscope/examples/example_notebook.ipynb`)
