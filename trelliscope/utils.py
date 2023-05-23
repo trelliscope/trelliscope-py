@@ -119,7 +119,7 @@ def check_is_list(value_to_check, get_error_message_function):
     Raises:
         ValueError - If the check fails.
     """
-    if not type(value_to_check) == list:
+    if not isinstance(value_to_check, list):
         message = get_error_message_function(f"Expected value '{value_to_check}' to be a list")
         raise ValueError(message)
 
@@ -160,7 +160,7 @@ def check_string_datatype(df: pd.DataFrame, varname: str, get_error_message_func
     Raises:
         ValueError - If the check fails.
     """
-    if not is_string_dtype(df[varname]):
+    if not is_string_column(df[varname]):
         raise ValueError(get_error_message_function(f"The variable '{varname}' is not a string."))
 
 def check_atomic_vector(df: pd.DataFrame, varname: str, get_error_message_function=__generic_error_message):
@@ -296,7 +296,7 @@ def _extension_matches(text:str, ext_to_match:str, match_case:bool = False):
 
 def find_image_columns(df:pd.DataFrame):
     image_cols = []
-    str_cols = [col for col in df.columns if is_string_dtype(df[col])]
+    str_cols = [col for col in df.columns if is_string_column(df[col])]
 
     for col in str_cols:
         # Get the extension of the first item
@@ -418,11 +418,11 @@ def get_dataframe_grouped_columns(df: pd.DataFrame) -> list:
     return df.index.names
 
 def get_string_columns(df: pd.DataFrame) -> list:
-    char_cols = [c for c in df.columns if is_string_dtype(df[c])]
+    char_cols = [c for c in df.columns if is_string_column(df[c])]
     return char_cols
 
 def get_string_or_factor_columns(df: pd.DataFrame) -> list:
-    char_cols = [c for c in df.columns if is_string_dtype(df[c]) or df[c].dtype == "category"]
+    char_cols = [c for c in df.columns if is_string_column(df[c]) or df[c].dtype == "category"]
     return char_cols
 
 def get_numeric_columns(df: pd.DataFrame) -> list:
@@ -447,3 +447,19 @@ def get_uniquely_identifying_cols(df: pd.DataFrame) -> list:
             break
 
     return unique_key_cols
+
+def is_string_column(column: pd.Series):
+    """
+    Checks to see if the provided column (Pandas Series) is a string datatype,
+    including checking that it is not a Figure object.
+    """
+    is_string = False
+
+    if is_string_dtype(column):
+        # This is a "string dtype" but that could include other types of
+        # objects such as a plotly `Figure`, so verify that the first value
+        # is actually a string.
+        if type(column[0]) == str:
+            is_string = True
+
+    return is_string

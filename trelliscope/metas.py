@@ -1,6 +1,5 @@
 import json
 import pandas as pd
-from pandas.api.types import is_string_dtype
 
 from trelliscope import utils
 
@@ -333,7 +332,7 @@ class HrefMeta(Meta):
             filterable=False, sortable=False)
         
     def check_variable(self, df: pd.DataFrame):
-        if not is_string_dtype(df[self.varname]):
+        if not utils.is_string_column(df[self.varname]):
             raise ValueError(self._get_data_error_message("Data type is not a string"))
 
     # TODO: Add cast variable?

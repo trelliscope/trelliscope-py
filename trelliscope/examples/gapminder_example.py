@@ -34,34 +34,19 @@ def main():
         # latitude = ("latitude", "first"),
         # longitude = ("longitude", "first")
     )
-    # TODO: Add some of the extra mutate columns here
+
+    meta_df = meta_df.reset_index()
+    meta_df["first_date"] = pd.to_datetime(meta_df["first_year"], format='%Y')
+    # meta_df["continent"] = meta_df["continent"].astype("category")
+    meta_df["wiki"] = meta_df["country"].apply(lambda x: f"https://en.wikipedia.org/wiki/{x}")
+    meta_df = meta_df.set_index(["country", "continent"])
 
     print(meta_df.head())
 
-    # # grammar of wrangling
-    # meta_dat <- gapminder|>
-    # group_by(country, continent) |>
-    # summarise(
-    #     mean_lifeexp = mean(lifeExp),
-    #     min_lifeexp = min(lifeExp),
-    #     max_lifeexp = max(lifeExp),
-    #     mean_gdp = mean(gdpPercap),
-    #     first_year = min(year),
-    #     latitude = first(latitude),
-    #     longitude = first(longitude),
-    #     .groups = "drop"
-    # ) |>
-    # ungroup() |>
-    # mutate(
-    #     first_date = as.Date(paste0(first_year, "-01-01")),
-    #     first_datetime = as.POSIXct.Date(first_date),
-    #     continent = as.factor(continent),
-    #     wiki_link = paste0("https://en.wikipedia.org/wiki/", country)
-    # )
     
     # Join metas with panels
     joined_df = meta_df.join(panel_df)
-    joined_df = joined_df.reset_index()
+    # joined_df = joined_df.reset_index()
     print(joined_df.head())
 
     output_dir = os.path.join(os.getcwd(), BASE_OUTPUT_DIR)

@@ -4,6 +4,7 @@ import tempfile
 import re
 import pandas as pd
 from trelliscope import utils
+from trelliscope.panels import ImagePanel
 
 
 def get_error_message(text: str):
@@ -410,3 +411,24 @@ def test_get_uniquely_identifying_cols(iris_df:pd.DataFrame):
     cols = utils.get_uniquely_identifying_cols(df)
     assert cols == ["Species", "Sepal.Length", "Sepal.Width", "Petal.Length", "Petal.Width"]
 
+def test_is_string_column(mars_df:pd.DataFrame):
+    assert utils.is_string_column(mars_df["camera"]) == True
+    assert utils.is_string_column(mars_df["class"]) == True
+    assert utils.is_string_column(mars_df["img_src"]) == True
+    assert utils.is_string_column(mars_df["sol"]) == False
+
+def test_is_string_column_numeric(iris_df:pd.DataFrame):
+    assert utils.is_string_column(iris_df["Sepal.Length"]) == False
+    assert utils.is_string_column(iris_df["Sepal.Width"]) == False
+    assert utils.is_string_column(iris_df["Petal.Length"]) == False
+    assert utils.is_string_column(iris_df["Petal.Width"]) == False
+    assert utils.is_string_column(iris_df["Species"]) == True
+
+def test_is_string_column_object(iris_df:pd.DataFrame):
+    # Make a column of lists
+    iris_df["list_col"] = iris_df.apply(lambda x: [], axis=1)
+    assert utils.is_string_column(iris_df["list_col"]) == False
+
+    # Make of column of ImagePanels
+    iris_df["panel_col"] = iris_df.apply(lambda x: ImagePanel("test_var"), axis=1)
+    assert utils.is_string_column(iris_df["panel_col"]) == False
