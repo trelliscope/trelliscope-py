@@ -950,7 +950,7 @@ class Trelliscope:
     def add_inputs(self):
         return self.__copy()
 
-    def view(self):
+    def view_trelliscope(self):
         # TODO: Verify that a trelliscope has been written first
 
         index_file = os.path.join(self.get_output_path(), "index.html") 
