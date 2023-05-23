@@ -42,11 +42,9 @@ def main():
     meta_df = meta_df.set_index(["country", "continent"])
 
     print(meta_df.head())
-
     
     # Join metas with panels
     joined_df = meta_df.join(panel_df)
-    # joined_df = joined_df.reset_index()
     print(joined_df.head())
 
     output_dir = os.path.join(os.getcwd(), BASE_OUTPUT_DIR)

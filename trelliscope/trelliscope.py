@@ -26,6 +26,7 @@ from .state import DisplayState, LayoutState, LabelState
 from .view import View
 from .input import Input
 from .panels import Panel, ImagePanel, IFramePanel, FigurePanel
+from .panel_source import PanelSource, FilePanelSource
 from . import utils
 from . import html_utils
 
@@ -78,6 +79,7 @@ class Trelliscope:
         self.keysig: str = keysig
         self.server: str = server
         self.thumbnail_url: str = None
+        self.panel_source: PanelSource = FilePanelSource()
         
         self.facet_cols: list = None
 
@@ -240,7 +242,7 @@ class Trelliscope:
             result["panelaspect"] = self.panel.aspect_ratio
         
         # TODO: This needs to come from the right place
-        result["panelsource"] = {"type": "file"}
+        result["panelsource"] = self.panel_source.to_dict()
         result["thumbnailurl"] = self.thumbnail_url
 
 

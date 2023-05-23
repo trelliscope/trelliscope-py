@@ -27,6 +27,11 @@ class Panel:
     def get_extension(self) -> str:
         raise NotImplementedError("This type of panel does not provide for extensions.")
 
+    # def get_panel_source(self) -> dict:
+    #     """
+    #     Returns the appropriate panel source for this panel. For example {"type": "file"}"""
+    #     return {}
+
     def _infer_params(self):
         """
         Infers where possible:
@@ -59,6 +64,10 @@ class ImagePanel(Panel):
     def __init__(self, varname: str, aspect_ratio: float = 1.5, is_local: bool = False) -> None:
         super().__init__(varname, aspect_ratio, is_local, is_image=True, writeable=False)
 
+    # def get_panel_source(self) -> dict:
+    #     # TODO: check if remote panels still have type=file
+    #     return super().get_panel_source()
+
 class IFramePanel(Panel):
     def __init__(self, varname: str, aspect_ratio: float = 1.5, is_local: bool = False) -> None:
         super().__init__(varname, aspect_ratio, is_local, is_image=False, writeable=False)
@@ -70,6 +79,9 @@ class FigurePanel(Panel):
 
     def get_extension(self) -> str:
         return self.extension
+    
+    # def get_panel_source(self) -> dict:
+    #     return {"type": "file"}
 
 
 # class ImagePanelSeries(pd.Series):
