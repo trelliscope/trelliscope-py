@@ -54,6 +54,7 @@ def main():
     # Grammar of Dashboard
     tr = (Trelliscope(joined_df, name="gapminder", path=output_dir, pretty_meta_data=True)
           .write_display()
+          .view()
     )
 
 

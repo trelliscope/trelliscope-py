@@ -16,6 +16,7 @@ import re
 import glob
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
+import webbrowser
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -347,7 +348,14 @@ class Trelliscope:
             jsonp = config_using_jsonp
             logging.info(f"Using jsonp={jsonp}")
 
-        tr = tr.infer()
+
+        # Infer panels if needed
+        panels = tr.__check_and_get_panel_col()
+        
+        if len(panels) == 0:
+            # No panels were found. Try to infer them.
+            tr = tr._infer_panels()
+            tr = tr._infer_panel_type()
 
         # TODO: Determine how to check if the panel column is writable.
         # In R they check to make sure it doesn't inherit from img_panel or iframe_panel
@@ -355,6 +363,8 @@ class Trelliscope:
 
         if ((not tr.panels_written) or force_write) and is_writeable:
             tr = tr.write_panels()
+
+        tr = tr.infer()
 
         tr = tr._check_panels()
         tr = tr._infer_thumbnail_url()
@@ -525,16 +535,8 @@ class Trelliscope:
             - Metas
             - State
             - Views
-            - Panels
         """
         tr = self.__copy()
-
-        panels = tr.__check_and_get_panel_col()
-        
-        if len(panels) == 0:
-            # No panels were found. Try to infer them.
-            tr = tr._infer_panels()
-            tr = tr._infer_panel_type()
 
         tr = tr._infer_metas()
 
@@ -947,6 +949,16 @@ class Trelliscope:
 
     def add_inputs(self):
         return self.__copy()
+
+    def view(self):
+        # TODO: Verify that a trelliscope has been written first
+
+        index_file = os.path.join(self.get_output_path(), "index.html") 
+        full_path = "file://" + os.path.realpath(index_file)
+        NEW_TAB = 2
+        webbrowser.open(full_path, NEW_TAB)
+        
+        return self
 
     def __copy(self):
         # TODO: Should this do a deep copy? Should it make copies of metas?
