@@ -53,9 +53,9 @@ def main():
 
     # Grammar of Dashboard
     tr = (Trelliscope(joined_df, name="gapminder", path=output_dir, pretty_meta_data=True)
-          .set_panel(FigurePanel("facet_plot"))
           .write_display()
     )
+
 
     # # grammar of dashboard
     # trell <- joined_dat |>
@@ -63,6 +63,17 @@ def main():
     # write_panels() |>
     # write_trelliscope()
     # view_trelliscope()
+
+
+
+    # Set panel explicitly
+    # tr = (Trelliscope(joined_df, name="gapminder", path=output_dir, pretty_meta_data=True)
+    #       .set_panel(FigurePanel("facet_plot"))
+    #       .write_display()
+    # )
+
+
+
 
 if __name__ == "__main__":
     main()

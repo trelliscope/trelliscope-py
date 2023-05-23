@@ -6,7 +6,9 @@ from collections.abc import Iterable
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
 from pandas.api.types import is_string_dtype
+from pandas.api.types import is_object_dtype
 from pandas.api.types import infer_dtype
+import plotly
 
 from .currencies import get_valid_currencies
 
@@ -294,7 +296,27 @@ def _extension_matches(text:str, ext_to_match:str, match_case:bool = False):
 
     return is_match
 
+def find_figure_columns(df:pd.DataFrame):
+    """
+    Finds a list of columns in the dataframe that are completely filled with
+    `Figure` objects.
+    """
+    figure_cols = []
+    obj_cols = [col for col in df.columns if is_object_dtype(df[col])]
+
+    for col in obj_cols:
+        if isinstance(df[col][0], plotly.graph_objs.Figure):
+            # The first row is a Figure, check all now
+            if df[col].apply(lambda x: isinstance(x, plotly.graph_objs.Figure)).all():
+                figure_cols.append(col)
+    
+    return figure_cols
+
 def find_image_columns(df:pd.DataFrame):
+    """
+    Finds a list of columns in the dataframe that are completely filled with
+    image references.
+    """
     image_cols = []
     str_cols = [col for col in df.columns if is_string_column(df[col])]
 

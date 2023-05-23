@@ -6,6 +6,8 @@ import pandas as pd
 from trelliscope import utils
 from trelliscope.panels import ImagePanel
 
+import plotly.express as px
+
 
 def get_error_message(text: str):
     return f"error text contains {text}"
@@ -432,3 +434,24 @@ def test_is_string_column_object(iris_df:pd.DataFrame):
     # Make of column of ImagePanels
     iris_df["panel_col"] = iris_df.apply(lambda x: ImagePanel("test_var"), axis=1)
     assert utils.is_string_column(iris_df["panel_col"]) == False
+
+def test_find_figure_columns(iris_df:pd.DataFrame):
+    figure_columns = utils.find_figure_columns(iris_df)
+    assert len(figure_columns) == 0
+
+    # Create a new figure
+    fig = px.scatter(iris_df, x="Sepal.Width", y="Sepal.Length")
+    
+    # Put the same figure in each row
+    iris_df["fig"] = iris_df.apply(lambda x: fig, axis=1)
+
+    # Check to see if we can find it
+    figure_columns = utils.find_figure_columns(iris_df)
+    assert figure_columns == ["fig"]
+
+    # Put the same figure in each row in another column
+    iris_df["fig2"] = iris_df.apply(lambda x: fig, axis=1)
+
+    # Check to see if we can find them both
+    figure_columns = utils.find_figure_columns(iris_df)
+    assert figure_columns == ["fig", "fig2"]

@@ -347,14 +347,14 @@ class Trelliscope:
             jsonp = config_using_jsonp
             logging.info(f"Using jsonp={jsonp}")
 
+        tr = tr.infer()
+
         # TODO: Determine how to check if the panel column is writable.
         # In R they check to make sure it doesn't inherit from img_panel or iframe_panel
         is_writeable = tr.panel.is_writeable
 
         if ((not tr.panels_written) or force_write) and is_writeable:
             tr = tr.write_panels()
-
-        tr = tr.infer()
 
         tr = tr._check_panels()
         tr = tr._infer_thumbnail_url()
@@ -712,34 +712,46 @@ class Trelliscope:
 
         if len(panel_cols) == 0:
             # No panels were found
-            # Check for an image col
-            image_columns = utils.find_image_columns(self.data_frame)
+            # Check for a `Figure` col
+            figure_columns = utils.find_figure_columns(self.data_frame)
             
-            if len(image_columns) > 1:
-                # TODO: Decide how to handle this case...
-                # Use the first?
-                # Make the user specify?
+            if len(figure_columns) > 1:
+                # TODO: Decide how to handle this case... Use the first? Make the user specify?
                 logging.warning(f"Warning, found multiple image columns `{image_columns}`, so none were used as a panel.")
-            elif len(image_columns) == 1:
-                # Found exactly one image column
-                panel_col = image_columns[0]
 
-                panel_col_series = self.data_frame[panel_col]
-                is_remote = utils.is_all_remote(panel_col_series)
+            if len(figure_columns) == 1:
+                # Found exactly one figure column
+                panel_col = figure_columns[0]
+                self.panel = FigurePanel(panel_col)
+            else:
+                # Did not find a single Figure panel, check for image panel
+
+                # Check for an image col
+                image_columns = utils.find_image_columns(self.data_frame)
                 
-                # The logic in this function is about being remote
-                # but the image column is defined in terms of being
-                # local, which is the opposite
-                is_local = not is_remote
+                if len(image_columns) > 1:
+                    # TODO: Decide how to handle this case... Use the first? Make the user specify?
+                    logging.warning(f"Warning, found multiple image columns `{image_columns}`, so none were used as a panel.")
+                elif len(image_columns) == 1:
+                    # Found exactly one image column
+                    panel_col = image_columns[0]
 
-                # In R, this creates a new ImagePanelSeries and overwrites
-                # the Series in the dataframe with the new derived type.
-                # We may come back and try that here, but for now, we will
-                # create an ImagePanel that refers back to the varname in
-                # the table instead.
-                # tr[panel_col] = ImagePanelSeries(panel_col_series, is_local=is_local)
-                self.panel = ImagePanel(panel_col, is_local=is_local)
-                logging.info(f"Using {panel_col} col as an image panel.")
+                    panel_col_series = self.data_frame[panel_col]
+                    is_remote = utils.is_all_remote(panel_col_series)
+                    
+                    # The logic in this function is about being remote
+                    # but the image column is defined in terms of being
+                    # local, which is the opposite
+                    is_local = not is_remote
+
+                    # In R, this creates a new ImagePanelSeries and overwrites
+                    # the Series in the dataframe with the new derived type.
+                    # We may come back and try that here, but for now, we will
+                    # create an ImagePanel that refers back to the varname in
+                    # the table instead.
+                    # tr[panel_col] = ImagePanelSeries(panel_col_series, is_local=is_local)
+                    self.panel = ImagePanel(panel_col, is_local=is_local)
+                    logging.info(f"Using {panel_col} col as an image panel.")
 
         return self
         # return tr
