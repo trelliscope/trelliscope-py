@@ -21,9 +21,8 @@ def main():
     df = get_fruit_data_frame()
     name = "Fruit"
 
-    # # TODO: Use an img_panel function from the Trelliscope library
-    # df["panel"] = df["img"]
-
+    # Grammar of Dashboard
+    # Note that the image column will be found and inferred to be the panel
     tr = (Trelliscope(df, name, path=output_dir, pretty_meta_data=True)
           .write_display()
           .view_trelliscope()

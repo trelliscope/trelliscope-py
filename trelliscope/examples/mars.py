@@ -25,6 +25,8 @@ def main():
     df = get_mars_rover_df()
     name = "mars rover"
 
+    # Grammar of Dashboard
+    # Note that the image column will be found and inferred to be the panel
     tr = (Trelliscope(df, name, path=output_dir, pretty_meta_data=True)
           .write_display()
           .view_trelliscope()
