@@ -436,6 +436,7 @@ def test_is_string_column_object(iris_df:pd.DataFrame):
     assert utils.is_string_column(iris_df["panel_col"]) == False
 
 def test_find_figure_columns(iris_df:pd.DataFrame):
+    # TODO: Are we ok with this unit test placing a dependency on plotly express?
     figure_columns = utils.find_figure_columns(iris_df)
     assert len(figure_columns) == 0
 
