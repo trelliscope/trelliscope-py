@@ -950,7 +950,7 @@ class Trelliscope:
 
         filename_prefix = ""
         if len(key_cols) > 0:
-            key_col_values = [row[key_col] for key_col in key_cols]
+            key_col_values = [str(row[key_col]) for key_col in key_cols]
             filename_prefix = "_".join(key_col_values)
         else:
             filename_prefix = row.name

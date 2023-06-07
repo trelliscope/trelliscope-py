@@ -25,7 +25,10 @@ def main():
     df = get_mars_rover_df()
     name = "mars rover"
 
-    tr = Trelliscope(df, name, path=output_dir, pretty_meta_data=True).write_display()
+    tr = (Trelliscope(df, name, path=output_dir, pretty_meta_data=True)
+          .write_display()
+          .view_trelliscope()
+    )
 
     print(f"Trelliscope saved to: {tr.get_output_path()}")
     

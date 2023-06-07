@@ -24,7 +24,10 @@ def main():
     # # TODO: Use an img_panel function from the Trelliscope library
     # df["panel"] = df["img"]
 
-    tr = Trelliscope(df, name, path=output_dir, pretty_meta_data=True).write_display()
+    tr = (Trelliscope(df, name, path=output_dir, pretty_meta_data=True)
+          .write_display()
+          .view_trelliscope()
+    )
 
 if __name__ == "__main__":
     main()
