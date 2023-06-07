@@ -3,9 +3,8 @@ import shutil
 import pandas as pd
 from gapminder import gapminder
 import plotly.express as px
-from trelliscope.facets import facet_panels, write_panels
+from trelliscope.facets import facet_panels
 from trelliscope.trelliscope import Trelliscope
-from trelliscope.panels import FigurePanel
 
 BASE_OUTPUT_DIR = "test-build-output"
 
@@ -22,7 +21,6 @@ def main():
 
     # Grammar of graphics
     panel_df = facet_panels(df, ["country", "continent"], px.scatter, {"x": "year", "y": "lifeExp"})
-    #write_panels(panel_df, output_dir)
 
     # Grammar of wrangling
     meta_df = df.groupby(["country", "continent"]).agg(
@@ -54,25 +52,6 @@ def main():
           .write_display()
           .view_trelliscope()
     )
-
-
-    # # grammar of dashboard
-    # trell <- joined_dat |>
-    # as_trelliscope_df(name = "gapminder") |>
-    # write_panels() |>
-    # write_trelliscope()
-    # view_trelliscope()
-
-
-
-    # Set panel explicitly
-    # tr = (Trelliscope(joined_df, name="gapminder", path=output_dir, pretty_meta_data=True)
-    #       .set_panel(FigurePanel("facet_plot"))
-    #       .write_display()
-    # )
-
-
-
 
 if __name__ == "__main__":
     main()
