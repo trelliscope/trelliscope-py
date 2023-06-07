@@ -35,8 +35,9 @@ def main():
 
     meta_df = meta_df.reset_index()
     meta_df["first_date"] = pd.to_datetime(meta_df["first_year"], format='%Y')
-    # meta_df["continent"] = meta_df["continent"].astype("category")
     meta_df["wiki"] = meta_df["country"].apply(lambda x: f"https://en.wikipedia.org/wiki/{x}")
+    meta_df["country"] = meta_df["country"].astype("category")
+    meta_df["continent"] = meta_df["continent"].astype("category")
     meta_df = meta_df.set_index(["country", "continent"])
 
     print(meta_df.head())

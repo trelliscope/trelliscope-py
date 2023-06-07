@@ -215,10 +215,15 @@ class FactorMeta(Meta):
         a category, the category levels will be used directly. If the column
         is not, it will be cast as a category to pull the levels.
         """
-        if df[self.varname].dtype == "category":
-            self.levels = df[self.varname].cat.categories.to_list()
-        else:
-            self.levels = df[self.varname].astype("category").cat.categories.to_list()
+        if df[self.varname].dtype != "category":
+            df[self.varname] = df[self.varname].astype("category")
+        
+        self.levels = df[self.varname].cat.categories.to_list()
+
+        # if df[self.varname].dtype == "category":
+        #     self.levels = df[self.varname].cat.categories.to_list()
+        # else:
+        #     self.levels = df[self.varname].astype("category").cat.categories.to_list()
 
     def check_variable(self, df: pd.DataFrame):
         """

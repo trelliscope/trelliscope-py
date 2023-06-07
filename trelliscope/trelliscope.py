@@ -655,7 +655,8 @@ class Trelliscope:
                 metas_inferred.append(meta_name)
 
                 # Add this inferred meta to the trelliscope
-                tr.add_meta(meta_name, meta)
+                #tr.add_meta(meta_name, meta)
+                tr.set_meta(meta)
 
         # Add to the ignore list any that we could not infer
         tr.columns_to_ignore.extend(metas_to_remove)
@@ -912,8 +913,16 @@ class Trelliscope:
                                            jsonp)
                 
         # TODO: Verify that we only want the meta columns here
-        meta_columns = [meta for meta in self.metas]
+        meta_columns = [meta_name for meta_name in self.metas]
         meta_df = self.data_frame[meta_columns]
+        
+        # Convert any category columns to codes
+        for meta in self.metas.values():
+            if isinstance(meta, FactorMeta):
+                # Convert this column to use the category code (the factor index) instead
+                # of the name. Also, note that we are adding one because the rendering code
+                # expects the R style of 1-based indexes.
+                meta_df[meta.varname] = meta_df[meta.varname].cat.codes + 1
 
         if self.pretty_meta_data:
             # Pretty print the json if in debug mode
