@@ -135,6 +135,11 @@ class Trelliscope:
         self.panel_format = None
 
     def set_panel(self, panel: Panel):
+        """
+        Sets the panel.
+        Params:
+            panel: Panel - The new panel.
+        """
         # TODO: Should we make a copy here??
         if not isinstance(panel, Panel):
             raise ValueError("Error: Panel must be a valid Panel class instance.")
@@ -144,6 +149,12 @@ class Trelliscope:
         return self
 
     def set_meta(self, meta: Meta):
+        """
+        Adds the provided meta to the stored dictionary with a key of the meta's
+        `varname`. If this key was already present it will be replaced.
+        Params:
+            meta: Meta - The Meta object to add.
+        """
         if not isinstance(meta, Meta):
             raise ValueError("Error: Meta definition must be a valid Meta class instance.")
         
@@ -158,18 +169,37 @@ class Trelliscope:
         return self
 
     def set_metas(self, meta_list: list):
+        """
+        Helper method to add a list of metas at once.
+        Params:
+            meta_list: list(Meta) - The list of meta objects to add.
+        """
         for meta in meta_list:
             self.set_meta(meta)
 
         return self
 
     def add_meta(self, meta_name: str, meta: Meta):
+        """
+        Adds the provided meta to the dictionary of stored metas. It will be
+        added with a key of `meta_name`, replacing a meta of that key if it 
+        already existed.
+        Params:
+            meta_name: str - The key for the meta (typically the varname).
+            meta: Meta - The new meta to add.
+        """
+        # TODO: This seems redundant with set_meta. Do we need both?
         # TODO: Should we make a copy here??
         self.metas[meta_name] = meta
 
         return self
 
     def set_state(self, state: DisplayState):
+        """
+        Sets the state to the provided one.
+        Params:
+            state: DisplayState - The new state to add.
+        """
         self.state = state
 
         return self
@@ -178,6 +208,12 @@ class Trelliscope:
     # It was the method for set_view, but add seems more appropriate
     #def set_view(self, view: View):
     def add_view(self, view: View):
+        """
+        Adds the provided view to the stored dictionary. The key will be the view's name,
+        and it will replace a view of that name if it already existed.
+        Params:
+            view: View - The view to add.
+        """
         name  = view.name
 
         if name in self.views:
@@ -188,6 +224,13 @@ class Trelliscope:
         return self
 
     def set_input(self, input: Input):
+        """
+        Adds the provided input to the stored dictionary. The key will be the input's name,
+        and it will replace an input of that name if it already existed.
+        Params:
+            input: Input - The input to add.
+        """
+        # TODO: Should this be `add_input` instead?
         name = input.name
 
         if name in self.inputs:
@@ -199,25 +242,43 @@ class Trelliscope:
 
     def _get_name_dir(self, to_lower: bool = True) -> str:
         """
-        Returns the dataset name in directory form (sanitized)
+        Returns the dataset name in directory form (sanitized).
         """
         return utils.sanitize(self.name, to_lower)
 
     def get_output_path(self) -> str:
+        """
+        Returns the output path where the Trelliscope is saved.
+        """
         return os.path.join(self.path, self._get_name_dir())
 
     def get_displays_path(self) -> str:
+        """
+        Returns the path of the `displays` directory, which is a child
+        of the main output path.
+        """
         output_path = self.get_output_path()
         return os.path.join(output_path, Trelliscope.DISPLAYS_DIR)
     
     def get_dataset_display_path(self) -> str:
+        """
+        Returns the path of the display directory for this particular dataset, which
+        is a child of the main `displays` directory.
+        """
         return os.path.join(self.get_displays_path(), self._get_name_dir(False))
     
     def get_panel_output_path(self) -> str:
+        """
+        Returns the directory where the panels will be saved, which is a child
+        of the display path for this particular dataset.
+        """
         displays_path = self.get_displays_path()
         return os.path.join(displays_path, Trelliscope.PANEL_OUTPUT_DIR)
         
     def to_dict(self) -> dict:
+        """
+        Returns a dictionary representation of this Trelliscope object.
+        """
         result = {}
 
         result["name"] = self.name
@@ -245,10 +306,14 @@ class Trelliscope:
         result["panelsource"] = self.panel_source.to_dict()
         result["thumbnailurl"] = self.thumbnail_url
 
-
         return result
 
     def to_json(self, pretty: bool = True) -> str:
+        """
+        Returns a json string of the information stored in this object.
+        Params:
+            pretty: bool - Should the json be pretty printed / indented?
+        """
         indent_value = None
 
         if pretty:
@@ -258,6 +323,9 @@ class Trelliscope:
         return json.dumps(self.to_dict(), indent=indent_value)
     
     def __repr__(self) -> str:
+        """
+        Returns a string representation of the Trelliscope object.
+        """
         output = []
         output.append("A trelliscope display")
         output.append(f"* Name: {self.name}")
@@ -297,6 +365,11 @@ class Trelliscope:
         return output
     
     def _create_output_dirs(self):
+        """
+        Creates the output directories needed for this Trelliscope. If an output
+        path has not been specified, it will create them in a temporary directory.
+        """
+
         # TODO: Do we want to use the temp file context manager so our files are cleaned up after?
         # Or is the point to leave it around for a while?
         # The mkdtemp means that it will stick around and we have to clean it up
