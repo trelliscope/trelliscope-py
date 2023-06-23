@@ -38,8 +38,8 @@ def write_widget(output_path:str, trelliscope_id:str, config_info:str, is_spa:bo
 def _get_index_html_content(output_path:str, trelliscope_id:str, config_info:str, is_spa:bool) -> str:
     # TODO: Decide how to handle Javascript file version numbers to include
     HTML_WIDGET_FILE = "lib/htmlwidgets-1.6.2/htmlwidgets.js"
-    CSS_FILE = "lib/trelliscope_widget-0.6.0/css/main.682e4122.css"
-    TRELLISCOPE_WIDGET_FILE = "lib/trelliscope_widget-0.6.0/js/main.1c0011ce.js"
+    CSS_FILE = "lib/trelliscope_widget-0.6.0/css/main.ad4a7154.css"
+    TRELLISCOPE_WIDGET_FILE = "lib/trelliscope_widget-0.6.0/js/main.0084bd3e.js"
     TRELLISCOPE_WIDGET_BINDING_FILE = "lib/trelliscope_widget-binding-0.1.0/trelliscope_widget.js"
 
     # TODO: What is this? Where does it come from?
