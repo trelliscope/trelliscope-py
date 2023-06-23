@@ -1,5 +1,6 @@
 import json
 import pandas as pd
+from .panel_source import PanelSource
 
 from trelliscope import utils
 
@@ -9,6 +10,7 @@ class Meta():
     """
 
     TYPE_STRING = "string"
+    TYPE_PANEL = "panel"
     TYPE_HREF = "href"
     TYPE_FACTOR = "factor"
     TYPE_NUMBER = "number"
@@ -195,6 +197,52 @@ class StringMeta(Meta):
         df[self.varname] = df[self.varname].astype(str)
         return df
 
+class PanelMeta(Meta):
+    """ A Meta for string data. """
+    def __init__(self, varname: str, panel_type, source:PanelSource, aspect:float=1.0, label: str = None, tags: list = None):
+        super().__init__(type=Meta.TYPE_PANEL, varname=varname, label=label, tags=tags,
+            filterable=True, sortable=True)
+        
+        utils.check_positive_numeric(aspect_ratio, "aspect", self._get_error_message)
+        self.aspect = aspect
+
+        if not isinstance(source, PanelSource):
+            raise ValueError("`panel_source` must be of type `PanelSource`")
+        
+        self.source = source
+
+        # TODO: Verify if panel_type can be None?        
+        if panel_type is not None:
+            utils.check_enum(panel_type, ["img", "iframe"], self._get_error_message)
+        
+        # Matching the variable name in R, because that's what the JavaScript
+        # will expect when this is serialized.
+        self.paneltype = panel_type
+
+
+    def check_variable(self, df: pd.DataFrame):
+        """
+        Verifies that the column in the data frame is an atomic vector
+        (not a nested type). It does not have to be a string, rather
+        anything that can easily be coerced to it.
+        """
+        # This would check that hte datatype is actually a string:
+        #utils.check_string_datatype(df, self.varname, self._get_data_error_message)
+
+        utils.check_atomic_vector(df, self.varname, self._get_data_error_message)
+
+    def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Converts the `self.varname` column in the data frame to be a string type.
+        This will change the original data frame.
+        Params:
+            df: Pandas DataFrame
+        Returns:
+            The updated Pandas DataFrame
+        """
+        df[self.varname] = df[self.varname].astype(str)
+        return df
+
 class FactorMeta(Meta):
     """ A meta for a categorical, factor variable. """
     def __init__(self, varname: str, label: str = None, tags: list = None, levels: list = None):
@@ -341,4 +389,3 @@ class HrefMeta(Meta):
             raise ValueError(self._get_data_error_message("Data type is not a string"))
 
     # TODO: Add cast variable?
-

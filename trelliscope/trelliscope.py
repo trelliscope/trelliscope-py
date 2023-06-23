@@ -26,6 +26,7 @@ from .state import DisplayState, LayoutState, LabelState
 from .view import View
 from .input import Input
 from .panels import Panel, ImagePanel, IFramePanel, FigurePanel
+from .panel_series import PanelSeries, ImagePanelSeries, FigurePanelSeries
 from .panel_source import PanelSource, FilePanelSource
 from . import utils
 from . import html_utils
@@ -45,7 +46,7 @@ class Trelliscope:
     PANEL_OUTPUT_FILENAME = "facet_plot"
 
     def __init__(self, dataFrame: pd.DataFrame, name: str, description: str = None, key_cols = None, tags = None,
-            path: str = None, force_plot: bool = False, panel_col: str = None, panel: Panel = None, pretty_meta_data: bool = False,
+            path: str = None, force_plot: bool = False, primary_panel: str = None, pretty_meta_data: bool = False,
             keysig:str = None, server:str = None):
         """
         Instantiate a Trelliscope display object.
@@ -68,7 +69,7 @@ class Trelliscope:
 
         # TODO: Add lots of checks here to ensure the data types match etc
 
-        self.data_frame: pd.DateOffset = dataFrame
+        self.data_frame: pd.DataFrame = dataFrame
         self.name: str = name
         self.description: str = description
         self.tags: list = tags
@@ -79,36 +80,15 @@ class Trelliscope:
         self.keysig: str = keysig
         self.server: str = server
         self.thumbnail_url: str = None
-        self.panel_source: PanelSource = FilePanelSource()
+        # self.panel_source: PanelSource = FilePanelSource()
         
         self.facet_cols: list = None
 
-        self.panel: Panel = panel
+        self.primary_panel = primary_panel
 
-        if panel is not None and panel_col is not None:
-            # They have supplied both a panel and a panel column name
-            # They really should have only given one or the other
-            # Let's see if they match (and then we can ignore the panel
-            # column), of if they don't (in which case we have two panels
-            # to work with)
-
-            # TODO: Fill this in
-            pass
-        elif panel_col is not None:
-            # This is the case where they have specified a panel column
-            # but not an actual panel, so we can create the panel for them
-            self.panel = Panel.create_panel(self.data_frame, panel_col)
-        else: # panel column is None
-            # TODO: Decide if we should infer right here. This is how it
-            # is done in the R as_trelliscope function
-
-            # For now, leave this empty so it can be defined explicitly or
-            # inferred later
-            pass
-            
-        # SB 3/25/23: This should not be needed anymore with the new panel approach
-        # self.panel_col = panel_col
-        #self.panel_col = Trelliscope.__check_and_get_panel_col(dataFrame)
+        if self.primary_panel is None:
+            # TODO: try to infer this by checking if there is a single panel
+            self._infer_primary_panel()
 
         #TODO: Is there a reason this is not a true uuid?
         self.id = uuid.uuid4().hex[:8]
@@ -129,24 +109,19 @@ class Trelliscope:
         self.views = {}
         self.inputs = {}
 
-        self.panel_type = None
-        self.panels_written = False
-        self.panel_aspect = None
-        self.panel_format = None
-
-    def set_panel(self, panel: Panel):
+    def infer_primary_panel(self) -> None:
         """
-        Sets the panel.
-        Params:
-            panel: Panel - The new panel.
+        Infers the primary panel. If there is only one, it will be used.
+        If more than one is found, the first one encountered will be used.
         """
-        # TODO: Should we make a copy here??
-        if not isinstance(panel, Panel):
-            raise ValueError("Error: Panel must be a valid Panel class instance.")
-        
-        self.panel = panel
+        # TODO: Verify how to choose if there is more than one
+        # TODO: Unit test this.
 
-        return self
+        for col in self.data_frame.columns:
+            if isinstance(self.data_frame[col], PanelSeries):
+                # Found a panel
+                self.primary_panel = col
+                break
 
     def set_meta(self, meta: Meta):
         """
@@ -294,22 +269,17 @@ class Trelliscope:
             result["inputs"] = None
         else:
             result["inputs"] = [input.to_dict() for input in self.inputs.values()]
-        result["paneltype"] = self.panel_type
-        result["panelformat"] = self.panel_format
 
-        if self.panel is None:
-            result["panelaspect"] = None
-        else:
-            result["panelaspect"] = self.panel.aspect_ratio
-        
         # TODO: This needs to come from the right place
-        result["panelsource"] = self.panel_source.to_dict()
         result["thumbnailurl"] = self.thumbnail_url
 
-        # TODO: Clean this up to work with multi-panel approach
-        result["primarypanel"] = self.panel.varname
+        result["primarypanel"] = self.primary_panel
 
         # TODO: Clean this up to work with multi-panel approach
+        # TODO: Are panels really metas? Should we just iterate through
+        # the columns here instead of the metas?? Should we iterate through
+        # the metas and panels separately and add them to the list?
+        
         result["metas"] = []
         for meta in self.metas.values():
             meta_dict = meta.to_dict()
@@ -326,6 +296,9 @@ class Trelliscope:
                 panel_source["isLocal"] = False
                 #panel_source["isLocal"] = self.panel.is_local
                 panel_source["type"] = "file" if self.panel.is_local else ""
+
+                result["panelsource"] = self.panel_source.to_dict()
+
                 meta_dict["source"] = panel_source
 
             result["metas"].append(meta_dict)
