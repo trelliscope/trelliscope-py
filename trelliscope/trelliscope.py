@@ -286,7 +286,7 @@ class Trelliscope:
         result["tags"] = self.tags
         result["key_cols"] = self.key_cols
         result["keysig"] = self.keysig
-        result["metas"] = [meta.to_dict() for meta in self.metas.values()]
+        #result["metas"] = [meta.to_dict() for meta in self.metas.values()]
         result["state"] = self.state.to_dict()
         result["views"] = [view.to_dict() for view in self.views.values()]
 
@@ -305,6 +305,30 @@ class Trelliscope:
         # TODO: This needs to come from the right place
         result["panelsource"] = self.panel_source.to_dict()
         result["thumbnailurl"] = self.thumbnail_url
+
+        # TODO: Clean this up to work with multi-panel approach
+        result["primarypanel"] = self.panel.varname
+
+        # TODO: Clean this up to work with multi-panel approach
+        result["metas"] = []
+        for meta in self.metas.values():
+            meta_dict = meta.to_dict()
+            if self.panel.varname == meta.varname:
+                meta_dict["type"] = "panel"
+                # TODO: needs to come from a variable.
+                meta_dict["paneltype"] = self.panel_type
+                meta_dict["maxnchar"] = "0"
+                meta_dict["panelformat"] = None
+                meta_dict["aspect"] = self.panel.aspect_ratio
+                panel_source = {}
+                # TODO: temporarily setting this to false so it will not
+                # try to use a relative path.
+                panel_source["isLocal"] = False
+                #panel_source["isLocal"] = self.panel.is_local
+                panel_source["type"] = "file" if self.panel.is_local else ""
+                meta_dict["source"] = panel_source
+
+            result["metas"].append(meta_dict)
 
         return result
 
@@ -742,8 +766,7 @@ class Trelliscope:
     def _infer_panel_type(self):
         """
         Find the Panel column, then use that to set the
-        .panel_type attribute, and also rename the column
-        to be __PANEL_KEY__ as appropriate.
+        .panel_type attribute.
         """
 
         # TODO: Refer back to the panels approach. In the PanelSeries
@@ -766,12 +789,12 @@ class Trelliscope:
             self.panel_type = "img"
             self.panel_aspect = self.panel.aspect_ratio
             self.panels_written = False
-            self.data_frame = self.data_frame.rename(columns={self.panel.varname: "__PANEL_KEY__"})
+            # self.data_frame = self.data_frame.rename(columns={self.panel.varname: "__PANEL_KEY__"})
             
             # In R, they set the panel attribute directly, but currently
             # panel is a panel object
             #tr.panel = "__PANEL_KEY__"
-            self.panel.varname = "__PANEL_KEY__"
+            # self.panel.varname = "__PANEL_KEY__"
         elif isinstance(self.panel, FigurePanel):
             self.panel_type = "img"
             self.panel_aspect = self.panel.aspect_ratio
@@ -991,7 +1014,8 @@ class Trelliscope:
         # TODO: check if the panel is an html widget, and if so, create it here (see R)
         
         # TODO: Follow the logic in the R version to match filenames, etc.
-        tr.data_frame["__PANEL_KEY__"] = tr.data_frame.apply(lambda row: Trelliscope.__write_figure(row, panel_col, output_dir, extension, self.key_cols), axis=1)
+        # tr.data_frame["__PANEL_KEY__"] = tr.data_frame.apply(lambda row: Trelliscope.__write_figure(row, panel_col, output_dir, extension, self.key_cols), axis=1)
+        tr.data_frame[panel_col] = tr.data_frame.apply(lambda row: Trelliscope.__write_figure(row, panel_col, output_dir, extension, self.key_cols), axis=1)
 
         # TODO: Handle creating hash and key sig to avoid having to re-write panels
         # that have already been generated here.
