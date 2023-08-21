@@ -97,3 +97,9 @@ def test_get_thumbnail_url_with_format(mars_df: pd.DataFrame):
     first_value = mars_df["img_src"][0]
     filename = os.path.join(Trelliscope.DISPLAYS_DIR, "mars_rover", Trelliscope.PANELS_DIR)
 
+
+def test_get_panel_columns():
+    raise NotImplementedError()
+
+def test_get_panel_output_path():
+    raise NotImplementedError()

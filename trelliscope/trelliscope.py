@@ -21,7 +21,7 @@ import webbrowser
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-from .metas import Meta, StringMeta, NumberMeta, HrefMeta, FactorMeta
+from .metas import Meta, StringMeta, NumberMeta, HrefMeta, FactorMeta, PanelMeta
 from .state import DisplayState, LayoutState, LabelState
 from .view import View
 from .input import Input
@@ -80,7 +80,6 @@ class Trelliscope:
         self.keysig: str = keysig
         self.server: str = server
         self.thumbnail_url: str = None
-        # self.panel_source: PanelSource = FilePanelSource()
         
         self.facet_cols: list = None
 
@@ -109,7 +108,7 @@ class Trelliscope:
         self.views = {}
         self.inputs = {}
 
-    def infer_primary_panel(self) -> None:
+    def _infer_primary_panel(self) -> None:
         """
         Infers the primary panel. If there is only one, it will be used.
         If more than one is found, the first one encountered will be used.
@@ -117,11 +116,10 @@ class Trelliscope:
         # TODO: Verify how to choose if there is more than one
         # TODO: Unit test this.
 
-        for col in self.data_frame.columns:
-            if isinstance(self.data_frame[col], PanelSeries):
-                # Found a panel
-                self.primary_panel = col
-                break
+        panel_columns = self._get_panel_columns()
+
+        if len(panel_columns) > 0:
+            self.primary_panel = panel_columns[0]
 
     def set_meta(self, meta: Meta):
         """
@@ -242,13 +240,22 @@ class Trelliscope:
         """
         return os.path.join(self.get_displays_path(), self._get_name_dir(False))
     
-    def get_panel_output_path(self) -> str:
+    def get_panel_output_path(self, panel_col:str, is_absolute:bool) -> str:
         """
         Returns the directory where the panels will be saved, which is a child
         of the display path for this particular dataset.
         """
-        displays_path = self.get_displays_path()
-        return os.path.join(displays_path, Trelliscope.PANEL_OUTPUT_DIR)
+        # this will be a relative path
+        base_displays_path = Trelliscope.DISPLAYS_DIR
+
+        if is_absolute:
+            # this will be an absolute path
+            base_displays_path = self.get_displays_path()
+
+        panel_dir = utils.sanitize(panel_col, to_lower=True)
+        combined_path = os.path.join(base_displays_path, Trelliscope.PANEL_OUTPUT_DIR, panel_dir)
+
+        return combined_path
         
     def to_dict(self) -> dict:
         """
@@ -261,7 +268,7 @@ class Trelliscope:
         result["tags"] = self.tags
         result["key_cols"] = self.key_cols
         result["keysig"] = self.keysig
-        #result["metas"] = [meta.to_dict() for meta in self.metas.values()]
+        result["metas"] = [meta.to_dict() for meta in self.metas.values()]
         result["state"] = self.state.to_dict()
         result["views"] = [view.to_dict() for view in self.views.values()]
 
@@ -274,34 +281,6 @@ class Trelliscope:
         result["thumbnailurl"] = self.thumbnail_url
 
         result["primarypanel"] = self.primary_panel
-
-        # TODO: Clean this up to work with multi-panel approach
-        # TODO: Are panels really metas? Should we just iterate through
-        # the columns here instead of the metas?? Should we iterate through
-        # the metas and panels separately and add them to the list?
-        
-        result["metas"] = []
-        for meta in self.metas.values():
-            meta_dict = meta.to_dict()
-            if self.panel.varname == meta.varname:
-                meta_dict["type"] = "panel"
-                # TODO: needs to come from a variable.
-                meta_dict["paneltype"] = self.panel_type
-                meta_dict["maxnchar"] = "0"
-                meta_dict["panelformat"] = None
-                meta_dict["aspect"] = self.panel.aspect_ratio
-                panel_source = {}
-                # TODO: temporarily setting this to false so it will not
-                # try to use a relative path.
-                panel_source["isLocal"] = False
-                #panel_source["isLocal"] = self.panel.is_local
-                panel_source["type"] = "file" if self.panel.is_local else ""
-
-                result["panelsource"] = self.panel_source.to_dict()
-
-                meta_dict["source"] = panel_source
-
-            result["metas"].append(meta_dict)
 
         return result
 
@@ -336,10 +315,11 @@ class Trelliscope:
         output.append(f"* Key columns: {self.key_cols}")
         output.append(f"---")
         output.append(f"* Path: {self.path}")
-        output.append(f"* Number of panels: {len(self.data_frame)}")
+
+        # output.append(f"* Number of panels: {len(self.data_frame)}")        
+        # written_str = "yes" if self.panels_written else "no"
+        # output.append(f"* Panels written: {written_str}")
         
-        written_str = "yes" if self.panels_written else "no"
-        output.append(f"* Panels written: {written_str}")
         output.append(f"---")
         output.append(f"* Meta Info:")
 
@@ -420,21 +400,19 @@ class Trelliscope:
             jsonp = config_using_jsonp
             logging.info(f"Using jsonp={jsonp}")
 
-
         # Infer panels if needed
-        panels = tr.__check_and_get_panel_col()
+        tr = tr._infer_panels()
+        panels = tr._get_panel_columns()
         
         if len(panels) == 0:
-            # No panels were found. Try to infer them.
-            tr = tr._infer_panels()
-            tr = tr._infer_panel_type()
+            raise ValueError("No panels were found or inferred.")
 
-        # TODO: Determine how to check if the panel column is writable.
-        # In R they check to make sure it doesn't inherit from img_panel or iframe_panel
-        is_writeable = tr.panel.is_writeable
-
-        if ((not tr.panels_written) or force_write) and is_writeable:
-            tr = tr.write_panels()
+        # Look through each panel and write the images if needed
+        for panel_col in panels:
+            panel:PanelSeries = self.data_frame[panel_col]
+            
+            if panel.is_writeable and (not panel.panels_written or force_write):
+                tr.write_panels(panel_col, panel)
 
         tr = tr.infer()
 
@@ -487,20 +465,25 @@ class Trelliscope:
         # TODO: add check of panel format here.
         # format = tr.panel_format
 
-        if self.panel is None:
-            raise ValueError("A panel must be defined to be able to get the thumbnail url")
-        
-        # TODO: Clean this up using polymorphism and better checks...
-        if isinstance(self.panel, ImagePanel):
-            key = self.data_frame[self.panel.varname][0]
+        primary_panel = self.primary_panel
 
-            thumbnail_url = ""
-            if format is not None:
-                name = self._get_name_dir()
-                filename = f"{key}.{format}"
-                thumbnail_url = os.path.join(Trelliscope.DISPLAYS_DIR, name, Trelliscope.PANELS_DIR, filename)
-            else:
-                thumbnail_url = key
+        if primary_panel is None:
+            raise ValueError("A primary panel must be defined to be able to get the thumbnail url")
+        
+        panel = self.data_frame[primary_panel]
+
+        # TODO: Clean this up using polymorphism and better checks...
+        if isinstance(panel, ImagePanel):
+            thumbnail_url = panel[0]
+            # key = self.data_frame[self.panel.varname][0]
+
+            # thumbnail_url = ""
+            # if format is not None:
+            #     name = self._get_name_dir()
+            #     filename = f"{key}.{format}"
+            #     thumbnail_url = os.path.join(Trelliscope.DISPLAYS_DIR, name, Trelliscope.PANELS_DIR, filename)
+            # else:
+            #     thumbnail_url = key
 
             self.thumbnail_url = thumbnail_url
         else:
@@ -669,7 +652,17 @@ class Trelliscope:
 
         # TODO: Add Date and DateTime to this list
 
-        if meta_column.dtype == "category":
+        if isinstance(meta_column, PanelSeries):
+            # TODO: what should these values be?
+            panel_type = None 
+            source_type = None
+            aspect = meta_column.aspect_ratio
+
+            meta = PanelMeta(varname=meta_name,
+                             panel_type=panel_type,
+                             source=PanelSource(source_type),
+                             aspect=aspect)
+        elif meta_column.dtype == "category":
             meta = FactorMeta(meta_name)
         elif is_numeric_dtype(meta_column.dtype):
             meta = NumberMeta(meta_name)
@@ -736,101 +729,89 @@ class Trelliscope:
 
         return state2
 
-    def _infer_panel_type(self):
-        """
-        Find the Panel column, then use that to set the
-        .panel_type attribute.
-        """
+    # def _infer_panel_type(self):
+    #     """
+    #     Find the Panel column, then use that to set the
+    #     .panel_type attribute.
+    #     """
 
-        # TODO: Refer back to the panels approach. In the PanelSeries
-        # approach, the as_trelliscope method first checks for any
-        # columns that implement PanelSeries, and if they don't exist
-        # one is inferred if possible.
-        # Then, after creating a Trelliscope Display object, a separate
-        # call to inferPanelType is made to essentially find the
-        # PanelSeries columns that have been created.
+    #     # TODO: Refer back to the panels approach. In the PanelSeries
+    #     # approach, the as_trelliscope method first checks for any
+    #     # columns that implement PanelSeries, and if they don't exist
+    #     # one is inferred if possible.
+    #     # Then, after creating a Trelliscope Display object, a separate
+    #     # call to inferPanelType is made to essentially find the
+    #     # PanelSeries columns that have been created.
 
-        # tr = self.__copy()
+    #     # tr = self.__copy()
 
-        if self.panel is None:
-            raise ValueError("A panel must be in place.")
+    #     if self.panel is None:
+    #         raise ValueError("A panel must be in place.")
         
-        # TODO: In R, there are lots of checks here,
-        # for _server_, nested_panels, image_panel, and iframe_panel
-        # Perhaps a polymorphic approach could be used instead?
-        if isinstance(self.panel, ImagePanel):
-            self.panel_type = "img"
-            self.panel_aspect = self.panel.aspect_ratio
-            self.panels_written = False
-            # self.data_frame = self.data_frame.rename(columns={self.panel.varname: "__PANEL_KEY__"})
+    #     # TODO: In R, there are lots of checks here,
+    #     # for _server_, nested_panels, image_panel, and iframe_panel
+    #     # Perhaps a polymorphic approach could be used instead?
+    #     if isinstance(self.panel, ImagePanel):
+    #         self.panel_type = "img"
+    #         self.panel_aspect = self.panel.aspect_ratio
+    #         self.panels_written = False
+    #         # self.data_frame = self.data_frame.rename(columns={self.panel.varname: "__PANEL_KEY__"})
             
-            # In R, they set the panel attribute directly, but currently
-            # panel is a panel object
-            #tr.panel = "__PANEL_KEY__"
-            # self.panel.varname = "__PANEL_KEY__"
-        elif isinstance(self.panel, FigurePanel):
-            self.panel_type = "img"
-            self.panel_aspect = self.panel.aspect_ratio
-            # TODO: check what we should put here...
-            # tr.panels_written = False
-            # tr.data_frame = tr.data_frame.rename(columns={tr.panel.varname: "__PANEL_KEY__"})
+    #         # In R, they set the panel attribute directly, but currently
+    #         # panel is a panel object
+    #         #tr.panel = "__PANEL_KEY__"
+    #         # self.panel.varname = "__PANEL_KEY__"
+    #     elif isinstance(self.panel, FigurePanel):
+    #         self.panel_type = "img"
+    #         self.panel_aspect = self.panel.aspect_ratio
+    #         # TODO: check what we should put here...
+    #         # tr.panels_written = False
+    #         # tr.data_frame = tr.data_frame.rename(columns={tr.panel.varname: "__PANEL_KEY__"})
 
-        return self
-        # return tr
+    #     return self
+    #     # return tr
 
     def _infer_panels(self):
+        """
+        If no panels are found, this method will look through each column to try to infer
+        a panel column. If it finds one that can be inferred, it will wrap that column in the
+        appropriate PanelSeries class and replace the base series on the data frame object.
+        """
         # tr = self.__copy()
         # In R, this logic is found in the as_trelliscope function
         
-        panel_cols = self.__check_and_get_panel_col()
+        panel_cols = self._get_panel_columns()
 
         if len(panel_cols) == 0:
             # No panels were found
             # Check for a `Figure` col
             figure_columns = utils.find_figure_columns(self.data_frame)
             
-            if len(figure_columns) > 1:
-                # TODO: Decide how to handle this case... Use the first? Make the user specify?
-                logging.warning(f"Warning, found multiple image columns `{image_columns}`, so none were used as a panel.")
+            for figure_column in figure_columns:
+                # Wrap the column in the decorator class
+                self.data_frame[figure_column] = FigurePanelSeries(self.data_frame[figure_column])
 
-            if len(figure_columns) == 1:
-                # Found exactly one figure column
-                panel_col = figure_columns[0]
-                self.panel = FigurePanel(panel_col)
-            else:
-                # Did not find a single Figure panel, check for image panel
-
-                # Check for an image col
-                image_columns = utils.find_image_columns(self.data_frame)
+            # Check for image panels
+            image_columns = utils.find_image_columns(self.data_frame)
+            
+            for image_column in image_columns:
+                image_series = self.data_frame[image_column]
+                is_remote = utils.is_all_remote(image_series)
                 
-                if len(image_columns) > 1:
-                    # TODO: Decide how to handle this case... Use the first? Make the user specify?
-                    logging.warning(f"Warning, found multiple image columns `{image_columns}`, so none were used as a panel.")
-                elif len(image_columns) == 1:
-                    # Found exactly one image column
-                    panel_col = image_columns[0]
+                # The logic in this function is about being remote
+                # but the image column is defined in terms of being
+                # local, which is the opposite
+                is_local = not is_remote
 
-                    panel_col_series = self.data_frame[panel_col]
-                    is_remote = utils.is_all_remote(panel_col_series)
-                    
-                    # The logic in this function is about being remote
-                    # but the image column is defined in terms of being
-                    # local, which is the opposite
-                    is_local = not is_remote
+                # Wrap the column in the decorator class
+                self.data_frame[image_column] = ImagePanelSeries(self.data_frame[image_column], is_local=is_local)
 
-                    # In R, this creates a new ImagePanelSeries and overwrites
-                    # the Series in the dataframe with the new derived type.
-                    # We may come back and try that here, but for now, we will
-                    # create an ImagePanel that refers back to the varname in
-                    # the table instead.
-                    # tr[panel_col] = ImagePanelSeries(panel_col_series, is_local=is_local)
-                    self.panel = ImagePanel(panel_col, is_local=is_local)
-                    logging.info(f"Using {panel_col} col as an image panel.")
+            self._infer_primary_panel()
 
         return self
         # return tr
 
-    def __check_and_get_panel_col(self):
+    def _get_panel_columns(self):
         """
         Look for panels that have previously been defined.
 
@@ -840,13 +821,10 @@ class Trelliscope:
         """
         panels = []
 
-        # TODO: If we use the PanelSeries approach, look for
-        # all columns that inherit from PanelSeries.
-
-        # Not using the PanelSeries approach, we can simply check
-        # if the panel attribute is empty
-        if self.panel is not None:
-            panels.append(self.panel.varname)
+        # Look for all columns that inherit from PanelSeries.
+        for col in self.data_frame.columns:
+            if isinstance(self.data_frame[col], PanelSeries):
+                panels.append(col)
 
         return panels
         
@@ -968,44 +946,46 @@ class Trelliscope:
 
         return filename
 
-    def write_panels(self):
+    def write_panels(self, panel_col:str, panel:PanelSeries):
         tr = self.__copy()
 
-        #if not isinstance(self.panel, FigurePanel):
-        if not tr.panel.is_writeable:
+        if not panel.is_writeable:
             raise ValueError("Error: Attempting to write a panel that is not writable")
 
-        panel_keys = tr._get_panel_paths_from_keys
-        panel_col = tr.panel.varname
-        extension = tr.panel.get_extension()
+        #panel_keys = tr._get_panel_paths_from_keys()
+        extension = panel.get_extension()
 
-        output_dir = tr.get_panel_output_path()
+        output_dir = tr.get_panel_output_path(panel_col, is_absolute=False)
 
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
 
         # TODO: check if the panel is an html widget, and if so, create it here (see R)
-        
+
         # TODO: Follow the logic in the R version to match filenames, etc.
         # tr.data_frame["__PANEL_KEY__"] = tr.data_frame.apply(lambda row: Trelliscope.__write_figure(row, panel_col, output_dir, extension, self.key_cols), axis=1)
+
+        # TODO: Do we want to overwrite the current panel column (which is full of figure objects)
+        # with the new one full of filenames? Or should we create a new one and just make sure that the old
+        # one is excluded from the metas list, etc.
         tr.data_frame[panel_col] = tr.data_frame.apply(lambda row: Trelliscope.__write_figure(row, panel_col, output_dir, extension, self.key_cols), axis=1)
 
         # TODO: Handle creating hash and key sig to avoid having to re-write panels
         # that have already been generated here.
         # One of the things that needs to happen here is to set the keysig to a hash of the columns
 
-        tr.panels_written = True
+        panel.panels_written = True
 
         return tr
 
-    def _get_panel_paths_from_keys(self):
-        path = "_".join(self.key_cols)
-        path = utils.sanitize(path)
+    # def _get_panel_paths_from_keys(self):
+    #     path = "_".join(self.key_cols)
+    #     path = utils.sanitize(path)
 
-        # TODO: Make sure the sanitized key columns still uniquely identify the row
-        # TODO: Do we need to sanitize (and change) the actual panel columns here?
+    #     # TODO: Make sure the sanitized key columns still uniquely identify the row
+    #     # TODO: Do we need to sanitize (and change) the actual panel columns here?
 
-        return path
+    #     return path
 
     def add_meta_defs(self):
         return self.__copy()
