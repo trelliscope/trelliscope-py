@@ -50,6 +50,15 @@
             "python": "${workspaceFolder}/tr-dev-env/bin/python"
         },
         {
+            "name": "PanelSeries debugging",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/trelliscope/examples/panelSeries_debugging.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "python": "${workspaceFolder}/tr-dev-env/bin/python"
+        },
+        {
             "name": "Gapminder",
             "type": "python",
             "request": "launch",
