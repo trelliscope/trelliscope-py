@@ -209,3 +209,8 @@ def test_href_meta(iris_plus_df):
     meta2 = HrefMeta("Sepal.Length")
     with pytest.raises(ValueError, match="Data type is not a string"):
         meta2.check_with_data(iris_plus_df)
+
+def test_panel_meta():
+    raise NotImplementedError()
+    # TODO: Make sure to test the to_dict / to_json functionality so that
+    # we verify the custom attributes come across

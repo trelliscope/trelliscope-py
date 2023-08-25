@@ -1,5 +1,6 @@
 import json
 import pandas as pd
+from .panel_source import PanelSource
 
 from trelliscope import utils
 
@@ -9,6 +10,7 @@ class Meta():
     """
 
     TYPE_STRING = "string"
+    TYPE_PANEL = "panel"
     TYPE_HREF = "href"
     TYPE_FACTOR = "factor"
     TYPE_NUMBER = "number"
@@ -194,6 +196,42 @@ class StringMeta(Meta):
         """
         df[self.varname] = df[self.varname].astype(str)
         return df
+
+class PanelMeta(Meta):
+    """ A Meta for string data. """
+    def __init__(self, varname: str, panel_type, source:PanelSource, aspect:float=1.0, label: str = None, tags: list = None):
+        super().__init__(type=Meta.TYPE_PANEL, varname=varname, label=label, tags=tags,
+            filterable=False, sortable=False)
+
+        utils.check_positive_numeric(aspect_ratio, "aspect", self._get_error_message)
+        self.aspect = aspect
+
+        if not isinstance(source, PanelSource):
+            raise ValueError("`panel_source` must be of type `PanelSource`")
+
+        self.panel_source = source
+
+        # TODO: Verify if panel_type can be None?        
+        if panel_type is not None:
+            utils.check_enum(panel_type, ["img", "iframe"], self._get_error_message)
+
+        self.panel_type = panel_type
+
+    def to_dict(self) -> dict:
+        result = super().to_dict()
+
+        result["aspect"] = self.aspect
+        result["source"] = self.panel_source.to_dict()
+
+        # notice this does not have an _ because this is what the JavaScript expects
+        result["paneltype"] = self.panel_type
+
+    def check_variable(self, df: pd.DataFrame):
+        """
+        Checks that the variable is an appropriate type for panels.
+        """
+        # TODO: Fill this in
+        pass
 
 class FactorMeta(Meta):
     """ A meta for a categorical, factor variable. """
