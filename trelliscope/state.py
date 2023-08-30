@@ -32,7 +32,7 @@ class State():
         """
         Returns a dictionary that can be serialized to json.
         """
-        result = self.__dict__
+        result = self.__dict__.copy()
 
         # Remove any unwanted items
         result.pop("applies_to", None)

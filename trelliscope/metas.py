@@ -64,7 +64,7 @@ class Meta():
         `to_json` method instead, which calls this one internally.
         """
         # Default __dict__ behavior is sufficient, because we don't have custom inner types
-        result = self.__dict__
+        result = self.__dict__.copy()
 
         # We need a label when it gets serialized, so use varname if needed
         if self.label is None:
@@ -220,10 +220,15 @@ class PanelMeta(Meta):
         result = super().to_dict()
 
         result["aspect"] = self.aspect
+        
+        result.pop("panel_source", None) # remove the reference to the object put in by the default behavior
         result["source"] = self.panel_source.to_dict()
+
 
         # notice this does not have an _ because this is what the JavaScript expects
         result["paneltype"] = self.panel_type
+
+        return result
 
     def check_variable(self, df: pd.DataFrame):
         """
@@ -360,7 +365,7 @@ class GeoMeta(Meta):
 
     def to_dict(self) -> dict:
         # Overriding to make it so latvar and longvar are not serialized
-        result = self.__dict__
+        result = self.__dict__.copy()
 
         result.pop("latvar", None)
         result.pop("longvar", None)

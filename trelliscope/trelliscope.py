@@ -264,14 +264,17 @@ class Trelliscope:
         of the display path for this particular dataset.
         """
         # this will be a relative path
-        base_displays_path = Trelliscope.DISPLAYS_DIR
+        # # base_displays_path = Trelliscope.DISPLAYS_DIR
 
-        if is_absolute:
-            # this will be an absolute path
-            base_displays_path = self.get_displays_path()
+        # if is_absolute:
+        #     # this will be an absolute path
+        #     base_displays_path = self.get_displays_path()
 
         panel_dir = utils.sanitize(panel_col, to_lower=True)
-        combined_path = os.path.join(base_displays_path, Trelliscope.PANEL_OUTPUT_DIR, panel_dir)
+        combined_path = os.path.join(Trelliscope.PANEL_OUTPUT_DIR, panel_dir)
+
+        if is_absolute:
+            combined_path = os.path.join(self.get_dataset_display_path(), combined_path)
 
         return combined_path
 
@@ -512,7 +515,7 @@ class Trelliscope:
         primary_panel = self._get_panel(primary_panel_col)
         
         # TODO: Clean this up using polymorphism and better checks...
-        if isinstance(primary_panel, ImagePanel):
+        if isinstance(primary_panel, ImagePanel) or isinstance(primary_panel, FigurePanel):
             thumbnail_url = self.data_frame[primary_panel_col][0]
 
             # key = self.data_frame[self.panel.varname][0]
@@ -960,9 +963,7 @@ class Trelliscope:
 
         if self.pretty_meta_data:
             # Pretty print the json if in debug mode
-            meta_data_json = meta_df.to_json(orient="records")
-            # SB: Temporarilly commenting out the pretty print to track down bug
-#            meta_data_json = meta_df.to_json(orient="records", indent=2)
+            meta_data_json = meta_df.to_json(orient="records", indent=2)
         else:
             meta_data_json = meta_df.to_json(orient="records")
 
@@ -992,7 +993,20 @@ class Trelliscope:
         html_utils.write_widget(output_path, id, config_file, is_spa)
 
     @staticmethod
-    def __write_figure(row, fig_column:str, output_dir:str, extension:str, key_cols:list):
+    def __write_figure(row, fig_column:str, output_dir_for_writing:str, output_dir_for_dataframe:str, extension:str, key_cols:list):
+        """
+        Saves a figure object to an image file. This function is designed to be passed to
+        a DataFrame.apply() call to write out each figure.
+        Params:
+            row - The DataFrame row
+            fig_column:str - The name of the figure column to write out
+            output_dir_for_writing:str - Used for writing the image. It is most likely an
+                absolute path.
+            output_dir_for_dataframe:str - Used for the result in the dataframe. It is most likely a
+                relative path.
+            extension:str - The file name extension to write (for example, "png")
+            key_cols:str - The columns that are used as the key (ie, index, group by) for this figure
+        """
         fig = row[fig_column]
 
         filename_prefix = ""
@@ -1004,11 +1018,13 @@ class Trelliscope:
 
         filename_prefix = utils.sanitize(filename_prefix)
 
-        filename = os.path.join(output_dir, f"{filename_prefix}.{extension}")
-        logging.debug(f"Saving image {filename}")
-        fig.write_image(filename)
+        filename_for_writing = os.path.join(output_dir_for_writing, f"{filename_prefix}.{extension}")
+        filename_for_dataframe = os.path.join(output_dir_for_dataframe, f"{filename_prefix}.{extension}")
+        
+        logging.debug(f"Saving image {filename_for_writing}")
+        fig.write_image(filename_for_writing)
 
-        return filename
+        return filename_for_dataframe
 
     def write_panels(self, panel_col:str):
         tr = self.__copy()
@@ -1022,10 +1038,11 @@ class Trelliscope:
         #panel_keys = tr._get_panel_paths_from_keys()
         extension = panel.get_extension()
 
-        output_dir = tr.get_panel_output_path(panel_col, is_absolute=True)
+        absolute_output_dir = tr.get_panel_output_path(panel_col, is_absolute=True)
+        relative_output_dir = tr.get_panel_output_path(panel_col, is_absolute=False)
 
-        if not os.path.isdir(output_dir):
-            os.makedirs(output_dir)
+        if not os.path.isdir(absolute_output_dir):
+            os.makedirs(absolute_output_dir)
 
         # TODO: check if the panel is an html widget, and if so, create it here (see R)
 
@@ -1039,7 +1056,16 @@ class Trelliscope:
         # SB: For now, let's preserve the old with another column
         tr.data_frame[panel.figure_varname] = tr.data_frame[panel_col]
 
-        tr.data_frame[panel_col] = tr.data_frame.apply(lambda row: Trelliscope.__write_figure(row, panel_col, output_dir, extension, self.key_cols), axis=1)
+        tr.data_frame[panel_col] = tr.data_frame.apply(
+            lambda row: Trelliscope.__write_figure(
+                    row=row,
+                    fig_column=panel_col,
+                    output_dir_for_writing=absolute_output_dir,
+                    output_dir_for_dataframe=relative_output_dir,
+                    extension=extension,
+                    key_cols=self.key_cols
+                ), axis=1
+            )
 
         # TODO: Handle creating hash and key sig to avoid having to re-write panels
         # that have already been generated here.

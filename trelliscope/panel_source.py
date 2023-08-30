@@ -4,7 +4,7 @@ class PanelSource():
 
     def to_dict(self):
         # Default serialization behavior is sufficient
-        return self.__dict__
+        return self.__dict__.copy()
 
 class FilePanelSource(PanelSource):
     def __init__(self) -> None:
