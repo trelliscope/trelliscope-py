@@ -79,7 +79,6 @@ class Trelliscope:
         self.keysig: str = keysig
         self.server: str = server
         self.thumbnail_url: str = None
-        self.panel_source: PanelSource = FilePanelSource()
         
         self.facet_cols: list = None
 
@@ -845,7 +844,8 @@ class Trelliscope:
                 #panel = Panel.create_panel(self.data_frame, figure_column)
 
                 # Get all the right values from the dataset (such as ext)
-                panel = FigurePanel(figure_column)
+                panel_source = FilePanelSource(is_local=True)
+                panel = FigurePanel(figure_column, source=panel_source)
 
                 self.add_panel(panel)
 
@@ -864,7 +864,8 @@ class Trelliscope:
                 #panel = Panel.create_panel(self.data_frame, figure_column)
 
                 # Get all the right values from the dataset (such as ext)
-                panel = ImagePanel(image_column, is_local=is_local)
+                panel_source = FilePanelSource(is_local=is_local)
+                panel = ImagePanel(image_column, source=panel_source)
 
                 self.add_panel(panel)
 

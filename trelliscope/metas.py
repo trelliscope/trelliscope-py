@@ -225,6 +225,7 @@ class PanelMeta(Meta):
         result["source"] = self.panel_source.to_dict()
 
 
+        result.pop("panel_type", None) # remove the reference to the object put in by the default behavior
         # notice this does not have an _ because this is what the JavaScript expects
         result["paneltype"] = self.panel_type
 

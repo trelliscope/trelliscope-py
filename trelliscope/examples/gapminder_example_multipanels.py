@@ -1,7 +1,6 @@
 import os
 import shutil
 import pandas as pd
-from gapminder import gapminder
 import plotly.express as px
 from trelliscope.facets import facet_panels
 from trelliscope.trelliscope import Trelliscope
@@ -15,6 +14,9 @@ def main():
     if os.path.isdir(output_dir):
         shutil.rmtree(output_dir)
 
+    # TODO: Prepare this example to run in other environments
+    gapminder = pd.read_csv("./trelliscope/examples/external_data/gapminder.csv")
+
     df = gapminder
 
     # Take a subset of the data to make testing faster
@@ -22,19 +24,19 @@ def main():
     print(df.columns)
 
     # Grammar of graphics
-    panel_df = facet_panels(df, "lifeExp_time", ["country", "continent"], px.scatter, {"x": "year", "y": "lifeExp"})
+    panel_df = facet_panels(df, "lifeExp_time", ["country", "continent", "iso_alpha2"], px.scatter, {"x": "year", "y": "lifeExp"})
 
     print(panel_df.columns)
 
     # Grammar of wrangling
-    meta_df = df.groupby(["country", "continent"]).agg(
+    meta_df = df.groupby(["country", "continent", "iso_alpha2"]).agg(
         mean_lifeExp = ("lifeExp", "mean"),
         min_lifeExp = ("lifeExp", "min"),
         max_lifeExp = ("lifeExp", "max"),
         mean_gdp = ("gdpPercap", "mean"),
         first_year = ("year", "min"),
-        # latitude = ("latitude", "first"),
-        # longitude = ("longitude", "first")
+        latitude = ("latitude", "first"),
+        longitude = ("longitude", "first")
     )
 
     meta_df = meta_df.reset_index()
@@ -42,7 +44,14 @@ def main():
     meta_df["wiki"] = meta_df["country"].apply(lambda x: f"https://en.wikipedia.org/wiki/{x}")
     meta_df["country"] = meta_df["country"].astype("category")
     meta_df["continent"] = meta_df["continent"].astype("category")
-    meta_df = meta_df.set_index(["country", "continent"])
+
+    #flags_dir = "_ignore/multi_panel/gapminder_tmp/flags"
+    flag_base_url = "https://raw.githubusercontent.com/hafen/countryflags/master/png/512/"
+    meta_df["flag_url"] = meta_df["iso_alpha2"].apply(lambda x: f"{flag_base_url}{x}.png")
+
+    meta_df = meta_df.set_index(["country", "continent", "iso_alpha2"])
+
+
 
     print(meta_df.head())
     
