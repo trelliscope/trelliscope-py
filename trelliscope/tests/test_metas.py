@@ -214,3 +214,5 @@ def test_panel_meta():
     raise NotImplementedError()
     # TODO: Make sure to test the to_dict / to_json functionality so that
     # we verify the custom attributes come across
+
+    # TODO: Also make sure to test new constructor

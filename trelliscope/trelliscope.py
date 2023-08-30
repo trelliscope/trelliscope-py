@@ -83,12 +83,13 @@ class Trelliscope:
         
         self.facet_cols: list = None
 
-        self.panels = []
+        self.panels = {}
 
         self.primary_panel = primary_panel
 
         if self.primary_panel is None:
-            # TODO: try to infer this by checking if there is a single panel
+            # TODO: Do we want to do this here or wait and do all inference later, such as when writing panels
+            # try to infer this by checking if there is a single panel
             self._infer_primary_panel()
 
 
@@ -125,11 +126,17 @@ class Trelliscope:
             self.primary_panel = panel_columns[0]
 
 
-    def _get_panel(self, panel_col:str):
+    def _get_panel(self, panel_col:str) -> Panel:
         """
         Returns a panel object corresponding to this panel column name.
         """
-        raise NotImplementedError
+        return self.panels[panel_col]
+
+    def add_panel(self, panel:Panel):
+        if not isinstance(panel, Panel):
+            raise ValueError("Panel must be of Panel class type (or a sub class)")
+        
+        self.panels[panel.varname] = panel
 
 
     def set_meta(self, meta: Meta):
@@ -230,6 +237,27 @@ class Trelliscope:
         """
         return utils.sanitize(self.name, to_lower)
 
+    def get_output_path(self) -> str:
+        """
+        Returns the output path where the Trelliscope is saved.
+        """
+        return os.path.join(self.path, self._get_name_dir())
+    
+    def get_displays_path(self) -> str:
+        """
+        Returns the path of the `displays` directory, which is a child
+        of the main output path.
+        """
+        output_path = self.get_output_path()
+        return os.path.join(output_path, Trelliscope.DISPLAYS_DIR)
+    
+    def get_dataset_display_path(self) -> str:
+        """
+        Returns the path of the display directory for this particular dataset, which
+        is a child of the main `displays` directory.
+        """
+        return os.path.join(self.get_displays_path(), self._get_name_dir(False))
+    
     def get_panel_output_path(self, panel_col:str, is_absolute:bool) -> str:
         """
         Returns the directory where the panels will be saved, which is a child
@@ -247,29 +275,6 @@ class Trelliscope:
 
         return combined_path
 
-    def get_displays_path(self) -> str:
-        """
-        Returns the path of the `displays` directory, which is a child
-        of the main output path.
-        """
-        output_path = self.get_output_path()
-        return os.path.join(output_path, Trelliscope.DISPLAYS_DIR)
-    
-    def get_dataset_display_path(self) -> str:
-        """
-        Returns the path of the display directory for this particular dataset, which
-        is a child of the main `displays` directory.
-        """
-        return os.path.join(self.get_displays_path(), self._get_name_dir(False))
-    
-    def get_panel_output_path(self) -> str:
-        """
-        Returns the directory where the panels will be saved, which is a child
-        of the display path for this particular dataset.
-        """
-        displays_path = self.get_displays_path()
-        return os.path.join(displays_path, Trelliscope.PANEL_OUTPUT_DIR)
-        
     def to_dict(self) -> dict:
         """
         Returns a dictionary representation of this Trelliscope object.
@@ -349,7 +354,7 @@ class Trelliscope:
         output.append(f"* Key columns: {self.key_cols}")
         output.append(f"---")
         output.append(f"* Path: {self.path}")
-        # output.append(f"* Number of panels: {len(self.data_frame)}")
+        output.append(f"* Number of panels: {len(self.panels)}")
         
         # written_str = "yes" if self.panels_written else "no"
         # output.append(f"* Panels written: {written_str}")
@@ -443,13 +448,10 @@ class Trelliscope:
 
         # Look through each panel and write the images if needed
         for panel_col in panels:
-            # TODO: implement this function to get an actual panel object with properties
-            panel = self._get_panel(panel_col)
-
-            # panel:PanelSeries = self.data_frame[panel_col]
+            panel = tr._get_panel(panel_col)
             
             if panel.is_writeable and (not panel.panels_written or force_write):
-                tr.write_panels(panel_col, panel)
+                tr = tr.write_panels(panel_col)
 
         tr = tr.infer()
 
@@ -502,19 +504,16 @@ class Trelliscope:
         # TODO: add check of panel format here.
         # format = tr.panel_format
 
-        primary_panel = self.primary_panel
+        primary_panel_col = self.primary_panel
 
-        if primary_panel is None:
+        if primary_panel_col is None:
             raise ValueError("A primary panel must be defined to be able to get the thumbnail url")
 
-        panel = self._get_panel[primary_panel]
-
-        if self.panel is None:
-            raise ValueError("A panel must be defined to be able to get the thumbnail url")
+        primary_panel = self._get_panel(primary_panel_col)
         
         # TODO: Clean this up using polymorphism and better checks...
-        if isinstance(self.panel, ImagePanel):
-            thumbnail_url = panel[0]
+        if isinstance(primary_panel, ImagePanel):
+            thumbnail_url = self.data_frame[primary_panel_col][0]
 
             # key = self.data_frame[self.panel.varname][0]
 
@@ -692,17 +691,26 @@ class Trelliscope:
         meta = None
 
         # TODO: Add Date and DateTime to this list
+        panel_cols = self._get_panel_columns()
+        panel_figure_cols = self. _get_panel_figure_columns()
 
-        if isinstance(meta_column, PanelSeries):
-            # TODO: what should these values be?
-            panel_type = None 
-            source_type = None
-            aspect = meta_column.aspect_ratio
+        if meta_name in panel_cols:
+            panel = self._get_panel(meta_name)
+            meta = PanelMeta(panel)
 
-            meta = PanelMeta(varname=meta_name,
-                             panel_type=panel_type,
-                             source=PanelSource(source_type),
-                             aspect=aspect)
+            # # TODO: what should these values be?
+            # panel_type = None 
+            # source_type = None
+            # aspect = meta_column.aspect_ratio
+
+            # meta = PanelMeta(varname=meta_name,
+            #                  panel_type=panel_type,
+            #                  source=PanelSource(source_type),
+            #                  aspect=aspect)
+        elif meta_name in panel_figure_cols:
+            # These are the original figure columns held for backup.
+            # They are not desired in the output, so they are skipped here.
+            pass
         elif meta_column.dtype == "category":
             meta = FactorMeta(meta_name)
         elif is_numeric_dtype(meta_column.dtype):
@@ -829,28 +837,33 @@ class Trelliscope:
             # Check for a `Figure` col
             figure_columns = utils.find_figure_columns(self.data_frame)
             
-
-            # TODO: Implement new panel class approach here
-            raise NotImplementedError
-
             for figure_column in figure_columns:
-                # Wrap the column in the decorator class
-                self.data_frame[figure_column] = FigurePanelSeries(self.data_frame[figure_column])
+                # TODO: Should we use the factory method here?
+                #panel = Panel.create_panel(self.data_frame, figure_column)
+
+                # Get all the right values from the dataset (such as ext)
+                panel = FigurePanel(figure_column)
+
+                self.add_panel(panel)
 
             # Check for image panels
             image_columns = utils.find_image_columns(self.data_frame)
 
             for image_column in image_columns:
-                image_series = self.data_frame[image_column]
-                is_remote = utils.is_all_remote(image_series)
+                is_remote = utils.is_all_remote(self.data_frame[image_column])
 
                 # The logic in this function is about being remote
                 # but the image column is defined in terms of being
                 # local, which is the opposite
                 is_local = not is_remote
 
-                # Wrap the column in the decorator class
-                self.data_frame[image_column] = ImagePanelSeries(self.data_frame[image_column], is_local=is_local)
+                # TODO: Should we use the factory method here?
+                #panel = Panel.create_panel(self.data_frame, figure_column)
+
+                # Get all the right values from the dataset (such as ext)
+                panel = ImagePanel(image_column, is_local=is_local)
+
+                self.add_panel(panel)
 
             self._infer_primary_panel()
 
@@ -864,13 +877,13 @@ class Trelliscope:
             A list of the col names that are defined as panels.
             If none are found, an empty list is returned.
         """
-        panel_cols = []
-
-        for panel in self.panels:
-            panel_cols.append(self.panel.varname)
-
-        return panel_cols
+        return list(self.panels.keys())
             
+    def _get_panel_figure_columns(self):
+        figure_columns = [panel.figure_varname for panel in self.panels.values()]
+
+        return figure_columns
+
     def _write_display_info(self, jsonp : bool, id : str):
         """
         Creates the displayInfo json file.
@@ -931,7 +944,9 @@ class Trelliscope:
                 
         # TODO: Verify that we only want the meta columns here
         meta_columns = [meta_name for meta_name in self.metas]
-        meta_df = self.data_frame[meta_columns]
+        meta_df = self.data_frame[meta_columns].copy()
+
+        # meta_df = meta_df.drop("lifeExp_time", axis=1)
         
         # Convert any category columns to codes
         for meta in self.metas.values():
@@ -941,11 +956,17 @@ class Trelliscope:
                 # expects the R style of 1-based indexes.
                 meta_df[meta.varname] = meta_df[meta.varname].cat.codes + 1
 
+        logging.debug("Starting Meta DF conversion")
+
         if self.pretty_meta_data:
             # Pretty print the json if in debug mode
-            meta_data_json = meta_df.to_json(orient="records", indent=2)
+            meta_data_json = meta_df.to_json(orient="records")
+            # SB: Temporarilly commenting out the pretty print to track down bug
+#            meta_data_json = meta_df.to_json(orient="records", indent=2)
         else:
             meta_data_json = meta_df.to_json(orient="records")
+
+        logging.debug("Meta DF converted to JSON")
 
         # Turn the escaped \/ into just /
         meta_data_json = meta_data_json.replace("\\/", "/")
@@ -1001,7 +1022,7 @@ class Trelliscope:
         #panel_keys = tr._get_panel_paths_from_keys()
         extension = panel.get_extension()
 
-        output_dir = tr.get_panel_output_path(panel_col, is_absolute=False)
+        output_dir = tr.get_panel_output_path(panel_col, is_absolute=True)
 
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
@@ -1014,6 +1035,9 @@ class Trelliscope:
         # TODO: Do we want to overwrite the current panel column (which is full of figure objects)
         # with the new one full of filenames? Or should we create a new one and just make sure that the old
         # one is excluded from the metas list, etc.
+
+        # SB: For now, let's preserve the old with another column
+        tr.data_frame[panel.figure_varname] = tr.data_frame[panel_col]
 
         tr.data_frame[panel_col] = tr.data_frame.apply(lambda row: Trelliscope.__write_figure(row, panel_col, output_dir, extension, self.key_cols), axis=1)
 

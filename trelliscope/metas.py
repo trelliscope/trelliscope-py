@@ -1,6 +1,7 @@
 import json
 import pandas as pd
 from .panel_source import PanelSource
+from .panels import Panel
 
 from trelliscope import utils
 
@@ -199,23 +200,21 @@ class StringMeta(Meta):
 
 class PanelMeta(Meta):
     """ A Meta for string data. """
-    def __init__(self, varname: str, panel_type, source:PanelSource, aspect:float=1.0, label: str = None, tags: list = None):
-        super().__init__(type=Meta.TYPE_PANEL, varname=varname, label=label, tags=tags,
+    def __init__(self, panel:Panel, label: str = None, tags: list = None):
+        super().__init__(type=Meta.TYPE_PANEL, varname=panel.varname, label=label, tags=tags,
             filterable=False, sortable=False)
 
-        utils.check_positive_numeric(aspect_ratio, "aspect", self._get_error_message)
-        self.aspect = aspect
+        utils.check_positive_numeric(panel.aspect_ratio, "aspect", self._get_error_message)
+        self.aspect = panel.aspect_ratio
 
-        if not isinstance(source, PanelSource):
+        if not isinstance(panel.source, PanelSource):
             raise ValueError("`panel_source` must be of type `PanelSource`")
 
-        self.panel_source = source
+        self.panel_source = panel.source
 
-        # TODO: Verify if panel_type can be None?        
-        if panel_type is not None:
-            utils.check_enum(panel_type, ["img", "iframe"], self._get_error_message)
+        utils.check_enum(panel.panel_type_str, ["img", "iframe"], self._get_error_message)
 
-        self.panel_type = panel_type
+        self.panel_type = panel.panel_type_str
 
     def to_dict(self) -> dict:
         result = super().to_dict()

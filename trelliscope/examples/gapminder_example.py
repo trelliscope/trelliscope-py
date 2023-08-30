@@ -16,11 +16,13 @@ def main():
         shutil.rmtree(output_dir)
 
     df = gapminder
+
+    # Take a subset of the data to make testing faster
     df = df[:200]
     print(df.columns)
 
     # Grammar of graphics
-    panel_df = facet_panels(df, ["country", "continent"], px.scatter, {"x": "year", "y": "lifeExp"})
+    panel_df = facet_panels(df, "lifeExp_time", ["country", "continent"], px.scatter, {"x": "year", "y": "lifeExp"})
 
     # Grammar of wrangling
     meta_df = df.groupby(["country", "continent"]).agg(

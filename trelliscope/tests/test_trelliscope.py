@@ -103,3 +103,9 @@ def test_get_panel_columns():
 
 def test_get_panel_output_path():
     raise NotImplementedError()
+
+def test_get_panel_from_col_name():
+    raise NotImplementedError()
+
+def test_infer_primary_panel():
+    raise NotImplementedError()
