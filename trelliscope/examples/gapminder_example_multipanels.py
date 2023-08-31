@@ -1,11 +1,14 @@
 import os
 import shutil
+import urllib.request
+import zipfile
 import pandas as pd
 import plotly.express as px
 from trelliscope.facets import facet_panels
 from trelliscope.trelliscope import Trelliscope
 
 BASE_OUTPUT_DIR = "test-build-output"
+DOWNLOAD_FLAGS = True
 
 def main():
     image_dir = "test-build-image-output"
@@ -45,16 +48,23 @@ def main():
     meta_df["country"] = meta_df["country"].astype("category")
     meta_df["continent"] = meta_df["continent"].astype("category")
 
-    #flags_dir = "_ignore/multi_panel/gapminder_tmp/flags"
+
+    if DOWNLOAD_FLAGS:
+        print("Downloading flag images...")
+        (zip_file, _) = urllib.request.urlretrieve("https://github.com/trelliscope/trelliscope/files/12265140/flags.zip")
+        local_flags_path = os.path.join(BASE_OUTPUT_DIR, "temp_flag_images")
+
+        with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+            zip_ref.extractall(local_flags_path)
+
+        meta_df["flag"] = meta_df["iso_alpha2"].apply(lambda x: os.path.join(local_flags_path, f"{x}.png"))
+        print(meta_df["flag"].head())
+
     flag_base_url = "https://raw.githubusercontent.com/hafen/countryflags/master/png/512/"
     meta_df["flag_url"] = meta_df["iso_alpha2"].apply(lambda x: f"{flag_base_url}{x}.png")
 
     meta_df = meta_df.set_index(["country", "continent", "iso_alpha2"])
 
-
-
-    print(meta_df.head())
-    
     # Join metas with panels
     joined_df = meta_df.join(panel_df)
     print(joined_df.head())

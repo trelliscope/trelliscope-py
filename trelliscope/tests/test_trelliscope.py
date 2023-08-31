@@ -109,3 +109,6 @@ def test_get_panel_from_col_name():
 
 def test_infer_primary_panel():
     raise NotImplementedError()
+
+def test_copy_images_to_build_directory():
+    raise NotImplementedError()

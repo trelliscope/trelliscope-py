@@ -15,6 +15,7 @@ class Panel:
         self.aspect_ratio = aspect_ratio
         self.is_image = is_image
         self.is_writeable = writeable
+        self.should_copy = False
         self.source = source
         self.panel_type_str = panel_type_str
 
@@ -49,8 +50,10 @@ class Panel:
         return ImagePanel(panel_col, FilePanelSource())
 
 class ImagePanel(Panel):
-    def __init__(self, varname: str, source:PanelSource, aspect_ratio: float = 1.5) -> None:
+    def __init__(self, varname: str, source:PanelSource, aspect_ratio: float = 1.5, should_copy_to_output=True) -> None:
         super().__init__(varname, Panel._PANEL_TYPE_IMAGE, source, aspect_ratio, is_image=True, writeable=False)
+
+        self.should_copy = should_copy_to_output
 
     # def get_panel_source(self) -> dict:
     #     # TODO: check if remote panels still have type=file

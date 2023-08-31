@@ -452,8 +452,8 @@ class Trelliscope:
         for panel_col in panels:
             panel = tr._get_panel(panel_col)
             
-            if panel.is_writeable and (not panel.panels_written or force_write):
-                tr = tr.write_panels(panel_col)
+            if (panel.is_writeable or panel.should_copy) and (not panel.panels_written or force_write):
+                tr = tr.write_or_copy_panels(panel_col)
 
         tr = tr.infer()
 
@@ -825,8 +825,8 @@ class Trelliscope:
     def _infer_panels(self):
         """
         If no panels are found, this method will look through each column to try to infer
-        a panel column. If it finds one that can be inferred, it will wrap that column in the
-        appropriate PanelSeries class and replace the base series on the data frame object.
+        a panel column. If it finds one that can be inferred, it will create the appropriate
+        panel class and add it to the Trelliscope object.
         """
 
         # tr = self.__copy()
@@ -863,9 +863,13 @@ class Trelliscope:
                 # TODO: Should we use the factory method here?
                 #panel = Panel.create_panel(self.data_frame, figure_column)
 
-                # Get all the right values from the dataset (such as ext)
+                # TODO: Get all the right values from the dataset (such as ext)
+
+                # If it is a local image file, copy it to the output directory
+                should_copy = is_local
+
                 panel_source = FilePanelSource(is_local=is_local)
-                panel = ImagePanel(image_column, source=panel_source)
+                panel = ImagePanel(image_column, source=panel_source, should_copy_to_output=should_copy)
 
                 self.add_panel(panel)
 
@@ -874,6 +878,52 @@ class Trelliscope:
         return self
         # return tr
 
+    def _copy_images_to_build_directory(self, column_name:str, output_dir_for_writing:str, output_dir_for_dataframe:str) -> None:
+        """
+        Copies the images found in the provided column into the build output directory so they will
+        be self contained in the output. Two directories are provided, one for the destination of the copy
+        command (likely an absolute path) and one to be the directory left in the dataframe (likely
+        a relative path).
+        """
+        self.data_frame[column_name] = self.data_frame.apply(lambda row:
+                                            Trelliscope.__copy_image_and_update_reference(
+                                                row=row,
+                                                image_column=column_name,
+                                                output_dir_for_writing=output_dir_for_writing,
+                                                output_dir_for_dataframe=output_dir_for_dataframe
+                                            ),
+                                            axis=1
+                                        )
+
+    @staticmethod
+    def __copy_image_and_update_reference(row, image_column:str, output_dir_for_writing:str, output_dir_for_dataframe:str) -> str:
+        """
+        Copies an image to a new directory and updates the reference in the dataframe. This function is
+        designed to be passed to a DataFrame.apply() call to copy each image
+        Params:
+            row - The DataFrame row
+            image_column:str - The name of the column containing the image
+            output_dir_for_writing:str - Used for writing the image. It is most likely an
+                absolute path.
+            output_dir_for_dataframe:str - Used for the result in the dataframe. It is most likely a
+                relative path.
+        """
+        # Get the original file (including path) from the dataframe
+        original_image_file = row[image_column]
+
+        # Split the filename off of the directory
+        (_, filename) = os.path.split(original_image_file)
+
+        # Create the two paths
+        filename_for_writing = os.path.join(output_dir_for_writing, filename)
+        filename_for_dataframe = os.path.join(output_dir_for_dataframe, filename)
+
+        # Copy the file
+        shutil.copyfile(original_image_file, filename_for_writing)
+
+        # Return the new filename to update the dataframe
+        return filename_for_dataframe
+    
     def _get_panel_columns(self):
         """
         Look for panels that have previously been defined.
@@ -1027,17 +1077,16 @@ class Trelliscope:
 
         return filename_for_dataframe
 
-    def write_panels(self, panel_col:str):
+    def write_or_copy_panels(self, panel_col:str):
+        """
+        Writes the panels to the output directory (or copies them if they are already files).
+        """
         tr = self.__copy()
 
         panel = self._get_panel(panel_col)
 
-        #if not isinstance(self.panel, FigurePanel):
-        if not panel.is_writeable:
-            raise ValueError("Error: Attempting to write a panel that is not writable")
-
-        #panel_keys = tr._get_panel_paths_from_keys()
-        extension = panel.get_extension()
+        # if not (panel.is_writeable or panel.should_copy):
+        #     raise ValueError("Error: Attempting to write a panel that is not writable or should not be copied")
 
         absolute_output_dir = tr.get_panel_output_path(panel_col, is_absolute=True)
         relative_output_dir = tr.get_panel_output_path(panel_col, is_absolute=False)
@@ -1047,30 +1096,36 @@ class Trelliscope:
 
         # TODO: check if the panel is an html widget, and if so, create it here (see R)
 
-        # TODO: Follow the logic in the R version to match filenames, etc.
-        # tr.data_frame["__PANEL_KEY__"] = tr.data_frame.apply(lambda row: Trelliscope.__write_figure(row, panel_col, output_dir, extension, self.key_cols), axis=1)
+        if panel.should_copy:
+            tr._copy_images_to_build_directory(panel_col, absolute_output_dir, relative_output_dir)
+        elif panel.is_writeable:
+            #panel_keys = tr._get_panel_paths_from_keys()
+            extension = panel.get_extension()
 
-        # TODO: Do we want to overwrite the current panel column (which is full of figure objects)
-        # with the new one full of filenames? Or should we create a new one and just make sure that the old
-        # one is excluded from the metas list, etc.
+            # TODO: Follow the logic in the R version to match filenames, etc.
+            # tr.data_frame["__PANEL_KEY__"] = tr.data_frame.apply(lambda row: Trelliscope.__write_figure(row, panel_col, output_dir, extension, self.key_cols), axis=1)
 
-        # SB: For now, let's preserve the old with another column
-        tr.data_frame[panel.figure_varname] = tr.data_frame[panel_col]
+            # TODO: Do we want to overwrite the current panel column (which is full of figure objects)
+            # with the new one full of filenames? Or should we create a new one and just make sure that the old
+            # one is excluded from the metas list, etc.
 
-        tr.data_frame[panel_col] = tr.data_frame.apply(
-            lambda row: Trelliscope.__write_figure(
-                    row=row,
-                    fig_column=panel_col,
-                    output_dir_for_writing=absolute_output_dir,
-                    output_dir_for_dataframe=relative_output_dir,
-                    extension=extension,
-                    key_cols=self.key_cols
-                ), axis=1
-            )
+            # SB: For now, let's preserve the old with another column
+            tr.data_frame[panel.figure_varname] = tr.data_frame[panel_col]
 
-        # TODO: Handle creating hash and key sig to avoid having to re-write panels
-        # that have already been generated here.
-        # One of the things that needs to happen here is to set the keysig to a hash of the columns
+            tr.data_frame[panel_col] = tr.data_frame.apply(
+                lambda row: Trelliscope.__write_figure(
+                        row=row,
+                        fig_column=panel_col,
+                        output_dir_for_writing=absolute_output_dir,
+                        output_dir_for_dataframe=relative_output_dir,
+                        extension=extension,
+                        key_cols=self.key_cols
+                    ), axis=1
+                )
+
+            # TODO: Handle creating hash and key sig to avoid having to re-write panels
+            # that have already been generated here.
+            # One of the things that needs to happen here is to set the keysig to a hash of the columns
 
         panel.panels_written = True
 
