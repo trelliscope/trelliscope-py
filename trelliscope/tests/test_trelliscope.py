@@ -4,6 +4,7 @@ import tempfile
 import pandas as pd
 from trelliscope.trelliscope import Trelliscope
 from trelliscope.panels import Panel, ImagePanel, IFramePanel
+from trelliscope.panel_source import FilePanelSource
 
 def test_mars_df(mars_df: pd.DataFrame):
     assert len(mars_df) > 0
@@ -23,10 +24,6 @@ def test_to_dict(iris_tr: Trelliscope):
     assert "state" in dict
     assert "views" in dict
     assert "inputs" in dict
-    assert "paneltype" in dict
-    assert "panelformat" in dict
-    assert "panelaspect" in dict
-    assert "panelsource" in dict
     assert "thumbnailurl" in dict
 
 
@@ -58,7 +55,7 @@ def test_standard_setup(iris_df_no_duplicates: pd.DataFrame):
         iris_df["img_panel"] = "test_image.png"
 
         tr = Trelliscope(iris_df, "Iris", path=output_dir)
-        tr.set_panel(ImagePanel("img_panel"))
+        tr.add_panel(ImagePanel("img_panel", source=FilePanelSource(True), should_copy_to_output=False))
         tr.write_display()
 
         # Clean up
@@ -78,7 +75,7 @@ def test_get_thumbnail_url(mars_df: pd.DataFrame):
     of the panel column.
     """
     tr = Trelliscope(mars_df, "mars_rover")
-    tr.set_panel(ImagePanel("img_src"))
+    tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
     
     tr2 = tr._infer_thumbnail_url()
     first_value = mars_df["img_src"][0]
@@ -92,6 +89,8 @@ def test_get_thumbnail_url_with_format(mars_df: pd.DataFrame):
     Tests the case where the thumbnail url comes from a panel_format,
     in other words panels created by the trelliscope lib
     """
+    # TODO: SB: 2023-08-31: I'm not sure the purpose of this test at ths point
+
     raise NotImplementedError()
 
     first_value = mars_df["img_src"][0]

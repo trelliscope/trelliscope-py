@@ -26,6 +26,6 @@ def test_create_view_with_state_parameters():
         sort_state=SortState("manufacturer"))
 
     actual_json = view.to_json(pretty=False)
-    expected_json = '{"name":"test view","state":{"layout":null,"labels":{"varnames":["manufacturer","class"],"type":"labels"},"sort":[{"dir":"asc","varname":"manufacturer","type":"sort"}],"filter":[]}}'
+    expected_json = '{"name":"test view","state":{"layout":null,"labels":{"varnames":["manufacturer","class"],"type":"labels"},"sort":[{"metatype":null,"dir":"asc","varname":"manufacturer","type":"sort"}],"filter":[]}}'
     assert json.loads(actual_json) == json.loads(expected_json)
 

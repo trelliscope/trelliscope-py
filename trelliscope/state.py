@@ -6,8 +6,9 @@ from collections import OrderedDict
 from datetime import date, datetime
 
 from .metas import Meta
-from .utils import check_enum, check_is_list, custom_json_serializer
-                
+from trelliscope import utils
+
+
 class State():
     """
     Base class for the various state classes.
@@ -23,7 +24,7 @@ class State():
         # Waiting to check the type until after setting
         # the member variable, otherwise, the get error message
         # function will have an error
-        check_enum(type, (State.TYPE_LAYOUT, State.TYPE_LABELS,
+        utils.check_enum(type, (State.TYPE_LAYOUT, State.TYPE_LABELS,
                             State.TYPE_SORT, State.TYPE_FILTER),
                             self._get_error_message)
 
@@ -48,7 +49,7 @@ class State():
         if pretty:
             indent_value = 2
 
-        return json.dumps(self.to_dict(), default=custom_json_serializer, indent=indent_value)
+        return json.dumps(self.to_dict(), default=utils.custom_json_serializer, indent=indent_value)
 
     def check_with_data(self, df : pd.DataFrame):
         """
@@ -82,6 +83,9 @@ class LayoutState(State):
         """
         super().__init__(State.TYPE_LAYOUT)
 
+        utils.check_int(ncol, "ncol")
+        utils.check_int(page, "page")
+
         self.ncol = ncol
         self.page = page
         self.viewtype = LayoutState.VIEWTYPE_GRID
@@ -101,7 +105,7 @@ class LabelState(State):
         """
         super().__init__(State.TYPE_LABELS)
         
-        check_is_list(varnames, self._get_data_error_message)
+        utils.check_is_list(varnames, self._get_data_error_message)
         self.varnames = varnames
 
     def check_with_data(self, df: pd.DataFrame):
@@ -124,7 +128,7 @@ class SortState(State):
         """
         super().__init__(State.TYPE_SORT)
 
-        check_enum(dir, (SortState.DIR_ASCENDING, SortState.DIR_DESCENDING), self._get_error_message)
+        utils.check_enum(dir, (SortState.DIR_ASCENDING, SortState.DIR_DESCENDING), self._get_error_message)
 
         self.varname = varname
         self.dir = dir
@@ -158,13 +162,13 @@ class FilterState(State):
         """
         super().__init__(State.TYPE_FILTER)
 
-        check_enum(filtertype, (FilterState.FILTERTYPE_CATEGORY,
+        utils.check_enum(filtertype, (FilterState.FILTERTYPE_CATEGORY,
                             FilterState.FILTERTYPE_NUMBER_RANGE,
                             FilterState.FILTERTYPE_DATE_RANGE,
                             FilterState.FILTERTYPE_DATETIME_RANGE),
                             self._get_error_message)
         
-        check_is_list(applies_to, self._get_error_message)
+        utils.check_is_list(applies_to, self._get_error_message)
 
         self.varname = varname
         self.filtertype = filtertype
@@ -379,7 +383,7 @@ class DisplayState():
 
         dict_to_serialize = self.to_dict()
 
-        return json.dumps(dict_to_serialize, indent=indent_value, default=custom_json_serializer)
+        return json.dumps(dict_to_serialize, indent=indent_value, default=utils.custom_json_serializer)
 
     def _copy(self):
         # TODO: Shallow or deep copy??

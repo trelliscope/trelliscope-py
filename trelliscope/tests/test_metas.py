@@ -1,9 +1,12 @@
-from trelliscope.metas import Meta, NumberMeta, StringMeta, CurrencyMeta, DateMeta, DatetimeMeta, FactorMeta, GeoMeta, GraphMeta, HrefMeta
-#from sklearn.datasets import load_iris
+import tempfile
 import pandas as pd
 from pandas.api.types import is_string_dtype
 import pytest
 import json
+from trelliscope.metas import Meta, NumberMeta, StringMeta, CurrencyMeta, DateMeta, DatetimeMeta, FactorMeta, GeoMeta, GraphMeta, HrefMeta, PanelMeta
+from trelliscope.panels import ImagePanel
+from trelliscope.panel_source import FilePanelSource
+from trelliscope.trelliscope import Trelliscope
 
 def test_string_meta_init(iris_df):
     meta = StringMeta(varname="Species", label="label", tags=[])
@@ -210,9 +213,40 @@ def test_href_meta(iris_plus_df):
     with pytest.raises(ValueError, match="Data type is not a string"):
         meta2.check_with_data(iris_plus_df)
 
-def test_panel_meta():
-    raise NotImplementedError()
-    # TODO: Make sure to test the to_dict / to_json functionality so that
-    # we verify the custom attributes come across
+def test_panel_meta(iris_df_no_duplicates: pd.DataFrame):
+    iris_df = iris_df_no_duplicates
+    
+    with tempfile.TemporaryDirectory() as temp_dir_name:
+        # this is test code that just sets all images to this test_image.png string
+        # it is not a proper use of the images, but gives us something to use in testing.
+        iris_df["img_panel"] = "test_image.png"
+        
+        pnl = ImagePanel("img_panel", source=FilePanelSource(is_local=True), aspect_ratio=1.5, should_copy_to_output=False)
 
-    # TODO: Also make sure to test new constructor
+        tr = (Trelliscope(iris_df, "Iris", path=temp_dir_name)
+                .add_panel(pnl)
+                )
+
+        meta = PanelMeta(pnl, "img_panel")
+
+        meta.check_with_data(iris_df)
+
+        actual_json = meta.to_json(pretty=False)
+        expected_json = """
+        {
+            "source": {
+                "isLocal": true,
+                "type": "file"
+            },
+            "aspect": 1.5,
+            "paneltype": "img",
+            "sortable": false,
+            "filterable": false,
+            "tags": [],
+            "label": "img_panel",
+            "type": "panel",
+            "varname": "img_panel"
+            }"""
+
+        assert json.loads(actual_json) == json.loads(expected_json)
+

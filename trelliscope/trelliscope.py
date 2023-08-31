@@ -137,6 +137,8 @@ class Trelliscope:
         
         self.panels[panel.varname] = panel
 
+        return self
+
 
     def set_meta(self, meta: Meta):
         """
@@ -505,6 +507,9 @@ class Trelliscope:
         format = None
         # TODO: add check of panel format here.
         # format = tr.panel_format
+
+        if self.primary_panel is None:
+            self._infer_primary_panel()
 
         primary_panel_col = self.primary_panel
 
@@ -897,6 +902,7 @@ class Trelliscope:
 
                 self.add_panel(panel)
 
+        if self.primary_panel is None:
             self._infer_primary_panel()
 
         return self

@@ -3,6 +3,7 @@ import pytest
 import pandas as pd
 from trelliscope.trelliscope import Trelliscope
 from trelliscope.panels import Panel, ImagePanel, IFramePanel
+from trelliscope.panel_source import FilePanelSource
 
 def test_panels_setup_no_uniquely_identifying_columns(iris_df: pd.DataFrame):
     
@@ -11,10 +12,15 @@ def test_panels_setup_no_uniquely_identifying_columns(iris_df: pd.DataFrame):
         # it is not a proper use of the images, but gives us something to use in testing.
         iris_df["img_panel"] = "test_image.png"
         
-        pnl = ImagePanel("img_panel", aspect_ratio=1.5, is_local=True)
+        # SB: We previously passed a panel here, because it used to be required
+        # to instantiate the object, but now it is not really needed any longer to
+        # produce the error.
+        # pnl = ImagePanel("img_panel", source=FilePanelSource(True), aspect_ratio=1.5)
 
         with pytest.raises(ValueError, match="Could not find columns"):
-            tr = Trelliscope(iris_df, "Iris", panel=pnl, path=temp_dir_name)
+            tr = (Trelliscope(iris_df, "Iris", path=temp_dir_name)
+                #   .add_panel(pnl)
+                  )
 
             # tr.write_display()
 
@@ -26,8 +32,11 @@ def test_panels_setup(iris_df_no_duplicates: pd.DataFrame):
         # it is not a proper use of the images, but gives us something to use in testing.
         iris_df["img_panel"] = "test_image.png"
         
-        pnl = ImagePanel("img_panel", aspect_ratio=1.5, is_local=True)
-        tr = Trelliscope(iris_df, "Iris", panel=pnl, path=temp_dir_name)
+        pnl = ImagePanel("img_panel", source=FilePanelSource(is_local=False), aspect_ratio=1.5, should_copy_to_output=False)
+
+        tr = (Trelliscope(iris_df, "Iris", path=temp_dir_name)
+                .add_panel(pnl)
+                )
 
         tr.write_display()
 
