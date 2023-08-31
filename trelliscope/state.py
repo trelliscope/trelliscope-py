@@ -87,6 +87,7 @@ class LayoutState(State):
         self.ncol = ncol
         self.arrange = arrange
         self.page = page
+        # TODO: Add view type = "grid"
 
     def check_with_data(self, df: pd.DataFrame):
       # This comment is in the R version:
@@ -118,7 +119,7 @@ class SortState(State):
     DIR_ASCENDING = "asc"
     DIR_DESCENDING = "desc"
 
-    def __init__(self, varname : str, dir : str = DIR_ASCENDING):
+    def __init__(self, varname : str, dir : str = DIR_ASCENDING, meta_type : str = None):
         """
         Params:
             varname: str - The variable name
@@ -130,6 +131,7 @@ class SortState(State):
 
         self.varname = varname
         self.dir = dir
+        self.metatype = meta_type
 
     def check_with_data(self, df : pd.DataFrame):
         super().check_with_data(df)
@@ -150,7 +152,7 @@ class FilterState(State):
     FILTERTYPE_DATE_RANGE = "daterange"
     FILTERTYPE_DATETIME_RANGE = "datetimerange"
 
-    def __init__(self, varname : str, filtertype : str, applies_to : list = None):
+    def __init__(self, varname : str, filtertype : str, applies_to : list = None, meta_type : str = None):
         """
         Params:
             varname: str - Variable Name
@@ -170,6 +172,7 @@ class FilterState(State):
         self.varname = varname
         self.filtertype = filtertype
         self.applies_to = applies_to
+        self.metatype = meta_type
 
     def check_with_data(self, df : pd.DataFrame):
         super().check_with_data(df)

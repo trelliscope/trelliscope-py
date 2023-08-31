@@ -71,8 +71,19 @@ def main():
 
     output_dir = os.path.join(os.getcwd(), BASE_OUTPUT_DIR)
 
+    ########################
     # Grammar of Dashboard
+    ########################
+
+    # Simple example (using defaults)
+    # tr = (Trelliscope(joined_df, name="gapminder", path=output_dir, pretty_meta_data=True)
+    #       .write_display()
+    #       .view_trelliscope()
+    # )
+
+    # Setting various parameters explicitly
     tr = (Trelliscope(joined_df, name="gapminder", path=output_dir, pretty_meta_data=True)
+          .set_default_sort(["continent", "mean_lifeExp"], sort_directions=["asc", "desc"])
           .write_display()
           .view_trelliscope()
     )

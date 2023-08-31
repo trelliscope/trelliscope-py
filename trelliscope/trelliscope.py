@@ -22,7 +22,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 from .metas import Meta, StringMeta, NumberMeta, HrefMeta, FactorMeta, PanelMeta
-from .state import DisplayState, LayoutState, LabelState
+from .state import DisplayState, LayoutState, LabelState, SortState, FilterState
 from .view import View
 from .input import Input
 from .panels import Panel, ImagePanel, IFramePanel, FigurePanel
@@ -770,13 +770,34 @@ class Trelliscope:
 
         if layout is None:
             logging.info(f"No layout definition supplied{view_str}. Using Default.")
-            state2.layout = LayoutState(nrow=2, ncol=3)
+            state2.layout = LayoutState(ncol=3)
         
         labels = state2.labels
 
         if labels is None:
             logging.info(f"No labels definition supplied{view_str}. Using Default.")
             state2.labels = LabelState(self.key_cols)
+
+
+        # Add in metatype for sorts and filters
+        filter_map = state2.filter
+
+        for filter_name in filter_map.keys():
+            filter_map[filter_name].metatype = self.metas[filter_name].type
+        
+        sort_map = state2.sort
+        for sort_name in sort_map.keys():
+            sort_map[sort_name].metatype = self.metas[sort_name].type
+
+        # TODO: This needs to be built out after the filter
+        # classes are updated
+        # # if there is a default filter that is a factor, we need to translate
+        # for filter_name in filter_map.keys():
+        #     filter:FilterState = filter_map[filter_name]
+
+        #     if filter.filtertype == "category" and self.metas[filter_name] == "factor":
+        #         # TODO: filter needs a values member...
+        #         if filter.values = metas[filter_name].levels in filter.values
 
         return state2
 
@@ -1152,8 +1173,42 @@ class Trelliscope:
     def set_layout(self):
         return self.__copy()
 
-    def set_sort(self):
-        return self.__copy()
+    def set_default_sort(self, varnames:list, sort_directions:list=None, add:bool=False):
+        """
+        Adds a SortState to the Trelliscope.
+        Params:
+            varnames:list - A list of variable names to sort on.
+            sort_directions: - A list of "asc" and "desc" for each variable to sort on. If None,
+                then ascending sort will be used for all variables. If a single direction is passed
+                in the list, it will be used for all varnames.
+            add:bool - Should an existing sort specification be added to? (If `False` (default),
+                the entire sort specification will be overridden).
+        """
+        tr = self.__copy()
+
+        if sort_directions is None:
+            sort_directions = [SortState.DIR_ASCENDING] * len(varnames)
+        elif len(sort_directions) == 1:
+            sort_directions = sort_directions * len(varnames)
+
+        if len(varnames) != len (sort_directions):
+            raise ValueError("In setting sort state, 'varnames' must have same length as 'dirs'")
+        
+        state2 = tr.state._copy()
+
+        is_first = True
+        for varname, direction in zip(varnames, sort_directions):
+            ss = SortState(varname, direction)
+            ss.check_with_data(tr.data_frame)
+
+            to_add = not is_first or add
+            state2.set(ss, to_add)
+
+            is_first = False
+
+        tr.set_state(state2)
+
+        return tr
 
     def set_filters(self):
         return self.__copy()

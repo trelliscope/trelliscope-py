@@ -112,3 +112,7 @@ def test_infer_primary_panel():
 
 def test_copy_images_to_build_directory():
     raise NotImplementedError()
+
+def test_set_default_sort():
+    # TODO: Verify the multiplication operator is functioning as expected
+    raise NotImplementedError()
