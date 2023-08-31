@@ -1167,8 +1167,23 @@ class Trelliscope:
     def add_meta_labels(self):
         return self.__copy()
     
-    def set_labels(self):
-        return self.__copy()
+    def set_default_labels(self, varnames:list):
+        """
+        Add a labels state specification to a trelliscope display.
+        Params:
+            varnames:list(str) - The varnames for the labels.
+        """
+        tr = self.__copy()
+
+        label_state = LabelState(varnames)
+        label_state.check_with_data(tr.data_frame)
+
+        state2 = tr.state._copy()
+        state2.set(label_state)
+
+        tr.set_state(state2)
+
+        return tr
 
     def set_layout(self):
         return self.__copy()
