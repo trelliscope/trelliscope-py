@@ -259,7 +259,7 @@ class Trelliscope:
         """
         return os.path.join(self.get_displays_path(), self._get_name_dir(False))
     
-    def get_panel_output_path(self, panel_col:str, is_absolute:bool) -> str:
+    def _get_panel_output_path(self, panel_col:str, is_absolute:bool) -> str:
         """
         Returns the directory where the panels will be saved, which is a child
         of the display path for this particular dataset.
@@ -1118,8 +1118,8 @@ class Trelliscope:
         # if not (panel.is_writeable or panel.should_copy):
         #     raise ValueError("Error: Attempting to write a panel that is not writable or should not be copied")
 
-        absolute_output_dir = tr.get_panel_output_path(panel_col, is_absolute=True)
-        relative_output_dir = tr.get_panel_output_path(panel_col, is_absolute=False)
+        absolute_output_dir = tr._get_panel_output_path(panel_col, is_absolute=True)
+        relative_output_dir = tr._get_panel_output_path(panel_col, is_absolute=False)
 
         if not os.path.isdir(absolute_output_dir):
             os.makedirs(absolute_output_dir)

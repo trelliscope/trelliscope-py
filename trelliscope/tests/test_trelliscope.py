@@ -5,6 +5,7 @@ import pandas as pd
 from trelliscope.trelliscope import Trelliscope
 from trelliscope.panels import Panel, ImagePanel, IFramePanel
 from trelliscope.panel_source import FilePanelSource
+from trelliscope.state import SortState
 
 def test_mars_df(mars_df: pd.DataFrame):
     assert len(mars_df) > 0
@@ -81,40 +82,141 @@ def test_get_thumbnail_url(mars_df: pd.DataFrame):
     first_value = mars_df["img_src"][0]
 
     assert tr2.thumbnail_url == first_value
-    
 
-@pytest.mark.skip("panel format not implemented yet.")
-def test_get_thumbnail_url_with_format(mars_df: pd.DataFrame):
-    """
-    Tests the case where the thumbnail url comes from a panel_format,
-    in other words panels created by the trelliscope lib
-    """
-    # TODO: SB: 2023-08-31: I'm not sure the purpose of this test at ths point
+def test_get_panel_columns(mars_df: pd.DataFrame):
+    mars_df["img2"] = mars_df["img_src"]
+    mars_df["img3"] = mars_df["img_src"]
 
-    raise NotImplementedError()
+    tr = Trelliscope(mars_df, "mars_rover")
+    tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
+    tr.add_panel(ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False))
 
-    first_value = mars_df["img_src"][0]
-    filename = os.path.join(Trelliscope.DISPLAYS_DIR, "mars_rover", Trelliscope.PANELS_DIR)
+    panels = tr._get_panel_columns()
+
+    assert set(panels) == {"img_src", "img2"}
+
+def test_get_panel_output_path(mars_df: pd.DataFrame):
+    mars_df["img2"] = mars_df["img_src"]
+    mars_df["img3"] = mars_df["img_src"]
 
 
-def test_get_panel_columns():
-    raise NotImplementedError()
+    with tempfile.TemporaryDirectory() as output_dir:        
+        tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
+        tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
+        tr.add_panel(ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False))
 
-def test_get_panel_output_path():
-    raise NotImplementedError()
+        expected_abs_path = os.path.join(output_dir,
+                                         "mars_rover",
+                                         "displays",
+                                         "mars_rover",
+                                         "panels",
+                                         "img_src")
+        actual_abs_path = tr._get_panel_output_path("img_src", True)
+        assert os.path.normpath(expected_abs_path) == os.path.normpath(actual_abs_path)
 
-def test_get_panel_from_col_name():
-    raise NotImplementedError()
+        expected_rel_path = os.path.join("panels", "img_src")
+        actual_rel_path = tr._get_panel_output_path("img_src", False)
+        assert os.path.normpath(expected_rel_path) == os.path.normpath(actual_rel_path)
 
-def test_infer_primary_panel():
-    raise NotImplementedError()
+
+def test_get_panel_from_col_name(mars_df: pd.DataFrame):
+    mars_df["img2"] = mars_df["img_src"]
+    mars_df["img3"] = mars_df["img_src"]
+
+    tr = Trelliscope(mars_df, "mars_rover")
+
+    panel1 = ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False)
+    tr.add_panel(panel1)
+    panel2 = ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False)
+    tr.add_panel(panel2)
+
+    assert panel1 == tr._get_panel("img_src")
+    assert panel2 == tr._get_panel("img2")
+
+
+def test_infer_primary_panel(mars_df: pd.DataFrame):
+    mars_df["img2"] = mars_df["img_src"]
+    mars_df["img3"] = mars_df["img_src"]
+
+    tr = Trelliscope(mars_df, "mars_rover")
+    tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
+    tr.add_panel(ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False))
+
+    assert tr.primary_panel is None
+
+    tr._infer_primary_panel()
+
+    # It would be nice to know that infer will get the "first" one,
+    # but because they are stored in a dictionary, order is not
+    # guaranteed. All we know is that it will be one of them.
+    assert tr.primary_panel in ("img_src", "img2")
 
 def test_copy_images_to_build_directory():
     raise NotImplementedError()
 
-def test_set_default_sort():
-    # TODO: Verify the multiplication operator is functioning as expected
-    raise NotImplementedError()
+def test_set_default_sort(mars_df: pd.DataFrame):
+    mars_df["img2"] = mars_df["img_src"]
+    mars_df["img3"] = mars_df["img_src"]
+
+    tr = Trelliscope(mars_df, "mars_rover")
+    tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
+    tr.add_panel(ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False))
+
+    tr = tr.set_default_sort(["img2", "img3"])
+
+    assert(len(tr.state.sort) == 2)
+    
+    sort_keys = list(tr.state.sort.keys())
+
+    ss1:SortState = tr.state.sort[sort_keys[0]]
+    ss2:SortState = tr.state.sort[sort_keys[1]]
+
+    assert ss1.varname == "img2"
+    assert ss2.varname == "img3"
+
+    assert ss1.dir == SortState.DIR_ASCENDING
+    assert ss2.dir == SortState.DIR_ASCENDING
+
+    assert ss1.metatype is None
+
+    # Overwrite
+    tr = tr.set_default_sort(["img_src", "img2"], ["asc", "desc"])
+
+    assert(len(tr.state.sort) == 2)
+    
+    sort_keys = list(tr.state.sort.keys())
+
+    ss1:SortState = tr.state.sort[sort_keys[0]]
+    ss2:SortState = tr.state.sort[sort_keys[1]]
+
+    assert ss1.varname == "img_src"
+    assert ss2.varname == "img2"
+
+    assert ss1.dir == SortState.DIR_ASCENDING
+    assert ss2.dir == SortState.DIR_DESCENDING
+
+    # Append
+    tr = tr.set_default_sort(["img3"], add=True)
+
+    assert(len(tr.state.sort) == 3)
+    
+    sort_keys = list(tr.state.sort.keys())
+
+    ss1:SortState = tr.state.sort[sort_keys[0]]
+    ss2:SortState = tr.state.sort[sort_keys[1]]
+    ss3:SortState = tr.state.sort[sort_keys[2]]
+
+    assert ss1.varname == "img_src"
+    assert ss2.varname == "img2"
+    assert ss3.varname == "img3"
+
+    assert ss1.dir == SortState.DIR_ASCENDING
+    assert ss2.dir == SortState.DIR_DESCENDING
+    assert ss3.dir == SortState.DIR_ASCENDING
+
+    # Try wrong number of directions
+    with pytest.raises(ValueError, match=r"'varnames' must have same length as 'dirs'"):
+        tr.set_default_sort(["a", "b", "c"], ["asc", "desc"])
 
 def test_infer_state():
     # TODO: Make sure to test the intersection of CategoryFilter levels and Factor meta levels.
