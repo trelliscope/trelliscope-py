@@ -22,7 +22,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 from .metas import Meta, StringMeta, NumberMeta, HrefMeta, FactorMeta, PanelMeta
-from .state import DisplayState, LayoutState, LabelState, SortState, FilterState
+from .state import DisplayState, LayoutState, LabelState, SortState, FilterState, CategoryFilterState
 from .view import View
 from .input import Input
 from .panels import Panel, ImagePanel, IFramePanel, FigurePanel
@@ -789,15 +789,18 @@ class Trelliscope:
         for sort_name in sort_map.keys():
             sort_map[sort_name].metatype = self.metas[sort_name].type
 
-        # TODO: This needs to be built out after the filter
-        # classes are updated
-        # # if there is a default filter that is a factor, we need to translate
-        # for filter_name in filter_map.keys():
-        #     filter:FilterState = filter_map[filter_name]
+        # if there is a default filter that is a factor, we need to translate
+        for filter_name in filter_map.keys():
+            filter:FilterState = filter_map[filter_name]
+            meta:Meta = self.metas[filter_name]
 
-        #     if filter.filtertype == "category" and self.metas[filter_name] == "factor":
-        #         # TODO: filter needs a values member...
-        #         if filter.values = metas[filter_name].levels in filter.values
+            if (isinstance(filter, CategoryFilterState)
+                and isinstance(meta, FactorMeta) 
+                # and filter.filtertype == FilterState.FILTERTYPE_CATEGORY
+                # and meta.type == Meta.TYPE_FACTOR
+                ):
+                if filter.values is not None and len(filter.values) > 0:
+                    filter.values = list(set(meta.levels).intersection(filter.values))
 
         return state2
 

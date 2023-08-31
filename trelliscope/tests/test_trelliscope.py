@@ -116,3 +116,7 @@ def test_copy_images_to_build_directory():
 def test_set_default_sort():
     # TODO: Verify the multiplication operator is functioning as expected
     raise NotImplementedError()
+
+def test_infer_state():
+    # TODO: Make sure to test the intersection of CategoryFilter levels and Factor meta levels.
+    raise NotImplementedError()

@@ -70,7 +70,9 @@ class State():
         return copy.deepcopy(self)
 
 class LayoutState(State):
-    def __init__(self, nrow : int = 1, ncol : int = 1, arrange : str = "rows", page : int = 1):
+    VIEWTYPE_GRID = "grid"
+
+    def __init__(self, ncol : int = 1, page : int = 1):
         """
         Params:
             nrow: int - Number of rows
@@ -80,14 +82,9 @@ class LayoutState(State):
         """
         super().__init__(State.TYPE_LAYOUT)
 
-        if arrange is not None:
-            check_enum(arrange, ("rows", "cols"), self._get_error_message)
-
-        self.nrow = nrow
         self.ncol = ncol
-        self.arrange = arrange
         self.page = page
-        # TODO: Add view type = "grid"
+        self.viewtype = LayoutState.VIEWTYPE_GRID
 
     def check_with_data(self, df: pd.DataFrame):
       # This comment is in the R version:
@@ -247,6 +244,8 @@ class NumberRangeFilterState(RangeFilterState):
             min=min,
             max=max)
         
+        self.metatype = Meta.TYPE_NUMBER
+        
 class DateRangeFilterState(RangeFilterState):
     def __init__(self, varname : str, min : date = None, max : date = None):
         """
@@ -260,6 +259,8 @@ class DateRangeFilterState(RangeFilterState):
             applies_to=[Meta.TYPE_DATE],
             min=min,
             max=max)
+        
+        self.metatype = Meta.TYPE_DATE
 
 class DatetimeRangeFilterState(RangeFilterState):
     def __init__(self, varname : str, min : datetime = None, max : datetime = None):
@@ -274,6 +275,8 @@ class DatetimeRangeFilterState(RangeFilterState):
             applies_to=[Meta.TYPE_DATETIME],
             min=min,
             max=max)
+        
+        self.metatype = Meta.TYPE_DATETIME
 
 class DisplayState():
     """
