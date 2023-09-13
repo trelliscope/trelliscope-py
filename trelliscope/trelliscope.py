@@ -1204,7 +1204,7 @@ class Trelliscope:
         tr = self.__copy()
 
         layout_state = LayoutState(ncol, page)
-        layout_state.check_with_data(self.data_frame)
+        layout_state.check_with_data(tr.data_frame)
 
         state2 = tr.state._copy()
         state2.set(layout_state)
@@ -1249,8 +1249,29 @@ class Trelliscope:
 
         return tr
 
-    def set_filters(self):
-        return self.__copy()
+    def set_default_filters(self, filters:list = [], add:bool = True):
+        """
+        Add a filter state specifications to a trelliscope display.
+        Params:
+            filters:list - A list of FilterState specifications
+            add:bool - Should existing filter state specifications be added to?
+                If False, the entire filter state specification will be overridden.
+        """
+        tr = self.__copy()
+
+        state2 = tr.state._copy()
+
+        is_first = True
+        for filter in filters:
+            if not isinstance(filter, FilterState):
+                raise ValueError("Filters must inherit from FilterState.")
+            
+            filter.check_with_data(tr.data_frame)
+
+            state2.set(filter, (not is_first or add))
+
+        tr.set_state(state2)
+        return tr
 
     # def add_view(self):
     #     return self.__copy()

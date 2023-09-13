@@ -6,6 +6,7 @@ import pandas as pd
 import plotly.express as px
 from trelliscope.facets import facet_panels
 from trelliscope.trelliscope import Trelliscope
+from trelliscope.state import NumberRangeFilterState
 
 BASE_OUTPUT_DIR = "test-build-output"
 DOWNLOAD_FLAGS = True
@@ -84,8 +85,9 @@ def main():
     # Setting various parameters explicitly
     tr = (Trelliscope(joined_df, name="gapminder", path=output_dir, pretty_meta_data=True)
           .set_default_labels(["country", "continent"])
-          .set_default_layout(4)
+          .set_default_layout(3)
           .set_default_sort(["continent", "mean_lifeExp"], sort_directions=["asc", "desc"])
+          .set_default_filters([NumberRangeFilterState("mean_lifeExp", 30, 60)])
           .write_display()
           .view_trelliscope()
     )
