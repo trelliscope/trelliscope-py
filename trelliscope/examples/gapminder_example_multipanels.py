@@ -84,6 +84,7 @@ def main():
     # Setting various parameters explicitly
     tr = (Trelliscope(joined_df, name="gapminder", path=output_dir, pretty_meta_data=True)
           .set_default_labels(["country", "continent"])
+          .set_default_layout(4)
           .set_default_sort(["continent", "mean_lifeExp"], sort_directions=["asc", "desc"])
           .write_display()
           .view_trelliscope()

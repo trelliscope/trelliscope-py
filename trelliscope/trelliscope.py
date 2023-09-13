@@ -1194,8 +1194,23 @@ class Trelliscope:
 
         return tr
 
-    def set_layout(self):
-        return self.__copy()
+    def set_default_layout(self, ncol:int = 1, page:int = 1):
+        """
+        Add a layout state specification to a trelliscope display.
+        Params:
+            ncol:int - The number of columns.
+            page:int - The number of pages.
+        """
+        tr = self.__copy()
+
+        layout_state = LayoutState(ncol, page)
+        layout_state.check_with_data(self.data_frame)
+
+        state2 = tr.state._copy()
+        state2.set(layout_state)
+
+        tr.set_state(state2)
+        return tr
 
     def set_default_sort(self, varnames:list, sort_directions:list=None, add:bool=False):
         """

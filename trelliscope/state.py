@@ -76,9 +76,7 @@ class LayoutState(State):
     def __init__(self, ncol : int = 1, page : int = 1):
         """
         Params:
-            nrow: int - Number of rows
             ncol: int - Number of cols
-            arrange: str ("rows" or "cols") - How to arrange
             page: int - Number of pages
         """
         super().__init__(State.TYPE_LAYOUT)
