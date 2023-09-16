@@ -86,3 +86,6 @@ def test_panels_setup_options(iris_df: pd.DataFrame):
 
         # infer panels implicitly
         tr = Trelliscope(iris_df, "Iris", path=temp_dir_name).write_display()
+
+def test_panel_options():
+    raise NotImplementedError()

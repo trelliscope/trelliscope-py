@@ -76,7 +76,28 @@ class FigurePanel(Panel):
     # def get_panel_source(self) -> dict:
     #     return {"type": "file"}
 
-
 # class ImagePanelSeries(pd.Series):
 #     def __init__(self) -> None:
 #         super().__init__()
+
+class PanelOptions():
+    def __init__(self, width:int = 500, height:int = 500, format:str = None,
+                 force:bool = False, prerender:bool = True, type:str = None, aspect:float = None) -> None:
+        utils.check_positive_numeric(width, "width")
+        utils.check_positive_numeric(height, "height")
+        utils.check_bool(force, "force")
+        utils.check_bool(prerender, "prerender")
+
+        if format is not None:
+            utils.check_enum(format, ["png", "svg", "html"])
+            
+        self.width = width
+        self.height = height
+        self.force = force
+        self.prerender = prerender
+        self.type = type
+
+        if aspect is None:
+            self.aspect = width / height
+        else:
+            self.aspect = aspect

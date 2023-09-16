@@ -88,6 +88,7 @@ def main():
           .set_default_layout(3)
           .set_default_sort(["continent", "mean_lifeExp"], sort_directions=["asc", "desc"])
           .set_default_filters([NumberRangeFilterState("mean_lifeExp", 30, 60)])
+#          .set_panel_options()
           .write_display()
           .view_trelliscope()
     )

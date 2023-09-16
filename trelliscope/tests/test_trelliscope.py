@@ -221,3 +221,9 @@ def test_set_default_sort(mars_df: pd.DataFrame):
 def test_infer_state():
     # TODO: Make sure to test the intersection of CategoryFilter levels and Factor meta levels.
     raise NotImplementedError()
+
+def test_set_primary_panel():
+    # Test setting one that is not a valid panel to ensure
+    # the exception is raised
+
+    raise NotImplementedError()

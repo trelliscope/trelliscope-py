@@ -25,7 +25,7 @@ from .metas import Meta, StringMeta, NumberMeta, HrefMeta, FactorMeta, PanelMeta
 from .state import DisplayState, LayoutState, LabelState, SortState, FilterState, CategoryFilterState
 from .view import View
 from .input import Input
-from .panels import Panel, ImagePanel, IFramePanel, FigurePanel
+from .panels import Panel, ImagePanel, IFramePanel, FigurePanel, PanelOptions
 from .panel_source import PanelSource, FilePanelSource
 from . import utils
 from . import html_utils
@@ -130,6 +130,12 @@ class Trelliscope:
         Returns a panel object corresponding to this panel column name.
         """
         return self.panels[panel_col]
+
+    def _has_panel(self, panel_col:str) -> bool:
+        """
+        Returns true if a panel object exists with this name.
+        """
+        return panel_col in self.panels
 
     def add_panel(self, panel:Panel):
         if not isinstance(panel, Panel):
@@ -1272,6 +1278,62 @@ class Trelliscope:
 
         tr.set_state(state2)
         return tr
+
+    def set_primary_panel(self, panel_column_name:str):
+        """
+        Sets the primary panel. Note that a panel with this name
+        should already be defined as a panel.
+
+        Params:
+            panel_column_name:str - The name of the panel column.
+        """
+        # TODO: Should this make a copy of the object?
+        if not self._has_panel(panel_column_name):
+            raise ValueError("Error: Primary panel should be a panel.")
+
+        self.primary_panel = panel_column_name
+
+        return self
+
+    def set_panel_options(self, panel_options_dictionary:dict):
+        """
+        Sets the panel options.
+
+        Params:
+            panel_options_dictionary:dict - This should be a dictionary mapping
+                the name of the panel to a PanelOptions object.
+        """
+        # TODO: Should this make a copy of the object?
+
+        for panel_name in panel_options_dictionary:
+            panel_options:PanelOptions = panel_options_dictionary[panel_name]
+
+            if not self._has_panel(panel_name):
+                raise ValueError(f"Error: Cannot set panel_options for {panel_name} because it is not in the list of panels.")
+
+            panel = self._get_panel(panel_name)
+
+            # TODO: Handle the case of each type of panel here
+            # Could polymorphism be used here to clean this up?
+
+            # if isinstance(panel, LazyPanel):
+            #     if panel_options.format == "html":
+            #         panel_options.type = "iframe"
+            #     else
+            #         panel_options.type = "img"
+            # else:
+            #     if utils.is_image_column(self.data_frame, panel_name):
+            #         panel_options.type = "img"
+            #     else:
+            #         panel_options.type = "iframe"
+
+            #     # SB: I think The aspect ratio should be set when constructing the object
+            #     #panel_options.aspect = panel_options.width / panel_options.height
+
+            self.panel_options[panel_name] = panel_options
+
+
+        return self
 
     # def add_view(self):
     #     return self.__copy()

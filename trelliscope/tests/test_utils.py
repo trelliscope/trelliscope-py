@@ -333,6 +333,22 @@ def test_find_image_columns(mars_df:pd.DataFrame):
     cols = utils.find_image_columns(mars_df)
     assert len(cols) == 0
 
+def test_is_image_column(mars_df:pd.DataFrame):
+    assert(utils.is_image_column(mars_df, "img_src"))
+    assert(not utils.is_image_column(mars_df, "camera"))
+    assert(not utils.is_image_column(mars_df, "earth_date"))
+
+    # Try changing the extension of one image and make
+    # sure it is no longer a valid column
+    mars_df["img_src"][0] = "test.doc"
+    assert(not utils.is_image_column(mars_df, "img_src"))
+
+    # Try changing the extension of one image
+    # to another (but different) image extension
+    # and make sure it is no longer a valid column
+    mars_df["img_src"][0] = "test.png"
+    assert(not utils.is_image_column(mars_df, "img_src"))
+
 def test_is_dataframe_grouped(iris_df:pd.DataFrame):
     assert not utils.is_dataframe_grouped(iris_df)
     
