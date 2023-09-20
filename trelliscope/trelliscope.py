@@ -1046,15 +1046,11 @@ class Trelliscope:
                 # expects the R style of 1-based indexes.
                 meta_df[meta.varname] = meta_df[meta.varname].cat.codes + 1
 
-        logging.debug("Starting Meta DF conversion")
-
         if self.pretty_meta_data:
             # Pretty print the json if in debug mode
             meta_data_json = meta_df.to_json(orient="records", indent=2)
         else:
             meta_data_json = meta_df.to_json(orient="records")
-
-        logging.debug("Meta DF converted to JSON")
 
         # Turn the escaped \/ into just /
         meta_data_json = meta_data_json.replace("\\/", "/")
