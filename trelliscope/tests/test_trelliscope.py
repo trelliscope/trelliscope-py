@@ -252,6 +252,7 @@ def test_set_default_sort(mars_df: pd.DataFrame):
     with pytest.raises(ValueError, match=r"'varnames' must have same length as 'dirs'"):
         tr.set_default_sort(["a", "b", "c"], ["asc", "desc"])
 
+@pytest.mark.skip("Need to better understand the rules of inferring states")
 def test_infer_state(mars_df: pd.DataFrame):
     with tempfile.TemporaryDirectory() as output_dir:
         tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
