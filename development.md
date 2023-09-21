@@ -84,4 +84,4 @@ pip install notebook
 jupyter notebook
 ```
 
-4. Create a new notebook, or browse to the example notebook (`trelliscope/examples/example_notebook.ipynb`)
+4. Create a new notebook, or browse to the example notebook (`trelliscope/examples/introduction.ipynb`)
