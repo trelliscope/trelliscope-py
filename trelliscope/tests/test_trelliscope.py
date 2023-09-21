@@ -1,5 +1,7 @@
 import pytest
 import os
+import shutil
+import urllib.request
 import tempfile
 import pandas as pd
 from trelliscope.trelliscope import Trelliscope
@@ -151,8 +153,40 @@ def test_infer_primary_panel(mars_df: pd.DataFrame):
     # guaranteed. All we know is that it will be one of them.
     assert tr.primary_panel in ("img_src", "img2")
 
-def test_copy_images_to_build_directory():
-    raise NotImplementedError()
+def test_copy_images_to_build_directory(mars_df: pd.DataFrame):
+    mars_df = mars_df[:3] # reduce to two rows
+
+    with tempfile.TemporaryDirectory() as output_dir:
+
+        with tempfile.TemporaryDirectory() as temp_dir2:
+            # download the images to a temp directory and update the data frame
+            for i in range(len(mars_df)):
+                original_file = mars_df["img_src"][i]
+                (downloaded_file, _) = urllib.request.urlretrieve(original_file)
+                
+                file_name = os.path.basename(downloaded_file) + ".jpg"
+                temp_dir_file = os.path.join(temp_dir2, file_name)
+                shutil.move(downloaded_file, temp_dir_file)
+                
+                mars_df["img_src"][i] = temp_dir_file
+
+            tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
+            tr = tr.add_panel(ImagePanel("img_src", FilePanelSource(True), should_copy_to_output=True))
+
+            # At first, the image should be in the temp dir that we put it in
+            original_image = tr.data_frame["img_src"][0]
+            assert temp_dir2 in original_image
+
+            tr = tr.write_display()
+
+            # Now the image should not be in the temp dir
+            new_image = tr.data_frame["img_src"][0]
+            new_image_full_path = os.path.join(tr.get_dataset_display_path(), new_image)
+            assert not temp_dir2 in new_image_full_path
+
+            # But the image should exist in the output dir
+            assert output_dir in new_image_full_path
+            assert os.path.exists(new_image_full_path)
 
 def test_set_default_sort(mars_df: pd.DataFrame):
     mars_df["img2"] = mars_df["img_src"]
@@ -164,7 +198,7 @@ def test_set_default_sort(mars_df: pd.DataFrame):
 
     tr = tr.set_default_sort(["img2", "img3"])
 
-    assert(len(tr.state.sort) == 2)
+    assert len(tr.state.sort) == 2
     
     sort_keys = list(tr.state.sort.keys())
 
@@ -218,12 +252,34 @@ def test_set_default_sort(mars_df: pd.DataFrame):
     with pytest.raises(ValueError, match=r"'varnames' must have same length as 'dirs'"):
         tr.set_default_sort(["a", "b", "c"], ["asc", "desc"])
 
-def test_infer_state():
+def test_infer_state(mars_df: pd.DataFrame):
+    with tempfile.TemporaryDirectory() as output_dir:
+        tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
+        tr._infer_state(tr.state)
+
+    raise NotImplementedError()
     # TODO: Make sure to test the intersection of CategoryFilter levels and Factor meta levels.
-    raise NotImplementedError()
 
-def test_set_primary_panel():
-    # Test setting one that is not a valid panel to ensure
-    # the exception is raised
 
-    raise NotImplementedError()
+def test_set_primary_panel(mars_df: pd.DataFrame):
+    with tempfile.TemporaryDirectory() as output_dir:
+        tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
+        tr = tr.add_panel(ImagePanel("img_src", FilePanelSource(False)))
+
+        with pytest.raises(ValueError, match="Error: Primary panel should be a panel."):
+            tr.set_primary_panel("camera")
+
+        tr = tr.set_primary_panel("img_src")
+        assert tr.primary_panel == "img_src"
+
+def test_infer_panels(mars_df: pd.DataFrame):
+    with tempfile.TemporaryDirectory() as output_dir:
+        tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
+        tr = tr._infer_panels()
+
+        assert len(tr.panels) == 1
+        
+        panel:Panel = tr.panels["img_src"]
+        assert panel.varname == "img_src"
+
+        assert tr.primary_panel == "img_src"
