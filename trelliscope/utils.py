@@ -4,10 +4,7 @@ import json
 from datetime import date, datetime
 from collections.abc import Iterable
 import pandas as pd
-from pandas.api.types import is_numeric_dtype
-from pandas.api.types import is_string_dtype
-from pandas.api.types import is_object_dtype
-from pandas.api.types import infer_dtype
+from pandas.api.types import is_numeric_dtype, is_categorical_dtype, is_string_dtype, is_object_dtype, infer_dtype
 import plotly
 
 from .currencies import get_valid_currencies
@@ -327,20 +324,32 @@ def find_image_columns(df:pd.DataFrame):
     str_cols = [col for col in df.columns if is_string_column(df[col])]
 
     for col in str_cols:
-        # Get the extension of the first item
-        (_, ext) = os.path.splitext(df[col][0])
-
-        # Get rid of the leading . in .jpg
-        ext = ext.removeprefix(".")
-
-        if ext in valid_image_extensions:
-            # The first row had a valid image extension, now check if
-            # they all have this same extension
-            if df[col].apply(lambda x: _extension_matches(x, ext)).all():
-                # All rows in this column have this extension
-                image_cols.append(col)
+        if is_image_column(df, col):
+            image_cols.append(col)
 
     return image_cols
+
+def is_image_column(df:pd.DataFrame, col:str) -> bool:
+    """
+    Returns True if the provided column is an image column, meaning
+    that every value has the same, valid image extension.
+    """
+    is_image = False
+
+    # Get the extension of the first item
+    (_, ext) = os.path.splitext(df[col][0])
+
+    # Get rid of the leading . in .jpg
+    ext = ext.removeprefix(".")
+
+    if ext in valid_image_extensions:
+        # The first row had a valid image extension, now check if
+        # they all have this same extension
+        if df[col].apply(lambda x: _extension_matches(x, ext)).all():
+            # All rows in this column have this extension
+            is_image = True
+    
+    return is_image
 
 def check_image_extension(list_to_check:list, get_error_message_function=__generic_error_message):
     """
@@ -483,7 +492,7 @@ def is_string_column(column: pd.Series):
     """
     is_string = False
 
-    if is_string_dtype(column):
+    if is_string_dtype(column) and not is_categorical_dtype(column):
         # This is a "string dtype" but that could include other types of
         # objects such as a plotly `Figure`, so verify that the first value
         # is actually a string.

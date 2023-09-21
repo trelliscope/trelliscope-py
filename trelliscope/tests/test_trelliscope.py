@@ -1,9 +1,13 @@
 import pytest
 import os
+import shutil
+import urllib.request
 import tempfile
 import pandas as pd
 from trelliscope.trelliscope import Trelliscope
 from trelliscope.panels import Panel, ImagePanel, IFramePanel
+from trelliscope.panel_source import FilePanelSource
+from trelliscope.state import SortState
 
 def test_mars_df(mars_df: pd.DataFrame):
     assert len(mars_df) > 0
@@ -23,10 +27,6 @@ def test_to_dict(iris_tr: Trelliscope):
     assert "state" in dict
     assert "views" in dict
     assert "inputs" in dict
-    assert "paneltype" in dict
-    assert "panelformat" in dict
-    assert "panelaspect" in dict
-    assert "panelsource" in dict
     assert "thumbnailurl" in dict
 
 
@@ -58,7 +58,7 @@ def test_standard_setup(iris_df_no_duplicates: pd.DataFrame):
         iris_df["img_panel"] = "test_image.png"
 
         tr = Trelliscope(iris_df, "Iris", path=output_dir)
-        tr.set_panel(ImagePanel("img_panel"))
+        tr.add_panel(ImagePanel("img_panel", source=FilePanelSource(True), should_copy_to_output=False))
         tr.write_display()
 
         # Clean up
@@ -78,22 +78,209 @@ def test_get_thumbnail_url(mars_df: pd.DataFrame):
     of the panel column.
     """
     tr = Trelliscope(mars_df, "mars_rover")
-    tr.set_panel(ImagePanel("img_src"))
+    tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
     
     tr2 = tr._infer_thumbnail_url()
     first_value = mars_df["img_src"][0]
 
     assert tr2.thumbnail_url == first_value
+
+def test_get_panel_columns(mars_df: pd.DataFrame):
+    mars_df["img2"] = mars_df["img_src"]
+    mars_df["img3"] = mars_df["img_src"]
+
+    tr = Trelliscope(mars_df, "mars_rover")
+    tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
+    tr.add_panel(ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False))
+
+    panels = tr._get_panel_columns()
+
+    assert set(panels) == {"img_src", "img2"}
+
+def test_get_panel_output_path(mars_df: pd.DataFrame):
+    mars_df["img2"] = mars_df["img_src"]
+    mars_df["img3"] = mars_df["img_src"]
+
+
+    with tempfile.TemporaryDirectory() as output_dir:        
+        tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
+        tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
+        tr.add_panel(ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False))
+
+        expected_abs_path = os.path.join(output_dir,
+                                         "mars_rover",
+                                         "displays",
+                                         "mars_rover",
+                                         "panels",
+                                         "img_src")
+        actual_abs_path = tr._get_panel_output_path("img_src", True)
+        assert os.path.normpath(expected_abs_path) == os.path.normpath(actual_abs_path)
+
+        expected_rel_path = os.path.join("panels", "img_src")
+        actual_rel_path = tr._get_panel_output_path("img_src", False)
+        assert os.path.normpath(expected_rel_path) == os.path.normpath(actual_rel_path)
+
+
+def test_get_panel_from_col_name(mars_df: pd.DataFrame):
+    mars_df["img2"] = mars_df["img_src"]
+    mars_df["img3"] = mars_df["img_src"]
+
+    tr = Trelliscope(mars_df, "mars_rover")
+
+    panel1 = ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False)
+    tr.add_panel(panel1)
+    panel2 = ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False)
+    tr.add_panel(panel2)
+
+    assert panel1 == tr._get_panel("img_src")
+    assert panel2 == tr._get_panel("img2")
+
+
+def test_infer_primary_panel(mars_df: pd.DataFrame):
+    mars_df["img2"] = mars_df["img_src"]
+    mars_df["img3"] = mars_df["img_src"]
+
+    tr = Trelliscope(mars_df, "mars_rover")
+    tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
+    tr.add_panel(ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False))
+
+    assert tr.primary_panel is None
+
+    tr._infer_primary_panel()
+
+    # It would be nice to know that infer will get the "first" one,
+    # but because they are stored in a dictionary, order is not
+    # guaranteed. All we know is that it will be one of them.
+    assert tr.primary_panel in ("img_src", "img2")
+
+def test_copy_images_to_build_directory(mars_df: pd.DataFrame):
+    mars_df = mars_df[:3] # reduce to two rows
+
+    with tempfile.TemporaryDirectory() as output_dir:
+
+        with tempfile.TemporaryDirectory() as temp_dir2:
+            # download the images to a temp directory and update the data frame
+            for i in range(len(mars_df)):
+                original_file = mars_df["img_src"][i]
+                (downloaded_file, _) = urllib.request.urlretrieve(original_file)
+                
+                file_name = os.path.basename(downloaded_file) + ".jpg"
+                temp_dir_file = os.path.join(temp_dir2, file_name)
+                shutil.move(downloaded_file, temp_dir_file)
+                
+                mars_df["img_src"][i] = temp_dir_file
+
+            tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
+            tr = tr.add_panel(ImagePanel("img_src", FilePanelSource(True), should_copy_to_output=True))
+
+            # At first, the image should be in the temp dir that we put it in
+            original_image = tr.data_frame["img_src"][0]
+            assert temp_dir2 in original_image
+
+            tr = tr.write_display()
+
+            # Now the image should not be in the temp dir
+            new_image = tr.data_frame["img_src"][0]
+            new_image_full_path = os.path.join(tr.get_dataset_display_path(), new_image)
+            assert not temp_dir2 in new_image_full_path
+
+            # But the image should exist in the output dir
+            assert output_dir in new_image_full_path
+            assert os.path.exists(new_image_full_path)
+
+def test_set_default_sort(mars_df: pd.DataFrame):
+    mars_df["img2"] = mars_df["img_src"]
+    mars_df["img3"] = mars_df["img_src"]
+
+    tr = Trelliscope(mars_df, "mars_rover")
+    tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
+    tr.add_panel(ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False))
+
+    tr = tr.set_default_sort(["img2", "img3"])
+
+    assert len(tr.state.sort) == 2
     
+    sort_keys = list(tr.state.sort.keys())
 
-@pytest.mark.skip("panel format not implemented yet.")
-def test_get_thumbnail_url_with_format(mars_df: pd.DataFrame):
-    """
-    Tests the case where the thumbnail url comes from a panel_format,
-    in other words panels created by the trelliscope lib
-    """
+    ss1:SortState = tr.state.sort[sort_keys[0]]
+    ss2:SortState = tr.state.sort[sort_keys[1]]
+
+    assert ss1.varname == "img2"
+    assert ss2.varname == "img3"
+
+    assert ss1.dir == SortState.DIR_ASCENDING
+    assert ss2.dir == SortState.DIR_ASCENDING
+
+    assert ss1.metatype is None
+
+    # Overwrite
+    tr = tr.set_default_sort(["img_src", "img2"], ["asc", "desc"])
+
+    assert(len(tr.state.sort) == 2)
+    
+    sort_keys = list(tr.state.sort.keys())
+
+    ss1:SortState = tr.state.sort[sort_keys[0]]
+    ss2:SortState = tr.state.sort[sort_keys[1]]
+
+    assert ss1.varname == "img_src"
+    assert ss2.varname == "img2"
+
+    assert ss1.dir == SortState.DIR_ASCENDING
+    assert ss2.dir == SortState.DIR_DESCENDING
+
+    # Append
+    tr = tr.set_default_sort(["img3"], add=True)
+
+    assert(len(tr.state.sort) == 3)
+    
+    sort_keys = list(tr.state.sort.keys())
+
+    ss1:SortState = tr.state.sort[sort_keys[0]]
+    ss2:SortState = tr.state.sort[sort_keys[1]]
+    ss3:SortState = tr.state.sort[sort_keys[2]]
+
+    assert ss1.varname == "img_src"
+    assert ss2.varname == "img2"
+    assert ss3.varname == "img3"
+
+    assert ss1.dir == SortState.DIR_ASCENDING
+    assert ss2.dir == SortState.DIR_DESCENDING
+    assert ss3.dir == SortState.DIR_ASCENDING
+
+    # Try wrong number of directions
+    with pytest.raises(ValueError, match=r"'varnames' must have same length as 'dirs'"):
+        tr.set_default_sort(["a", "b", "c"], ["asc", "desc"])
+
+@pytest.mark.skip("Need to better understand the rules of inferring states")
+def test_infer_state(mars_df: pd.DataFrame):
+    with tempfile.TemporaryDirectory() as output_dir:
+        tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
+        tr._infer_state(tr.state)
+
     raise NotImplementedError()
+    # TODO: Make sure to test the intersection of CategoryFilter levels and Factor meta levels.
 
-    first_value = mars_df["img_src"][0]
-    filename = os.path.join(Trelliscope.DISPLAYS_DIR, "mars_rover", Trelliscope.PANELS_DIR)
 
+def test_set_primary_panel(mars_df: pd.DataFrame):
+    with tempfile.TemporaryDirectory() as output_dir:
+        tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
+        tr = tr.add_panel(ImagePanel("img_src", FilePanelSource(False)))
+
+        with pytest.raises(ValueError, match="Error: Primary panel should be a panel."):
+            tr.set_primary_panel("camera")
+
+        tr = tr.set_primary_panel("img_src")
+        assert tr.primary_panel == "img_src"
+
+def test_infer_panels(mars_df: pd.DataFrame):
+    with tempfile.TemporaryDirectory() as output_dir:
+        tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
+        tr = tr._infer_panels()
+
+        assert len(tr.panels) == 1
+        
+        panel:Panel = tr.panels["img_src"]
+        assert panel.varname == "img_src"
+
+        assert tr.primary_panel == "img_src"

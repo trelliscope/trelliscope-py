@@ -6,8 +6,9 @@ from collections import OrderedDict
 from datetime import date, datetime
 
 from .metas import Meta
-from .utils import check_enum, check_is_list, custom_json_serializer
-                
+from trelliscope import utils
+
+
 class State():
     """
     Base class for the various state classes.
@@ -23,7 +24,7 @@ class State():
         # Waiting to check the type until after setting
         # the member variable, otherwise, the get error message
         # function will have an error
-        check_enum(type, (State.TYPE_LAYOUT, State.TYPE_LABELS,
+        utils.check_enum(type, (State.TYPE_LAYOUT, State.TYPE_LABELS,
                             State.TYPE_SORT, State.TYPE_FILTER),
                             self._get_error_message)
 
@@ -32,7 +33,7 @@ class State():
         """
         Returns a dictionary that can be serialized to json.
         """
-        result = self.__dict__
+        result = self.__dict__.copy()
 
         # Remove any unwanted items
         result.pop("applies_to", None)
@@ -48,7 +49,7 @@ class State():
         if pretty:
             indent_value = 2
 
-        return json.dumps(self.to_dict(), default=custom_json_serializer, indent=indent_value)
+        return json.dumps(self.to_dict(), default=utils.custom_json_serializer, indent=indent_value)
 
     def check_with_data(self, df : pd.DataFrame):
         """
@@ -70,23 +71,22 @@ class State():
         return copy.deepcopy(self)
 
 class LayoutState(State):
-    def __init__(self, nrow : int = 1, ncol : int = 1, arrange : str = "rows", page : int = 1):
+    VIEWTYPE_GRID = "grid"
+
+    def __init__(self, ncol : int = 1, page : int = 1):
         """
         Params:
-            nrow: int - Number of rows
             ncol: int - Number of cols
-            arrange: str ("rows" or "cols") - How to arrange
             page: int - Number of pages
         """
         super().__init__(State.TYPE_LAYOUT)
 
-        if arrange is not None:
-            check_enum(arrange, ("rows", "cols"), self._get_error_message)
+        utils.check_int(ncol, "ncol")
+        utils.check_int(page, "page")
 
-        self.nrow = nrow
         self.ncol = ncol
-        self.arrange = arrange
         self.page = page
+        self.viewtype = LayoutState.VIEWTYPE_GRID
 
     def check_with_data(self, df: pd.DataFrame):
       # This comment is in the R version:
@@ -103,7 +103,7 @@ class LabelState(State):
         """
         super().__init__(State.TYPE_LABELS)
         
-        check_is_list(varnames, self._get_data_error_message)
+        utils.check_is_list(varnames, self._get_data_error_message)
         self.varnames = varnames
 
     def check_with_data(self, df: pd.DataFrame):
@@ -118,7 +118,7 @@ class SortState(State):
     DIR_ASCENDING = "asc"
     DIR_DESCENDING = "desc"
 
-    def __init__(self, varname : str, dir : str = DIR_ASCENDING):
+    def __init__(self, varname : str, dir : str = DIR_ASCENDING, meta_type : str = None):
         """
         Params:
             varname: str - The variable name
@@ -126,10 +126,11 @@ class SortState(State):
         """
         super().__init__(State.TYPE_SORT)
 
-        check_enum(dir, (SortState.DIR_ASCENDING, SortState.DIR_DESCENDING), self._get_error_message)
+        utils.check_enum(dir, (SortState.DIR_ASCENDING, SortState.DIR_DESCENDING), self._get_error_message)
 
         self.varname = varname
         self.dir = dir
+        self.metatype = meta_type
 
     def check_with_data(self, df : pd.DataFrame):
         super().check_with_data(df)
@@ -150,7 +151,7 @@ class FilterState(State):
     FILTERTYPE_DATE_RANGE = "daterange"
     FILTERTYPE_DATETIME_RANGE = "datetimerange"
 
-    def __init__(self, varname : str, filtertype : str, applies_to : list = None):
+    def __init__(self, varname : str, filtertype : str, applies_to : list = None, meta_type : str = None):
         """
         Params:
             varname: str - Variable Name
@@ -159,17 +160,18 @@ class FilterState(State):
         """
         super().__init__(State.TYPE_FILTER)
 
-        check_enum(filtertype, (FilterState.FILTERTYPE_CATEGORY,
+        utils.check_enum(filtertype, (FilterState.FILTERTYPE_CATEGORY,
                             FilterState.FILTERTYPE_NUMBER_RANGE,
                             FilterState.FILTERTYPE_DATE_RANGE,
                             FilterState.FILTERTYPE_DATETIME_RANGE),
                             self._get_error_message)
         
-        check_is_list(applies_to, self._get_error_message)
+        utils.check_is_list(applies_to, self._get_error_message)
 
         self.varname = varname
         self.filtertype = filtertype
         self.applies_to = applies_to
+        self.metatype = meta_type
 
     def check_with_data(self, df : pd.DataFrame):
         super().check_with_data(df)
@@ -244,6 +246,8 @@ class NumberRangeFilterState(RangeFilterState):
             min=min,
             max=max)
         
+        self.metatype = Meta.TYPE_NUMBER
+        
 class DateRangeFilterState(RangeFilterState):
     def __init__(self, varname : str, min : date = None, max : date = None):
         """
@@ -257,6 +261,8 @@ class DateRangeFilterState(RangeFilterState):
             applies_to=[Meta.TYPE_DATE],
             min=min,
             max=max)
+        
+        self.metatype = Meta.TYPE_DATE
 
 class DatetimeRangeFilterState(RangeFilterState):
     def __init__(self, varname : str, min : datetime = None, max : datetime = None):
@@ -271,6 +277,8 @@ class DatetimeRangeFilterState(RangeFilterState):
             applies_to=[Meta.TYPE_DATETIME],
             min=min,
             max=max)
+        
+        self.metatype = Meta.TYPE_DATETIME
 
 class DisplayState():
     """
@@ -373,7 +381,7 @@ class DisplayState():
 
         dict_to_serialize = self.to_dict()
 
-        return json.dumps(dict_to_serialize, indent=indent_value, default=custom_json_serializer)
+        return json.dumps(dict_to_serialize, indent=indent_value, default=utils.custom_json_serializer)
 
     def _copy(self):
         # TODO: Shallow or deep copy??

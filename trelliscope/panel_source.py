@@ -4,11 +4,22 @@ class PanelSource():
 
     def to_dict(self):
         # Default serialization behavior is sufficient
-        return self.__dict__
+        return self.__dict__.copy()
 
 class FilePanelSource(PanelSource):
-    def __init__(self) -> None:
+    def __init__(self, is_local:bool) -> None:
         super().__init__("file")
+
+        self.is_local = is_local
+
+    def to_dict(self):
+        result = super().to_dict()
+
+        # Move "is_local" to be "isLocal" because that is how the JS library expects it
+        result.pop("is_local", None)
+        result["isLocal"] = self.is_local
+        
+        return result
 
 class RESTPanelSource(PanelSource):
     def __init__(self, url:str, api_key:str = None, headers:str = None) -> None:

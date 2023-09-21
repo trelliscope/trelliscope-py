@@ -5,6 +5,7 @@ import re
 import pandas as pd
 from trelliscope import utils
 from trelliscope.panels import ImagePanel
+from trelliscope.panel_source import FilePanelSource
 
 import plotly.express as px
 
@@ -332,6 +333,22 @@ def test_find_image_columns(mars_df:pd.DataFrame):
     cols = utils.find_image_columns(mars_df)
     assert len(cols) == 0
 
+def test_is_image_column(mars_df:pd.DataFrame):
+    assert(utils.is_image_column(mars_df, "img_src"))
+    assert(not utils.is_image_column(mars_df, "camera"))
+    assert(not utils.is_image_column(mars_df, "earth_date"))
+
+    # Try changing the extension of one image and make
+    # sure it is no longer a valid column
+    mars_df["img_src"][0] = "test.doc"
+    assert(not utils.is_image_column(mars_df, "img_src"))
+
+    # Try changing the extension of one image
+    # to another (but different) image extension
+    # and make sure it is no longer a valid column
+    mars_df["img_src"][0] = "test.png"
+    assert(not utils.is_image_column(mars_df, "img_src"))
+
 def test_is_dataframe_grouped(iris_df:pd.DataFrame):
     assert not utils.is_dataframe_grouped(iris_df)
     
@@ -378,6 +395,8 @@ def test_get_string_columns(mars_df:pd.DataFrame):
 
 def test_get_string_or_factor_columns(mars_df:pd.DataFrame):
     mars_df["camera"] = mars_df["camera"].astype("category")
+
+    print(mars_df.dtypes)
 
     # Camera should not be in the list of strings
     cols = utils.get_string_columns(mars_df)
@@ -432,7 +451,11 @@ def test_is_string_column_object(iris_df:pd.DataFrame):
     assert utils.is_string_column(iris_df["list_col"]) == False
 
     # Make of column of ImagePanels
-    iris_df["panel_col"] = iris_df.apply(lambda x: ImagePanel("test_var"), axis=1)
+    
+    # Note that this is not a correct/valid use of Image Panels, but rather
+    # this is an example of having a column filled up with any kind of object
+    # that is not a string.
+    iris_df["panel_col"] = iris_df.apply(lambda x: ImagePanel("test_var", source=FilePanelSource(True)), axis=1)
     assert utils.is_string_column(iris_df["panel_col"]) == False
 
 def test_find_figure_columns(iris_df:pd.DataFrame):

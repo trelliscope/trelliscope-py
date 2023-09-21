@@ -19,19 +19,22 @@ def test_state_bad_values():
         state = State("bad type")
 
 def test_layout_state_init():
-    state = LayoutState(nrow=2, ncol=3, arrange="cols", page=4)
+    state = LayoutState(ncol=3, page=4)
 
-    assert state.nrow == 2
     assert state.ncol == 3
-    assert state.arrange == "cols"
     assert state.page == 4
+    assert state.type == State.TYPE_LAYOUT
+    assert state.viewtype == LayoutState.VIEWTYPE_GRID
 
 def test_layout_state(iris_df):
     state1 = LayoutState()
     state1.check_with_data(iris_df)
 
-    with pytest.raises(ValueError, match=r"must be one of .+rows"):
-        state2 = LayoutState(arrange="stuff")
+    with pytest.raises(TypeError, match=r"must be an integer"):
+        state2 = LayoutState(ncol = "a")
+
+    # with pytest.raises(ValueError, match=r"must be one of .+rows"):
+    #     state2 = LayoutState(arrange="stuff")
     
 def test_label_state_init():
     state = LabelState(["one", "two"])
@@ -62,10 +65,10 @@ def test_sort_state(iris_plus_df):
     state.check_with_data(iris_plus_df)
     state.check_with_meta(meta)
 
-    assert state.to_dict() == {"dir":"asc", "varname":"date", "type":"sort"}
+    assert state.to_dict() == {"metatype":None, "dir":"asc", "varname":"date", "type":"sort"}
 
     actual_json = state.to_json(pretty=False)
-    expected_json = '{"dir":"asc","varname":"date","type":"sort"}'
+    expected_json = '{"metatype":null,"dir":"asc","varname":"date","type":"sort"}'
     assert json.loads(actual_json) == json.loads(expected_json)
 
     with pytest.raises(ValueError, match=r"not found in the dataset"):
@@ -87,9 +90,9 @@ def test_category_filter_state_init(iris_plus_df):
 
 def test_category_filter_state(iris_plus_df):
     state = CategoryFilterState("datestring", values="2023-02-24")
-    meta1 = StringMeta("datastring")
+    meta1 = StringMeta("datestring")
     
-    meta2 = FactorMeta("datastring")
+    meta2 = FactorMeta("datestring")
     meta3 = DateMeta("date")
 
     state.check_with_data(iris_plus_df)
@@ -104,10 +107,11 @@ def test_category_filter_state(iris_plus_df):
                                 "regexp":None,
                                 "filtertype":"category",
                                 "varname":"datestring",
+                                "metatype":None,
                                 "type":"filter"}
     
     actual_json = state.to_json(pretty=False)
-    expected_json = '{"values":["2023-02-24"],"regexp":null,"filtertype":"category","varname":"datestring","type":"filter"}'
+    expected_json = '{"values":["2023-02-24"],"regexp":null,"metatype":null,"filtertype":"category","varname":"datestring","type":"filter"}'
     assert json.loads(actual_json) == json.loads(expected_json)
     
 def test_category_filter_state_bad_values(iris_plus_df):
@@ -141,11 +145,12 @@ def test_number_range_filter_state(iris_plus_df):
 
     actual_dict = state.to_dict()
     expected_dict = {"max":None, "min":1, "filtertype":"numberrange",
-                        "varname":"Sepal.Length", "type":"filter"}
+                        "varname":"Sepal.Length", "type":"filter",
+                        "metatype":"number"}
     assert actual_dict == expected_dict
 
     actual_json = state.to_json(pretty=False)
-    expected_json = '{"max":null,"min":1,"filtertype":"numberrange","varname":"Sepal.Length","type":"filter"}'
+    expected_json = '{"max":null,"min":1,"filtertype":"numberrange","varname":"Sepal.Length","type":"filter","metatype":"number"}'
     assert json.loads(actual_json) == json.loads(expected_json)
 
 def test_number_range_filter_state_bad_values(iris_plus_df):
@@ -176,11 +181,11 @@ def test_date_range_filter_state(iris_plus_df):
 
     actual_dict = state.to_dict()
     expected_dict = {"max":None, "min":date(2010, 1, 1), "filtertype":"daterange",
-                        "varname":"date", "type":"filter"}
+                        "varname":"date", "type":"filter", "metatype":"date"}
     assert actual_dict == expected_dict
 
     actual_json = state.to_json(pretty=False)
-    expected_json = '{"max":null,"min":"2010-01-01","filtertype":"daterange","varname":"date","type":"filter"}'
+    expected_json = '{"max":null,"min":"2010-01-01","filtertype":"daterange","varname":"date","type":"filter","metatype":"date"}'
     assert json.loads(actual_json) == json.loads(expected_json)
 
 def test_date_range_filter_state_bad_values(iris_plus_df):
@@ -215,11 +220,11 @@ def test_datetime_range_filter_state(iris_plus_df):
 
     actual_dict = state.to_dict()
     expected_dict = {"max":None, "min":datetime(2010, 1, 1), "filtertype":"datetimerange",
-                        "varname":"datetime", "type":"filter"}
+                        "varname":"datetime", "type":"filter", "metatype":"datetime"}
     assert actual_dict == expected_dict
 
     actual_json = state.to_json(pretty=False)
-    expected_json = '{"max":null,"min":"2010-01-01T00:00:00","filtertype":"datetimerange","varname":"datetime","type":"filter"}'
+    expected_json = '{"max":null,"min":"2010-01-01T00:00:00","filtertype":"datetimerange","varname":"datetime","type":"filter","metatype":"datetime"}'
     assert json.loads(actual_json) == json.loads(expected_json)
 
 def test_date_range_filter_state_bad_values(iris_plus_df):

@@ -1,5 +1,7 @@
 import json
 import pandas as pd
+from .panel_source import PanelSource
+from .panels import Panel
 
 from trelliscope import utils
 
@@ -9,6 +11,7 @@ class Meta():
     """
 
     TYPE_STRING = "string"
+    TYPE_PANEL = "panel"
     TYPE_HREF = "href"
     TYPE_FACTOR = "factor"
     TYPE_NUMBER = "number"
@@ -61,7 +64,7 @@ class Meta():
         `to_json` method instead, which calls this one internally.
         """
         # Default __dict__ behavior is sufficient, because we don't have custom inner types
-        result = self.__dict__
+        result = self.__dict__.copy()
 
         # We need a label when it gets serialized, so use varname if needed
         if self.label is None:
@@ -195,6 +198,46 @@ class StringMeta(Meta):
         df[self.varname] = df[self.varname].astype(str)
         return df
 
+class PanelMeta(Meta):
+    """ A Meta for string data. """
+    def __init__(self, panel:Panel, label: str = None, tags: list = None):
+        super().__init__(type=Meta.TYPE_PANEL, varname=panel.varname, label=label, tags=tags,
+            filterable=False, sortable=False)
+
+        utils.check_positive_numeric(panel.aspect_ratio, "aspect", self._get_error_message)
+        self.aspect = panel.aspect_ratio
+
+        if not isinstance(panel.source, PanelSource):
+            raise ValueError("`panel_source` must be of type `PanelSource`")
+
+        self.panel_source = panel.source
+
+        utils.check_enum(panel.panel_type_str, ["img", "iframe"], self._get_error_message)
+
+        self.panel_type = panel.panel_type_str
+
+    def to_dict(self) -> dict:
+        result = super().to_dict()
+
+        result["aspect"] = self.aspect
+        
+        result.pop("panel_source", None) # remove the reference to the object put in by the default behavior
+        result["source"] = self.panel_source.to_dict()
+
+
+        result.pop("panel_type", None) # remove the reference to the object put in by the default behavior
+        # notice this does not have an _ because this is what the JavaScript expects
+        result["paneltype"] = self.panel_type
+
+        return result
+
+    def check_variable(self, df: pd.DataFrame):
+        """
+        Checks that the variable is an appropriate type for panels.
+        """
+        # TODO: Fill this in
+        pass
+
 class FactorMeta(Meta):
     """ A meta for a categorical, factor variable. """
     def __init__(self, varname: str, label: str = None, tags: list = None, levels: list = None):
@@ -323,7 +366,7 @@ class GeoMeta(Meta):
 
     def to_dict(self) -> dict:
         # Overriding to make it so latvar and longvar are not serialized
-        result = self.__dict__
+        result = self.__dict__.copy()
 
         result.pop("latvar", None)
         result.pop("longvar", None)
