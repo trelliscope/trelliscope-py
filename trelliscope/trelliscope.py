@@ -303,16 +303,14 @@ class Trelliscope:
     
     def _get_panel_output_path(self, panel_col:str, is_absolute:bool) -> str:
         """
-        Returns the directory where the panels will be saved, which is a child
-        of the display path for this particular dataset.
+        Returns the directory where the panels for this dataset are saved, which is
+        a child of the display path for this particular dataset.
+
+        Params:
+            panel_col:str - The name of the panel column.
+            is_absolute:bool - Should an absolute path be returned? If not, a relative
+                path will be returned instead.
         """
-        # this will be a relative path
-        # # base_displays_path = Trelliscope.DISPLAYS_DIR
-
-        # if is_absolute:
-        #     # this will be an absolute path
-        #     base_displays_path = self.get_displays_path()
-
         panel_dir = utils.sanitize(panel_col, to_lower=True)
         combined_path = os.path.join(Trelliscope.PANEL_OUTPUT_DIR, panel_dir)
 
@@ -341,37 +339,15 @@ class Trelliscope:
         else:
             result["inputs"] = [input.to_dict() for input in self.inputs.values()]
         
-        # TODO: This needs to come from the right place
         result["thumbnailurl"] = self.thumbnail_url
-
         result["primarypanel"] = self.primary_panel
-
-        # # TODO: Clean this up to work with multi-panel approach
-        # result["metas"] = []
-        # for meta in self.metas.values():
-        #     meta_dict = meta.to_dict()
-        #     if self.panel.varname == meta.varname:
-        #         meta_dict["type"] = "panel"
-        #         # TODO: needs to come from a variable.
-        #         meta_dict["paneltype"] = self.panel_type
-        #         meta_dict["maxnchar"] = "0"
-        #         meta_dict["panelformat"] = None
-        #         meta_dict["aspect"] = self.panel.aspect_ratio
-        #         panel_source = {}
-        #         # TODO: temporarily setting this to false so it will not
-        #         # try to use a relative path.
-        #         panel_source["isLocal"] = False
-        #         #panel_source["isLocal"] = self.panel.is_local
-        #         panel_source["type"] = "file" if self.panel.is_local else ""
-        #         meta_dict["source"] = panel_source
-
-        #     result["metas"].append(meta_dict)
 
         return result
 
     def to_json(self, pretty: bool = True) -> str:
         """
         Returns a json string of the information stored in this object.
+
         Params:
             pretty: bool - Should the json be pretty printed / indented?
         """
@@ -380,13 +356,14 @@ class Trelliscope:
         if pretty:
             indent_value = 2
 
-        dict_to_serialize = self.to_dict()
         return json.dumps(self.to_dict(), indent=indent_value)
     
     def __repr__(self) -> str:
         """
         Returns a string representation of the Trelliscope object.
         """
+        # TODO: See if there are additional items we want to add.
+
         output = []
         output.append("A trelliscope display")
         output.append(f"* Name: {self.name}")
@@ -429,19 +406,11 @@ class Trelliscope:
         """
         Creates the output directories needed for this Trelliscope. If an output
         path has not been specified, it will create them in a temporary directory.
+
+        Side effects:
+        * Directories created on the filesystem
+        * self.path variable will be updated to the temp directory if it was None.
         """
-
-        # TODO: Do we want to use the temp file context manager so our files are cleaned up after?
-        # Or is the point to leave it around for a while?
-        # The mkdtemp means that it will stick around and we have to clean it up
-        # tempfile.mkdtemp()
-        # The TemporaryDirectory() approach uses a context object and cleans it up for us
-        # https://docs.python.org/3/library/tempfile.html
-        # if self._path is None:
-        #     self.path = tempfile.TemporaryDirectory()
-        # the context object is used like this:
-        # with tempfile.TemporaryDirectory() as tmpdirname:
-
         if self.path is None:
             self.path = tempfile.mkdtemp()
 
@@ -462,13 +431,17 @@ class Trelliscope:
 
     def write_display(self, force_write: bool = False, jsonp: bool = True):
         """
-        Write the contents of this display.
+        Write the contents of this display. In the process, all necessary
+        Trelliscope parameters will be inferred if they are not present.
+
         Params:
             force_write: bool - Should the panels be forced to be written even
                 if they have already been written?
             jsonp: bool - If true, app files are written as "jsonp" format, otherwise
                 "json" format. The "jsonp" format makes it possible to browse a
                 trelliscope app without the need for a web server.
+
+        Returns a copy of the Trelliscope object. The original is not modified.
         """
         tr = self.__copy()
 
@@ -483,7 +456,6 @@ class Trelliscope:
         if config_using_jsonp != jsonp:
             jsonp = config_using_jsonp
             logging.info(f"Using jsonp={jsonp}")
-
 
         # Infer panels if needed
         tr = tr._infer_panels()
@@ -540,9 +512,9 @@ class Trelliscope:
     def _infer_thumbnail_url(self):
         """
         Sets the self.thumbnail_url variable to the appropriate thumbnail url.
-        """
-        # SB: In R this was called `get_thumbnail_url()` but it's not a getter
 
+        Modifies the current Trelliscope object.
+        """
         # Is it necessary to make a copy in this case? In R it was not
         # tr = self.__copy()
 
@@ -641,6 +613,7 @@ class Trelliscope:
         Gets the app config. If a config file exists in the `app_dir`
         it will be used. Otherwise, a new config will be created and
         the config information returned.
+
         Params:
             app_dir: str - The displays directory
             jsonp: bool - Should jsonp be used instead of json?
@@ -679,6 +652,8 @@ class Trelliscope:
             - Metas
             - State
             - Views
+
+        Returns a copy of the Trelliscope object. The original is not modified.
         """
         tr = self.__copy()
 
@@ -696,6 +671,12 @@ class Trelliscope:
         return tr
 
     def _infer_metas(self):
+        """
+        Infers metas from the data frame columns.
+
+        Returns a copy of the Trelliscope object. The original is not modified.
+        """
+
         tr = self.__copy()
 
         # get column names from the data frame
@@ -707,7 +688,7 @@ class Trelliscope:
         # go through each column name that does not have a corresponding meta
         metas_to_infer = set(column_names) - set(existing_meta_names)
 
-        # SB: Should we exclude any panel columns here? It seems like we should...
+        # TODO: SB: Should we exclude any panel columns here? It seems like we should...
 
         logging.debug(f"Inferring Metas: {metas_to_infer}")
 
@@ -735,7 +716,20 @@ class Trelliscope:
 
         return tr
 
-    def _infer_meta_variable(self, meta_column: pd.Series, meta_name: str):
+    def _infer_meta_variable(self, meta_column: pd.Series, meta_name: str) -> Meta:
+        """
+        Infers an individual meta variable from the provided column. If an appropriate
+        Meta is not found for this column `None` is returned.
+
+        Params:
+            meta_column: pd.Series - The Pandas column to infer from.
+            meta_name: str - The name of the column.
+
+        Returns:
+            Meta object associated with this column.
+
+        This does not add the meta to the Trelliscope object, but simply returns it.
+        """
         meta = None
 
         # TODO: Add Date and DateTime to this list
@@ -771,10 +765,10 @@ class Trelliscope:
             else:
                 # This appears to be a regular string column
                 meta = StringMeta(meta_name)
-        # else:
-        #     # This is not a column we can work with. For example, it could be a figure
-        #     # do NOT add it to the list
-        #     pass
+        else:
+            # This is not a column we can work with. For example, it could be a figure
+            # do NOT add it to the list
+            pass
 
 
         return meta
@@ -783,6 +777,8 @@ class Trelliscope:
         """
         Fill in the labels for any metas that do not have a label. It will
         use the varname by default.
+
+        Returns a copy of the Trelliscope object. The original is not modified.
         """
         # This is how this is inferred in the R code...
         # Finalize labels if NULL with the following priority:
@@ -805,6 +801,12 @@ class Trelliscope:
         return tr
 
     def _infer_state(self, state, view:str = None) -> DisplayState:
+        """
+        Infers and returns a new display state based on this state. Creates LayoutState,
+        LabelState, and updates the filter map.
+
+        A new DisplayState object is returned. The original is not modified.
+        """
         view_str = ""
 
         if view is not None:
@@ -894,11 +896,11 @@ class Trelliscope:
 
     def _infer_panels(self):
         """
-        If no panels are found, this method will look through each column to try to infer
+        If no panels are already present, this method will look through each column to try to infer
         a panel column. If it finds one that can be inferred, it will create the appropriate
         panel class and add it to the Trelliscope object.
 
-        Creates and returns a copy of the Trelliscope object. The original Trelliscope is not modified.
+        Returns a copy of the Trelliscope object. The original is not modified.
         """
 
         tr = self.__copy()
@@ -954,7 +956,7 @@ class Trelliscope:
         """
         Copies the images found in the provided column into the build output directory so they will
         be self contained in the output. Two directories are provided, one for the destination of the copy
-        command (likely an absolute path) and one to be the directory left in the dataframe (likely
+        command (likely an absolute path) and one to be the directory left in the data frame (likely
         a relative path).
         """
         self.data_frame[column_name] = self.data_frame.apply(lambda row:
@@ -1006,6 +1008,11 @@ class Trelliscope:
         return list(self.panels.keys())
             
     def _get_panel_figure_columns(self):
+        """
+        Returns a list of the columns that are the varnames of the figures in the data frame.
+        This used because when writing panels, the `varname` column will be updated to contain
+        the filename, but the original figure is preserved in this "figure" column.
+        """
         figure_columns = [panel.figure_varname for panel in self.panels.values()]
 
         return figure_columns
@@ -1060,10 +1067,20 @@ class Trelliscope:
         utils.write_json_file(display_list_file, jsonp, function_name, content)
 
     def _get_metas_list(self) -> list:
+        """
+        Gets a list of all the metas.
+        """
         meta_list = [meta.to_dict() for meta in self.metas.values()]
         return meta_list
 
     def _write_meta_data(self, jsonp:bool, id:str):
+        """
+        Writes the meta data file.
+
+        Params:
+            jsonp: bool - Should jsonp format be used instead of json?
+            id: str - The id for the data set.
+        """
         meta_data_file = utils.get_file_path(self.get_dataset_display_path(),
                                            Trelliscope.METADATA_FILE_NAME,
                                            jsonp)
@@ -1208,17 +1225,21 @@ class Trelliscope:
 
     #     return path
 
-    def add_meta_defs(self):
-        return self.__copy()
+    # Currently unused.
+    # def add_meta_defs(self):
+    #     return self.__copy()
 
-    def add_meta_labels(self):
-        return self.__copy()
+    # Currently unused.
+    # def add_meta_labels(self):
+    #     return self.__copy()
     
     def set_default_labels(self, varnames:list):
         """
         Add a labels state specification to a trelliscope display.
         Params:
             varnames:list(str) - The varnames for the labels.
+
+        Returns a copy of the Trelliscope object. The original is not modified.
         """
         tr = self.__copy()
 
@@ -1238,6 +1259,8 @@ class Trelliscope:
         Params:
             ncol:int - The number of columns.
             page:int - The number of pages.
+
+        Returns a copy of the Trelliscope object. The original is not modified.
         """
         tr = self.__copy()
 
@@ -1260,6 +1283,8 @@ class Trelliscope:
                 in the list, it will be used for all varnames.
             add:bool - Should an existing sort specification be added to? (If `False` (default),
                 the entire sort specification will be overridden).
+
+        Returns a copy of the Trelliscope object. The original is not modified.
         """
         tr = self.__copy()
 
@@ -1294,6 +1319,8 @@ class Trelliscope:
             filters:list - A list of FilterState specifications
             add:bool - Should existing filter state specifications be added to?
                 If False, the entire filter state specification will be overridden.
+
+        Returns a copy of the Trelliscope object. The original is not modified.
         """
         tr = self.__copy()
 
@@ -1318,14 +1345,17 @@ class Trelliscope:
 
         Params:
             panel_column_name:str - The name of the panel column.
+
+        Returns a copy of the Trelliscope object. The original is not modified.
         """
-        # TODO: Should this make a copy of the object?
-        if not self._has_panel(panel_column_name):
+        tr = self.__copy()
+
+        if not tr._has_panel(panel_column_name):
             raise ValueError("Error: Primary panel should be a panel.")
 
-        self.primary_panel = panel_column_name
+        tr.primary_panel = panel_column_name
 
-        return self
+        return tr
 
     def set_panel_options(self, panel_options_dictionary:dict):
         """
@@ -1334,16 +1364,18 @@ class Trelliscope:
         Params:
             panel_options_dictionary:dict - This should be a dictionary mapping
                 the name of the panel to a PanelOptions object.
-        """
-        # TODO: Should this make a copy of the object?
 
+        Returns a copy of the Trelliscope object. The original is not modified.
+        """
+        tr = self.__copy()
+        
         for panel_name in panel_options_dictionary:
             panel_options:PanelOptions = panel_options_dictionary[panel_name]
 
-            if not self._has_panel(panel_name):
+            if not tr._has_panel(panel_name):
                 raise ValueError(f"Error: Cannot set panel_options for {panel_name} because it is not in the list of panels.")
 
-            panel = self._get_panel(panel_name)
+            panel = tr._get_panel(panel_name)
 
             # TODO: Handle the case of each type of panel here
             # Could polymorphism be used here to clean this up?
@@ -1354,7 +1386,7 @@ class Trelliscope:
             #     else
             #         panel_options.type = "img"
             # else:
-            #     if utils.is_image_column(self.data_frame, panel_name):
+            #     if utils.is_image_column(tr.data_frame, panel_name):
             #         panel_options.type = "img"
             #     else:
             #         panel_options.type = "iframe"
@@ -1362,21 +1394,32 @@ class Trelliscope:
             #     # SB: I think The aspect ratio should be set when constructing the object
             #     #panel_options.aspect = panel_options.width / panel_options.height
 
-            self.panel_options[panel_name] = panel_options
+            tr.panel_options[panel_name] = panel_options
 
 
-        return self
+        return tr
 
     def view_trelliscope(self):
-        # TODO: Verify that a trelliscope has been written first
+        """
+        Attempts to open the current Trelliscope in a browser.
 
+        Note: The Trelliscope should be written first using `write_display()`
+        """
         index_file = os.path.join(self.get_output_path(), "index.html") 
         full_path = "file://" + os.path.realpath(index_file)
+
+        if not os.path.exists(full_path):
+            raise ValueError("No files exist for this Trelliscope exist. Before viewing the Trelliscope, "
+                             + "ensure that the `write_display` method has been called.")
+
         NEW_TAB = 2
         webbrowser.open(full_path, NEW_TAB)
         
         return self
 
     def __copy(self):
+        """
+        Internal method used throughout the library to make a copy of the Trelliscope object.
+        """
         # TODO: Should this do a deep copy? Should it make copies of metas?
         return copy.deepcopy(self)

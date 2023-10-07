@@ -298,7 +298,7 @@ def test_set_primary_panel(mars_df: pd.DataFrame):
         tr = tr.add_panel(ImagePanel("img_src", FilePanelSource(False)))
 
         with pytest.raises(ValueError, match="Error: Primary panel should be a panel."):
-            tr.set_primary_panel("camera")
+            tr = tr.set_primary_panel("camera")
 
         tr = tr.set_primary_panel("img_src")
         assert tr.primary_panel == "img_src"
