@@ -239,22 +239,40 @@ class Trelliscope:
 
         return tr
 
-    def set_input(self, input: Input):
+    # TODO: Verify it is ok to rename this from set_input to add_input
+    def add_input(self, input: Input):
         """
         Adds the provided input to the stored dictionary. The key will be the input's name,
         and it will replace an input of that name if it already existed.
         Params:
             input: Input - The input to add.
+
+        Returns a copy of the Trelliscope object. The original
+        Trelliscope object is not modified.
         """
-        # TODO: Should this be `add_input` instead?
+        tr = self.__copy()
+
         name = input.name
 
-        if name in self.inputs:
+        if name in tr.inputs:
             logging.info("Replacing existing input {input}")
 
-        self.inputs[name] = input
+        tr.inputs[name] = input
 
-        return self
+        return tr
+    
+    def add_inputs(self, inputs:list):
+        """
+        Convenience method to add muliple inputs.
+        
+        Returns a copy of the Trelliscope object. The original is not modified.
+        """
+        tr = self.__copy()
+
+        for input_obj in inputs:
+            tr = tr.add_input(input_obj)
+
+        return tr
 
     def _get_name_dir(self, to_lower: bool = True) -> str:
         """
@@ -1348,9 +1366,6 @@ class Trelliscope:
 
 
         return self
-
-    def add_inputs(self):
-        return self.__copy()
 
     def view_trelliscope(self):
         # TODO: Verify that a trelliscope has been written first

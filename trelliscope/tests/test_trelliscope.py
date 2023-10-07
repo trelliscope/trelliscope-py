@@ -314,3 +314,12 @@ def test_infer_panels(mars_df: pd.DataFrame):
         assert panel.varname == "img_src"
 
         assert tr.primary_panel == "img_src"
+
+@pytest.mark.skip("Test these when inputs are functioning")
+def test_add_input(mars_df: pd.DataFrame):
+    raise NotImplementedError
+
+@pytest.mark.skip("Test these when inputs are functioning")
+def test_add_inputs(mars_df: pd.DataFrame):
+    raise NotImplementedError
+
