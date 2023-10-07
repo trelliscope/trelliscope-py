@@ -224,15 +224,20 @@ class Trelliscope:
         and it will replace a view of that name if it already existed.
         Params:
             view: View - The view to add.
+
+        Returns a copy of the Trelliscope object with the view added. The original
+        Trelliscope object is not modified.
         """
+        tr = self.__copy()
+
         name  = view.name
 
-        if name in self.views:
+        if name in tr.views:
             logging.info("Replacing existing view {name}")
 
-        self.views[name] = view
+        tr.views[name] = view
 
-        return self
+        return tr
 
     def set_input(self, input: Input):
         """
@@ -668,7 +673,7 @@ class Trelliscope:
             state = view2.state
 
             view2.state = self._infer_state(state, view2.name)
-            tr.add_view(view2)
+            tr = tr.add_view(view2)
         
         return tr
 
@@ -1343,9 +1348,6 @@ class Trelliscope:
 
 
         return self
-
-    # def add_view(self):
-    #     return self.__copy()
 
     def add_inputs(self):
         return self.__copy()
