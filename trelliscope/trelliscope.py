@@ -1,11 +1,3 @@
-# TODO: Decide how to handle type hints for return type of Trelliscope
-# This enables type hints for the return type to be Trelliscope
-# from __future__ import annotations
-# This is now the proper way to do type hints for the return type of the
-# enclosing class, but it requires Python 3.11
-# from typing import Self
-
-
 import tempfile
 import copy
 import os
