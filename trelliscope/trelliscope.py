@@ -115,10 +115,12 @@ class Trelliscope:
         """
         Infers the primary panel. If there is only one, it will be used.
         If more than one is found, the first one encountered will be used.
-        """
-        # TODO: Verify how to choose if there is more than one
-        # TODO: Unit test this.
 
+        Note: Because the panels are stored in a dictionary, there is no
+        guarantee that the one chosen will be the first one created.
+
+        Side Effects: sets the self.primary_panel variable.
+        """
         panel_columns = self._get_panel_columns()
 
         if len(panel_columns) > 0:
@@ -128,7 +130,12 @@ class Trelliscope:
     def _get_panel(self, panel_col:str) -> Panel:
         """
         Returns a panel object corresponding to this panel column name.
+
+        If no panel exists for this column a `ValueError` will be raised.
         """
+        if panel_col not in self.panels:
+            raise ValueError(f"There is no panel associated with column {panel_col}")
+
         return self.panels[panel_col]
 
     def _has_panel(self, panel_col:str) -> bool:
@@ -138,13 +145,19 @@ class Trelliscope:
         return panel_col in self.panels
 
     def add_panel(self, panel:Panel):
+        """
+        Adds the panel to the Trelliscope object.
+
+        A new Trelliscope object is returned. The original one is not modified.
+        """
+        tr = self.__copy()
+
         if not isinstance(panel, Panel):
             raise ValueError("Panel must be of Panel class type (or a sub class)")
         
-        self.panels[panel.varname] = panel
+        tr.panels[panel.varname] = panel
 
-        return self
-
+        return tr
 
     def set_meta(self, meta: Meta):
         """
@@ -862,33 +875,35 @@ class Trelliscope:
         If no panels are found, this method will look through each column to try to infer
         a panel column. If it finds one that can be inferred, it will create the appropriate
         panel class and add it to the Trelliscope object.
+
+        Creates and returns a copy of the Trelliscope object. The original Trelliscope is not modified.
         """
 
-        # tr = self.__copy()
+        tr = self.__copy()
         # In R, this logic is found in the as_trelliscope function
         
-        panel_cols = self._get_panel_columns()
+        panel_cols = tr._get_panel_columns()
 
         if len(panel_cols) == 0:
             # No panels were found
             # Check for a `Figure` col
-            figure_columns = utils.find_figure_columns(self.data_frame)
+            figure_columns = utils.find_figure_columns(tr.data_frame)
             
             for figure_column in figure_columns:
                 # TODO: Should we use the factory method here?
-                #panel = Panel.create_panel(self.data_frame, figure_column)
+                #panel = Panel.create_panel(tr.data_frame, figure_column)
 
                 # Get all the right values from the dataset (such as ext)
                 panel_source = FilePanelSource(is_local=True)
                 panel = FigurePanel(figure_column, source=panel_source)
 
-                self.add_panel(panel)
+                tr = tr.add_panel(panel)
 
             # Check for image panels
-            image_columns = utils.find_image_columns(self.data_frame)
+            image_columns = utils.find_image_columns(tr.data_frame)
 
             for image_column in image_columns:
-                is_remote = utils.is_all_remote(self.data_frame[image_column])
+                is_remote = utils.is_all_remote(tr.data_frame[image_column])
 
                 # The logic in this function is about being remote
                 # but the image column is defined in terms of being
@@ -896,7 +911,7 @@ class Trelliscope:
                 is_local = not is_remote
 
                 # TODO: Should we use the factory method here?
-                #panel = Panel.create_panel(self.data_frame, figure_column)
+                #panel = Panel.create_panel(tr.data_frame, figure_column)
 
                 # TODO: Get all the right values from the dataset (such as ext)
 
@@ -906,13 +921,12 @@ class Trelliscope:
                 panel_source = FilePanelSource(is_local=is_local)
                 panel = ImagePanel(image_column, source=panel_source, should_copy_to_output=should_copy)
 
-                self.add_panel(panel)
+                tr = tr.add_panel(panel)
 
-        if self.primary_panel is None:
-            self._infer_primary_panel()
+        if tr.primary_panel is None:
+            tr._infer_primary_panel()
 
-        return self
-        # return tr
+        return tr
 
     def _copy_images_to_build_directory(self, column_name:str, output_dir_for_writing:str, output_dir_for_dataframe:str) -> None:
         """

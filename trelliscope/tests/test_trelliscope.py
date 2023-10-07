@@ -58,7 +58,7 @@ def test_standard_setup(iris_df_no_duplicates: pd.DataFrame):
         iris_df["img_panel"] = "test_image.png"
 
         tr = Trelliscope(iris_df, "Iris", path=output_dir)
-        tr.add_panel(ImagePanel("img_panel", source=FilePanelSource(True), should_copy_to_output=False))
+        tr = tr.add_panel(ImagePanel("img_panel", source=FilePanelSource(True), should_copy_to_output=False))
         tr.write_display()
 
         # Clean up
@@ -78,7 +78,7 @@ def test_get_thumbnail_url(mars_df: pd.DataFrame):
     of the panel column.
     """
     tr = Trelliscope(mars_df, "mars_rover")
-    tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
+    tr = tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
     
     tr2 = tr._infer_thumbnail_url()
     first_value = mars_df["img_src"][0]
@@ -90,8 +90,8 @@ def test_get_panel_columns(mars_df: pd.DataFrame):
     mars_df["img3"] = mars_df["img_src"]
 
     tr = Trelliscope(mars_df, "mars_rover")
-    tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
-    tr.add_panel(ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False))
+    tr = tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
+    tr = tr.add_panel(ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False))
 
     panels = tr._get_panel_columns()
 
@@ -104,8 +104,8 @@ def test_get_panel_output_path(mars_df: pd.DataFrame):
 
     with tempfile.TemporaryDirectory() as output_dir:        
         tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
-        tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
-        tr.add_panel(ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False))
+        tr = tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
+        tr = tr.add_panel(ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False))
 
         expected_abs_path = os.path.join(output_dir,
                                          "mars_rover",
@@ -120,6 +120,26 @@ def test_get_panel_output_path(mars_df: pd.DataFrame):
         actual_rel_path = tr._get_panel_output_path("img_src", False)
         assert os.path.normpath(expected_rel_path) == os.path.normpath(actual_rel_path)
 
+def test_add_panel(mars_df: pd.DataFrame):
+    mars_df["img2"] = mars_df["img_src"]
+    mars_df["img3"] = mars_df["img_src"]
+
+    tr = Trelliscope(mars_df, "mars_rover")
+
+    panel1 = ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False)
+    tr2 = tr.add_panel(panel1)
+    panel2 = ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False)
+    tr3 = tr2.add_panel(panel2)
+
+    assert not tr._has_panel("img_src")
+    assert not tr._has_panel("img2")
+
+    assert tr2._has_panel("img_src")
+    assert not tr2._has_panel("img2")
+
+    assert tr3._has_panel("img_src")
+    assert tr3._has_panel("img2")
+
 
 def test_get_panel_from_col_name(mars_df: pd.DataFrame):
     mars_df["img2"] = mars_df["img_src"]
@@ -128,21 +148,30 @@ def test_get_panel_from_col_name(mars_df: pd.DataFrame):
     tr = Trelliscope(mars_df, "mars_rover")
 
     panel1 = ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False)
-    tr.add_panel(panel1)
+    tr = tr.add_panel(panel1)
     panel2 = ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False)
-    tr.add_panel(panel2)
+    tr = tr.add_panel(panel2)
 
-    assert panel1 == tr._get_panel("img_src")
-    assert panel2 == tr._get_panel("img2")
+    assert tr._has_panel("img_src")
+    assert tr._has_panel("img2")
+    assert not tr._has_panel("camera")
 
+    # Note: We cannot check that the instances are the same, because the copy results
+    # in different objects
+    # assert panel1 == tr._get_panel("img_src")
+    assert panel1.varname == tr._get_panel("img_src").varname
+    assert panel2.varname == tr._get_panel("img2").varname
+
+    with pytest.raises(ValueError, match="There is no panel"):
+        tr._get_panel("camera")
 
 def test_infer_primary_panel(mars_df: pd.DataFrame):
     mars_df["img2"] = mars_df["img_src"]
     mars_df["img3"] = mars_df["img_src"]
 
     tr = Trelliscope(mars_df, "mars_rover")
-    tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
-    tr.add_panel(ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False))
+    tr = tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
+    tr = tr.add_panel(ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False))
 
     assert tr.primary_panel is None
 
@@ -194,8 +223,8 @@ def test_set_default_sort(mars_df: pd.DataFrame):
     mars_df["img3"] = mars_df["img_src"]
 
     tr = Trelliscope(mars_df, "mars_rover")
-    tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
-    tr.add_panel(ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False))
+    tr = tr.add_panel(ImagePanel("img_src", source=FilePanelSource(True), should_copy_to_output=False))
+    tr = tr.add_panel(ImagePanel("img2", source=FilePanelSource(False), should_copy_to_output=False))
 
     tr = tr.set_default_sort(["img2", "img3"])
 
