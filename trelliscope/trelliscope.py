@@ -200,30 +200,20 @@ class Trelliscope:
 
         return tr
 
-    # def add_meta(self, meta_name: str, meta: Meta):
-    #     """
-    #     Adds the provided meta to the dictionary of stored metas. It will be
-    #     added with a key of `meta_name`, replacing a meta of that key if it 
-    #     already existed.
-    #     Params:
-    #         meta_name: str - The key for the meta (typically the varname).
-    #         meta: Meta - The new meta to add.
-    #     """
-    #     # TODO: This seems redundant with set_meta. Do we need both?
-    #     # TODO: Should we make a copy here??
-    #     self.metas[meta_name] = meta
-
-    #     return self
-
     def set_state(self, state: DisplayState):
         """
         Sets the state to the provided one.
         Params:
             state: DisplayState - The new state to add.
-        """
-        self.state = state
 
-        return self
+        Returns a copy of the Trelliscope object with the state added. The original
+        Trelliscope object is not modified.
+        """
+        tr = self.__copy()
+
+        tr.state = state
+
+        return tr
 
     # TODO: Verify this is acceptable as "add_view",
     # It was the method for set_view, but add seems more appropriate
@@ -711,7 +701,7 @@ class Trelliscope:
                 metas_inferred.append(meta_name)
 
                 # Add this inferred meta to the trelliscope
-                tr.set_meta(meta)
+                tr = tr.set_meta(meta)
 
         # Add to the ignore list any that we could not infer
         tr.columns_to_ignore.extend(metas_to_remove)
@@ -1215,7 +1205,7 @@ class Trelliscope:
         state2 = tr.state._copy()
         state2.set(label_state)
 
-        tr.set_state(state2)
+        tr = tr.set_state(state2)
 
         return tr
 
@@ -1234,7 +1224,7 @@ class Trelliscope:
         state2 = tr.state._copy()
         state2.set(layout_state)
 
-        tr.set_state(state2)
+        tr = tr.set_state(state2)
         return tr
 
     def set_default_sort(self, varnames:list, sort_directions:list=None, add:bool=False):
@@ -1270,7 +1260,7 @@ class Trelliscope:
 
             is_first = False
 
-        tr.set_state(state2)
+        tr = tr.set_state(state2)
 
         return tr
 
@@ -1295,7 +1285,7 @@ class Trelliscope:
 
             state2.set(filter, (not is_first or add))
 
-        tr.set_state(state2)
+        tr = tr.set_state(state2)
         return tr
 
     def set_primary_panel(self, panel_column_name:str):
