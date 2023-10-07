@@ -38,9 +38,9 @@ def write_widget(output_path:str, trelliscope_id:str, config_info:str, is_spa:bo
 def _get_index_html_content(output_path:str, trelliscope_id:str, config_info:str, is_spa:bool) -> str:
     # TODO: Decide how to handle Javascript file version numbers to include
     HTML_WIDGET_FILE = "lib/htmlwidgets-1.6.2/htmlwidgets.js"
-    CSS_FILE = "lib/trelliscope_widget-0.6.0/css/main.682e4122.css"
-    TRELLISCOPE_WIDGET_FILE = "lib/trelliscope_widget-0.6.0/js/main.1c0011ce.js"
-    TRELLISCOPE_WIDGET_BINDING_FILE = "lib/trelliscope_widget-binding-0.1.0/trelliscope_widget.js"
+    CSS_FILE = "lib/trs-0.6.0/css/main.74ce0792.css"
+    TRELLISCOPE_WIDGET_FILE = "lib/trs-0.6.0/js/main.173baec5.js"
+    TRELLISCOPE_WIDGET_BINDING_FILE = "lib/trs-binding-0.1.3/trs.js"
 
     # TODO: What is this? Where does it come from?
     # It is something like "376b27d6688cc9ba8689"
@@ -77,7 +77,7 @@ def _get_index_html_content(output_path:str, trelliscope_id:str, config_info:str
 
 </head>
 <body>
-<div id="htmlwidget-{html_widget_id}" style="width:{width};height:{height};" class="trelliscope_widget html-widget "></div>
+<div id="htmlwidget-{html_widget_id}" style="width:{width};height:{height};" class="trs html-widget "></div>
 <script type="application/json" data-for="htmlwidget-{html_widget_id}">{widget_params_str}</script>
 </body>
 </html>

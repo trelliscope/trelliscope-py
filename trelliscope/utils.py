@@ -410,6 +410,12 @@ def write_json_file(file_path: str, jsonp: bool, function_name: str, content: st
     with open(file_path, "w") as output_file:
         output_file.write(wrapped_content)
 
+def write_window_js_file(file_path: str, window_var_name: str, content: str):
+    wrapped_content = f"window.{window_var_name} = {content}"
+
+    with open(file_path, "w") as output_file:
+        output_file.write(wrapped_content)
+
 def get_file_path(directory: str, filename_no_ext: str, jsonp: bool):
     file_ext = "jsonp" if jsonp else "json"
     filename = f"{filename_no_ext}.{file_ext}"

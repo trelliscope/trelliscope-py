@@ -469,7 +469,7 @@ class Trelliscope:
         tr = tr._infer_thumbnail_url()
 
         tr._write_display_info(jsonp, config["id"])
-        tr._write_meta_data(jsonp, config["id"])
+        tr._write_meta_data(config["id"])
 
         # TODO: Should this look in the path or the output path (ie. with the current name on it)
         # In R it was just the path, but from my example run, it seemed to have the dataset
@@ -1065,7 +1065,7 @@ class Trelliscope:
         meta_list = [meta.to_dict() for meta in self.metas.values()]
         return meta_list
 
-    def _write_meta_data(self, jsonp:bool, id:str):
+    def _write_meta_data(self, id:str):
         """
         Writes the meta data file.
 
@@ -1073,9 +1073,8 @@ class Trelliscope:
             jsonp: bool - Should jsonp format be used instead of json?
             id: str - The id for the data set.
         """
-        meta_data_file = utils.get_file_path(self.get_dataset_display_path(),
-                                           Trelliscope.METADATA_FILE_NAME,
-                                           jsonp)
+        meta_data_filename = Trelliscope.METADATA_FILE_NAME + ".js"
+        meta_data_file = os.path.join(self.get_dataset_display_path(), meta_data_filename)
                 
         # TODO: Verify that we only want the meta columns here
         meta_columns = [meta_name for meta_name in self.metas]
@@ -1100,8 +1099,10 @@ class Trelliscope:
         # Turn the escaped \/ into just /
         meta_data_json = meta_data_json.replace("\\/", "/")
 
-        function_name = f"__loadMetaData__{id}"
-        utils.write_json_file(meta_data_file, jsonp, function_name, meta_data_json)
+        window_var_name = "metaData"
+        utils.write_window_js_file(file_path=meta_data_file,
+                                   window_var_name=window_var_name,
+                                   content=meta_data_json)
 
     def _write_javascript_lib(self):
         """
