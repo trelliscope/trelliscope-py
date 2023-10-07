@@ -1406,11 +1406,12 @@ class Trelliscope:
         Note: The Trelliscope should be written first using `write_display()`
         """
         index_file = os.path.join(self.get_output_path(), "index.html") 
-        full_path = "file://" + os.path.realpath(index_file)
 
-        if not os.path.exists(full_path):
+        if not os.path.exists(index_file):
             raise ValueError("No files exist for this Trelliscope exist. Before viewing the Trelliscope, "
                              + "ensure that the `write_display` method has been called.")
+
+        full_path = "file://" + os.path.realpath(index_file)
 
         NEW_TAB = 2
         webbrowser.open(full_path, NEW_TAB)
