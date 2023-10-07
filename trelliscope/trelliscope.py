@@ -165,45 +165,55 @@ class Trelliscope:
         `varname`. If this key was already present it will be replaced.
         Params:
             meta: Meta - The Meta object to add.
+
+        Returns a copy of the Trelliscope object with the meta added. The original
+        Trelliscope object is not modified.
         """
+        tr = self.__copy()
+
         if not isinstance(meta, Meta):
             raise ValueError("Error: Meta definition must be a valid Meta class instance.")
         
-        meta.check_with_data(self.data_frame)
+        meta.check_with_data(tr.data_frame)
         name = meta.varname
 
-        if name in self.metas:
+        if name in tr.metas:
             logging.info(f"Replacing existing meta variable {name}")
 
-        self.metas[name] = meta
+        tr.metas[name] = meta
 
-        return self
+        return tr
 
     def set_metas(self, meta_list: list):
         """
         Helper method to add a list of metas at once.
         Params:
             meta_list: list(Meta) - The list of meta objects to add.
+
+        Returns a copy of the Trelliscope object with the metas added. The original
+        Trelliscope object is not modified.
         """
+        tr = self._copy()
+
         for meta in meta_list:
-            self.set_meta(meta)
+            tr = tr.set_meta(meta)
 
-        return self
+        return tr
 
-    def add_meta(self, meta_name: str, meta: Meta):
-        """
-        Adds the provided meta to the dictionary of stored metas. It will be
-        added with a key of `meta_name`, replacing a meta of that key if it 
-        already existed.
-        Params:
-            meta_name: str - The key for the meta (typically the varname).
-            meta: Meta - The new meta to add.
-        """
-        # TODO: This seems redundant with set_meta. Do we need both?
-        # TODO: Should we make a copy here??
-        self.metas[meta_name] = meta
+    # def add_meta(self, meta_name: str, meta: Meta):
+    #     """
+    #     Adds the provided meta to the dictionary of stored metas. It will be
+    #     added with a key of `meta_name`, replacing a meta of that key if it 
+    #     already existed.
+    #     Params:
+    #         meta_name: str - The key for the meta (typically the varname).
+    #         meta: Meta - The new meta to add.
+    #     """
+    #     # TODO: This seems redundant with set_meta. Do we need both?
+    #     # TODO: Should we make a copy here??
+    #     self.metas[meta_name] = meta
 
-        return self
+    #     return self
 
     def set_state(self, state: DisplayState):
         """
@@ -701,7 +711,6 @@ class Trelliscope:
                 metas_inferred.append(meta_name)
 
                 # Add this inferred meta to the trelliscope
-                #tr.add_meta(meta_name, meta)
                 tr.set_meta(meta)
 
         # Add to the ignore list any that we could not infer
