@@ -1,6 +1,8 @@
 test-build-*/
 tr-dev-env/
 
+.DS_Store
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
