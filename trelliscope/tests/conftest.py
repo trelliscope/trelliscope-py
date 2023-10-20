@@ -7,7 +7,7 @@ import pandas as pd
 import os
 import numpy as np
 
-from trelliscope.trelliscope import Trelliscope
+from trelliscope import Trelliscope
 
 DATA_DIR = "external_data"
 IRIS_DF_FILENAME = "iris.data"

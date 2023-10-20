@@ -1,4 +1,5 @@
-from trelliscope.trelliscope import Trelliscope
+from trelliscope import Trelliscope
+
 import pandas as pd
 import os
 

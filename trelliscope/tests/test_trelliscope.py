@@ -4,7 +4,7 @@ import shutil
 import urllib.request
 import tempfile
 import pandas as pd
-from trelliscope.trelliscope import Trelliscope
+from trelliscope import Trelliscope
 from trelliscope.panels import Panel, ImagePanel, IFramePanel
 from trelliscope.panel_source import FilePanelSource
 from trelliscope.state import SortState

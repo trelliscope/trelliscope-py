@@ -6,7 +6,7 @@ import json
 from trelliscope.metas import Meta, NumberMeta, StringMeta, CurrencyMeta, DateMeta, DatetimeMeta, FactorMeta, GeoMeta, GraphMeta, HrefMeta, PanelMeta
 from trelliscope.panels import ImagePanel
 from trelliscope.panel_source import FilePanelSource
-from trelliscope.trelliscope import Trelliscope
+from trelliscope import Trelliscope
 
 def test_string_meta_init(iris_df):
     meta = StringMeta(varname="Species", label="label", tags=[])

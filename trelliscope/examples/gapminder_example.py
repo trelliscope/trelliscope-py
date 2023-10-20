@@ -4,7 +4,7 @@ import pandas as pd
 from gapminder import gapminder
 import plotly.express as px
 from trelliscope.facets import facet_panels
-from trelliscope.trelliscope import Trelliscope
+from trelliscope import Trelliscope
 
 BASE_OUTPUT_DIR = "test-build-output"
 

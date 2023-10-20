@@ -5,7 +5,7 @@ import zipfile
 import pandas as pd
 import plotly.express as px
 from trelliscope.facets import facet_panels
-from trelliscope.trelliscope import Trelliscope
+from trelliscope import Trelliscope
 from trelliscope.state import NumberRangeFilterState
 
 BASE_OUTPUT_DIR = "test-build-output"
