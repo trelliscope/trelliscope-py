@@ -17,9 +17,9 @@ def test_write_javascript(mars_df: pd.DataFrame):
         # Check if at least one item in the directory contains the
         # substring with part of the expected lib name (we don't want to)
         # test for a certain version number
-        assert any(("htmlwidgets" in file) for file in files)
-        assert any(("trelliscope_widget" in file) for file in files)
-        assert any(("trelliscope_widget-binding" in file) for file in files)
+        assert any(("htmlwidgets-" in file) for file in files)
+        assert any(("trs-" in file) for file in files)
+        assert any(("trs-binding-" in file) for file in files)
 
         for file in files:
             if "trelliscope_widget-binding" in file:
@@ -33,7 +33,7 @@ def test_get_index_html_content():
         html = html_utils._get_index_html_content(output_dir, "abc123", "config.jsonp", True)
 
         assert '<script src="lib/htmlwidgets' in html
-        assert '<script src="lib/trelliscope_widget-binding' in html
+        assert '<script src="lib/trs-binding' in html
         assert '<div id="htmlwidget-' in html
         assert re.search(r'"id":\s*"abc123"', html)
         assert re.search(r'"config_info":\s*"config.jsonp"', html) 
@@ -50,7 +50,7 @@ def test_write_widget():
             html = input_file.read()
 
             assert '<script src="lib/htmlwidgets' in html
-            assert '<script src="lib/trelliscope_widget-binding' in html
+            assert '<script src="lib/trs-binding' in html
             assert '<div id="htmlwidget-' in html
             assert re.search(r'"id":\s*"abc123"', html)
             assert re.search(r'"config_info":\s*"config.jsonp"', html) 
