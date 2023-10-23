@@ -5,9 +5,9 @@ build-backend = "hatchling.build"
 [project]
 name = "trelliscope"
 dependencies = [
-    "pandas < 1.5.2"
+    "pandas >= 1.5.2"
 ]
-version = "0.0.1"
+version = "0.0.0-alpha1"
 authors = [
   { name="Scott Burton", email="sburton@thinkoriginally.com" },
 ]
