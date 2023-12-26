@@ -29,6 +29,15 @@ In the root directory of the project, run:
 pip install -e .
 ```
 
+## Install other libraries
+While not tecnically required by Trelliscope, it is likely that you will want
+to install Plotly Express in the virtual environment and the corresponding `kaleido`
+to write Plotly images.
+```
+pip install plotly-express
+pip install kaleido
+```
+
 ## Verify Trelliscope package is accessible
 Run a simple trelliscope example:
 ```

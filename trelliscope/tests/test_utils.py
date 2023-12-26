@@ -396,8 +396,6 @@ def test_get_string_columns(mars_df:pd.DataFrame):
 def test_get_string_or_factor_columns(mars_df:pd.DataFrame):
     mars_df["camera"] = mars_df["camera"].astype("category")
 
-    print(mars_df.dtypes)
-
     # Camera should not be in the list of strings
     cols = utils.get_string_columns(mars_df)
     assert set(cols) == {"earth_date", "class", "img_src"}
@@ -437,6 +435,14 @@ def test_is_string_column(mars_df:pd.DataFrame):
     assert utils.is_string_column(mars_df["class"]) == True
     assert utils.is_string_column(mars_df["img_src"]) == True
     assert utils.is_string_column(mars_df["sol"]) == False
+
+def test_is_string_column_categorical(mars_df:pd.DataFrame):
+    assert utils.is_string_column(mars_df["camera"]) == True
+
+    mars_df["camera"] = mars_df["camera"].astype("category")
+
+    assert isinstance(mars_df["camera"].dtype, pd.api.types.CategoricalDtype)
+    assert utils.is_string_column(mars_df["camera"]) == False
 
 def test_is_string_column_numeric(iris_df:pd.DataFrame):
     assert utils.is_string_column(iris_df["Sepal.Length"]) == False

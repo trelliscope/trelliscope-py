@@ -4,7 +4,7 @@ import json
 from datetime import date, datetime
 from collections.abc import Iterable
 import pandas as pd
-from pandas.api.types import is_numeric_dtype, is_categorical_dtype, is_string_dtype, is_object_dtype, infer_dtype
+from pandas.api.types import is_numeric_dtype, is_string_dtype, is_object_dtype, infer_dtype
 import plotly
 
 from .currencies import get_valid_currencies
@@ -498,7 +498,7 @@ def is_string_column(column: pd.Series):
     """
     is_string = False
 
-    if is_string_dtype(column) and not is_categorical_dtype(column):
+    if is_string_dtype(column) and not isinstance(column.dtype, pd.CategoricalDtype):
         # This is a "string dtype" but that could include other types of
         # objects such as a plotly `Figure`, so verify that the first value
         # is actually a string.
