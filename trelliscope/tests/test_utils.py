@@ -285,7 +285,7 @@ def test_is_all_remote_with_local(mars_df:pd.DataFrame):
     assert utils.is_all_remote(mars_df["img_src"])
 
     # Change one to not be remote
-    mars_df["img_src"][0] = "local.png"
+    mars_df.at[0, "img_src"] = "local.png"
     assert not utils.is_all_remote(mars_df["img_src"])
 
 def test_extension_matches():
@@ -322,14 +322,14 @@ def test_find_image_columns(mars_df:pd.DataFrame):
 
     # Try changing the extension of one image and make
     # sure it is no longer a valid column
-    mars_df["img_src"][0] = "test.doc"
+    mars_df.at[0, "img_src"] = "test.doc"
     cols = utils.find_image_columns(mars_df)
     assert len(cols) == 0
 
     # Try changing the extension of one image
     # to another (but different) image extension
     # and make sure it is no longer a valid column
-    mars_df["img_src"][0] = "test.png"
+    mars_df.at[0, "img_src"] = "test.png"
     cols = utils.find_image_columns(mars_df)
     assert len(cols) == 0
 
@@ -340,13 +340,13 @@ def test_is_image_column(mars_df:pd.DataFrame):
 
     # Try changing the extension of one image and make
     # sure it is no longer a valid column
-    mars_df["img_src"][0] = "test.doc"
+    mars_df.at[0, "img_src"] = "test.doc"
     assert(not utils.is_image_column(mars_df, "img_src"))
 
     # Try changing the extension of one image
     # to another (but different) image extension
     # and make sure it is no longer a valid column
-    mars_df["img_src"][0] = "test.png"
+    mars_df.at[0, "img_src"] = "test.png"
     assert(not utils.is_image_column(mars_df, "img_src"))
 
 def test_is_dataframe_grouped(iris_df:pd.DataFrame):

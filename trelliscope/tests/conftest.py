@@ -42,7 +42,7 @@ def iris_df_no_duplicates(iris_df: pd.DataFrame):
     """
     Returns a copy of the iris dataset with no duplicates
     """
-    df = iris_df.drop_duplicates()
+    df = iris_df.drop_duplicates().copy(deep=True)
     return df
 
 @pytest.fixture
