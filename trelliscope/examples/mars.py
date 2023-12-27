@@ -2,19 +2,17 @@ import os
 import pandas as pd
 from trelliscope import Trelliscope
 
-BASE_OUTPUT_DIR = "test-build-output"
-
-DATA_DIR = "./trelliscope/tests/external_data"
-MARS_ROVER_DF_FILENAME = "mars_rover.csv"
+EXTERNAL_DATA_DIR = "external_data"
+MARS_ROVER_CSV_FILENAME = "mars_rover.csv"
 
 MARS_ROVER_CSV_URL = "https://raw.githubusercontent.com/trelliscope/trelliscope-py/main/trelliscope/examples/external_data/mars_rover.csv"
 
 def main():
     # Use a URL for the external file
-    mars_file = "https://raw.githubusercontent.com/trelliscope/trelliscope-py/main/trelliscope/examples/external_data/mars_rover.csv"
+    mars_file = MARS_ROVER_CSV_URL
 
     # If desired: Alternatively, use a the file locally, assuming the working directly is in the `examples` folder
-    # mars_file = os.path.join("external_data", "mars_rover.csv")
+    # mars_file = os.path.join(EXTERNAL_DATA_DIR, MARS_ROVER_CSV_FILENAME)
 
     mars_df = pd.read_csv(mars_file)
 
