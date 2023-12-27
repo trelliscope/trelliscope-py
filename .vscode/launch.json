@@ -25,16 +25,7 @@
             "purpose":["debug-in-terminal"]
         },
         {
-            "name": "Meta debugging",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/trelliscope/examples/meta_debugging.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "python": "${workspaceFolder}/tr-dev-env/bin/python"
-        },
-        {
-            "name": "Gapminder",
+            "name": "Examples - Gapminder",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/trelliscope/examples/gapminder.py",
