@@ -46,48 +46,12 @@
             "name": "Gapminder",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/trelliscope/examples/gapminder_example.py",
+            "program": "${workspaceFolder}/trelliscope/examples/gapminder.py",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "python": "${workspaceFolder}/tr-dev-env/bin/python"
+            "python": "${workspaceFolder}/tr-dev-env/bin/python",
+            "cwd": "${fileDirname}",
+            "purpose":["debug-in-terminal"]
         },
-        {
-            "name": "Gapminder (Multi-Panels)",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/trelliscope/examples/gapminder_example_multipanels.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "python": "${workspaceFolder}/tr-dev-env/bin/python"
-        },
-        // {
-        //     "name": "Meta tests",
-        //     "type": "python",
-        //     "request": "launch",
-        //     "program": "${workspaceFolder}/trelliscope/examples/meta_tests.py",
-        //     "console": "integratedTerminal",
-        //     "justMyCode": true,
-        //     "python": "${workspaceFolder}/venv/bin/python"
-        // },
-        // {
-        //     "name": "Debug Tests",
-        //     "type": "python",
-        //     "request": "test",
-        //     "console": "integratedTerminal",
-        //     "justMyCode": true,
-        //     "env": {
-        //         "_PYTEST_RAISE": "1"
-        //     },
-        // },
-        // {
-        //     "name": "Run Tests",
-        //     "type": "python",
-        //     "request": "test",
-        //     "console": "integratedTerminal",
-        //     "justMyCode": true,
-        //     "env": {
-        //         "_PYTEST_RAISE": "0"
-        //     },
-        // }
     ]
 }
