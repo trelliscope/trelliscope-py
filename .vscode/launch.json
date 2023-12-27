@@ -29,7 +29,9 @@
             "program": "${workspaceFolder}/trelliscope/examples/mars.py",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "python": "${workspaceFolder}/tr-dev-env/bin/python"
+            "python": "${workspaceFolder}/tr-dev-env/bin/python",
+            "cwd": "${fileDirname}",
+            "purpose":["debug-in-terminal"]
         },
         {
             "name": "Meta debugging",

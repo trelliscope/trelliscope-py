@@ -1,33 +1,25 @@
-from trelliscope import Trelliscope
-import pandas as pd
 import os
-from io import BytesIO
-import pkgutil
+import pandas as pd
+from trelliscope import Trelliscope
 
 BASE_OUTPUT_DIR = "test-build-output"
 
 DATA_DIR = "./trelliscope/tests/external_data"
 MARS_ROVER_DF_FILENAME = "mars_rover.csv"
 
-def get_mars_rover_df() -> pd.DataFrame:
-    """
-    Loads the Mars Rover dataset from a file in the test-data directory.
-    """
-    df_path = os.path.join(DATA_DIR, MARS_ROVER_DF_FILENAME)
-    df = pd.read_csv(df_path)
-
-    return df
+MARS_ROVER_CSV_URL = "https://raw.githubusercontent.com/trelliscope/trelliscope-py/main/trelliscope/examples/external_data/mars_rover.csv"
 
 def main():
-    print("Running Trelliscope Mars Rover Example...")
-    output_dir = os.path.join(os.getcwd(), BASE_OUTPUT_DIR)
+    # Use a URL for the external file
+    mars_file = "https://raw.githubusercontent.com/trelliscope/trelliscope-py/main/trelliscope/examples/external_data/mars_rover.csv"
 
-    df = get_mars_rover_df()
-    name = "mars rover"
+    # If desired: Alternatively, use a the file locally, assuming the working directly is in the `examples` folder
+    # mars_file = os.path.join("external_data", "mars_rover.csv")
 
-    # Grammar of Dashboard
+    mars_df = pd.read_csv(mars_file)
+
     # Note that the image column will be found and inferred to be the panel
-    tr = (Trelliscope(df, name, path=output_dir, pretty_meta_data=True)
+    tr = (Trelliscope(mars_df, name="Mars Rover")
           .write_display()
           .view_trelliscope()
     )
