@@ -14,15 +14,6 @@
             "python": "${workspaceFolder}/tr-dev-env/bin/python"
         },
         {
-            "name": "Examples - Iris",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/trelliscope/examples/iris.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "python": "${workspaceFolder}/tr-dev-env/bin/python"
-        },
-        {
             "name": "Examples - Mars Rover",
             "type": "python",
             "request": "launch",
