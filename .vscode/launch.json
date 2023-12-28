@@ -1,7 +1,4 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
@@ -11,16 +8,9 @@
             "program": "${workspaceFolder}/trelliscope/examples/fruit.py",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "python": "${workspaceFolder}/tr-dev-env/bin/python"
-        },
-        {
-            "name": "Examples - Iris",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/trelliscope/examples/iris.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "python": "${workspaceFolder}/tr-dev-env/bin/python"
+            "python": "${workspaceFolder}/tr-dev-env/bin/python",
+            "cwd": "${fileDirname}",
+            "purpose":["debug-in-terminal"]
         },
         {
             "name": "Examples - Mars Rover",
@@ -34,60 +24,15 @@
             "purpose":["debug-in-terminal"]
         },
         {
-            "name": "Meta debugging",
+            "name": "Examples - Gapminder",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/trelliscope/examples/meta_debugging.py",
+            "program": "${workspaceFolder}/trelliscope/examples/gapminder.py",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "python": "${workspaceFolder}/tr-dev-env/bin/python"
+            "python": "${workspaceFolder}/tr-dev-env/bin/python",
+            "cwd": "${fileDirname}",
+            "purpose":["debug-in-terminal"]
         },
-        {
-            "name": "Gapminder",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/trelliscope/examples/gapminder_example.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "python": "${workspaceFolder}/tr-dev-env/bin/python"
-        },
-        {
-            "name": "Gapminder (Multi-Panels)",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/trelliscope/examples/gapminder_example_multipanels.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "python": "${workspaceFolder}/tr-dev-env/bin/python"
-        },
-        // {
-        //     "name": "Meta tests",
-        //     "type": "python",
-        //     "request": "launch",
-        //     "program": "${workspaceFolder}/trelliscope/examples/meta_tests.py",
-        //     "console": "integratedTerminal",
-        //     "justMyCode": true,
-        //     "python": "${workspaceFolder}/venv/bin/python"
-        // },
-        // {
-        //     "name": "Debug Tests",
-        //     "type": "python",
-        //     "request": "test",
-        //     "console": "integratedTerminal",
-        //     "justMyCode": true,
-        //     "env": {
-        //         "_PYTEST_RAISE": "1"
-        //     },
-        // },
-        // {
-        //     "name": "Run Tests",
-        //     "type": "python",
-        //     "request": "test",
-        //     "console": "integratedTerminal",
-        //     "justMyCode": true,
-        //     "env": {
-        //         "_PYTEST_RAISE": "0"
-        //     },
-        // }
     ]
 }

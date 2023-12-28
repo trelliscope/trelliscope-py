@@ -16,15 +16,12 @@ def get_fruit_data_frame():
     return df
 
 def main():
-    print("Running Trelliscope Fruit Example...")
-    output_dir = os.path.join(os.getcwd(), BASE_OUTPUT_DIR)
-
     df = get_fruit_data_frame()
     name = "Fruit"
 
     # Grammar of Dashboard
     # Note that the image column will be found and inferred to be the panel
-    tr = (Trelliscope(df, name, path=output_dir, pretty_meta_data=True)
+    tr = (Trelliscope(df, name)
           .write_display()
           .view_trelliscope()
     )
