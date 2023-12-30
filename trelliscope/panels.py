@@ -65,24 +65,6 @@ class Panel:
         # TODO: Add this in
         pass
 
-    # SB: This method doesn't really make much sense because the only properties you can set
-    # at this point are aspect ratio and extension.
-    # def set_options(self, panel_options:PanelOptions):
-    #     """
-    #     Sets values on this `Panel` object as specified in the provided `PanelOptions` object.
-
-    #     Params:
-    #         panel_options:PanelOptions - The values to set.
-
-    #     Side Effects: The `Panel` object is updated.
-    #     """
-    #     # TODO: Should panels store width and height directly, or just the aspect ratio?
-        
-    #     if panel_options.aspect is not None:
-    #         self.aspect_ratio = panel_options.aspect
-
-
-
     # # Not currently used:
     # @staticmethod
     # def create_panel(df: pd.DataFrame, panel_col: str):

@@ -1380,23 +1380,6 @@ class Trelliscope:
 
         return tr
 
-    # SB: This method doesn't really make sense because the only properties you
-    # can really set at this point are the aspect ratio and maybe the extension.
-    # def _update_panel(self, panel_name:str, panel_options:PanelOptions):
-    #     """
-    #     Updates an existing panel by the provided name with the information
-    #     stored in the provided panel_options object.
-
-    #     Params:
-    #         panel_name:str - The name of the panel to update.
-    #         panel_options:PanelOptions - The values to set.
-
-    #     Side Effects: This method does not make a copy of the trelliscope object,
-    #     but rather modifies the Panel directly.
-    #     """
-    #     panel = self._get_panel(panel_name)
-    #     panel.set_options(panel_options)
-
     def view_trelliscope(self):
         """
         Attempts to open the current Trelliscope in a browser.
