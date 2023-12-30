@@ -2,7 +2,7 @@ import tempfile
 import pytest
 import pandas as pd
 from trelliscope import Trelliscope
-from trelliscope.panels import Panel, ImagePanel, IFramePanel
+from trelliscope.panels import Panel, ImagePanel, IFramePanel, PanelOptions
 from trelliscope.panel_source import FilePanelSource
 
 def test_panels_setup_no_uniquely_identifying_columns(iris_df: pd.DataFrame):
@@ -87,6 +87,78 @@ def test_panels_setup_options(iris_df: pd.DataFrame):
         # infer panels implicitly
         tr = Trelliscope(iris_df, "Iris", path=temp_dir_name).write_display()
 
-@pytest.mark.skip("Still understanding how this should work")
-def test_panel_options():
-    raise NotImplementedError()
+def test_panel_options_init():
+    # default params
+    panel_options = PanelOptions()
+    assert panel_options.width == 600
+    assert panel_options.height == 400
+    assert panel_options.aspect == pytest.approx(1.5, 0.01)
+    assert panel_options.format is None
+    assert panel_options.force == False
+    assert panel_options.prerender == True
+    assert panel_options.type is None
+
+    # specified params (except aspect ratio)
+    panel_options = PanelOptions(width=500, height=500, format="png", force=True, prerender=False, type=Panel._PANEL_TYPE_IMAGE)
+    assert panel_options.width == 500
+    assert panel_options.height == 500
+    assert panel_options.aspect == pytest.approx(1.0, 0.01)
+    assert panel_options.format == "png"
+    assert panel_options.force == True
+    assert panel_options.prerender == False
+    assert panel_options.type == Panel._PANEL_TYPE_IMAGE
+
+    # specified params (including aspect ratio)
+    panel_options = PanelOptions(width=500, height=500, format="png", force=True, prerender=False, type=Panel._PANEL_TYPE_IMAGE, aspect=2.0)
+    assert panel_options.width == 500
+    assert panel_options.height == 500
+    assert panel_options.aspect == pytest.approx(2.0, 0.01)
+    assert panel_options.format == "png"
+    assert panel_options.force == True
+    assert panel_options.prerender == False
+    assert panel_options.type == Panel._PANEL_TYPE_IMAGE
+
+    with pytest.raises(ValueError):
+        panel_options = PanelOptions(format="doc")
+
+def test_set_panel_options_dict(iris_df_no_duplicates: pd.DataFrame):
+    """
+    Just ensure that the dictionary is set at this point.
+    """
+    panel_options1 = PanelOptions()
+    panel_options2 = PanelOptions(width=500, height=500, format="png", force=True, prerender=False, type=Panel._PANEL_TYPE_IMAGE)
+
+    options_dict = {"Sepal.Length":panel_options1,
+                    "Sepal.Width":panel_options2}
+
+    tr = Trelliscope(iris_df_no_duplicates, "Iris")
+    tr = tr.set_panel_options(options_dict)
+
+    po1 = tr.panel_options["Sepal.Length"]
+    po2 = tr.panel_options["Sepal.Width"]
+
+    assert po1.width == 600
+    assert po1.height == 400
+    assert po1.aspect == pytest.approx(1.5, 0.01)
+    assert po1.format is None
+    assert po1.force == False
+    assert po1.prerender == True
+    assert po1.type is None
+
+    assert po2.width == 500
+    assert po2.height == 500
+    assert po2.aspect == pytest.approx(1.0, 0.01)
+    assert po2.format == "png"
+    assert po2.force == True
+    assert po2.prerender == False
+    assert po2.type == Panel._PANEL_TYPE_IMAGE
+
+@pytest.skip("Options are not used yet when the panels are created.")
+def test_set_panel_options(iris_df_no_duplicates: pd.DataFrame):
+    with tempfile.TemporaryDirectory() as temp_dir_name:
+        tr = Trelliscope(iris_df_no_duplicates, "Iris", path=temp_dir_name)
+        
+        # This will infer the panels if they have not been set
+        tr.write_display()
+
+

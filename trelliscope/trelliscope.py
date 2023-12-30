@@ -74,13 +74,13 @@ class Trelliscope:
         
         self.facet_cols: list = None
 
-        self.panels = {}
+        self.panel_options = {}  # stores PanelOptions objects used to pre-specify panel data
+        self.panels = {} # stores the actual Panel objects
 
         self.primary_panel = primary_panel
 
         if self.primary_panel is None:
-            # TODO: Do we want to do this here or wait and do all inference later, such as when writing panels
-            # try to infer this by checking if there is a single panel
+            # If there are panels defined already, this will select one to be the primary panel
             self._infer_primary_panel()
 
 
@@ -111,6 +111,9 @@ class Trelliscope:
         Note: Because the panels are stored in a dictionary, there is no
         guarantee that the one chosen will be the first one created.
 
+        If no panels are found, the `primary_panel` attribute will be left
+        unchanged.
+
         Side Effects: sets the self.primary_panel variable.
         """
         panel_columns = self._get_panel_columns()
@@ -121,7 +124,7 @@ class Trelliscope:
 
     def _get_panel(self, panel_col:str) -> Panel:
         """
-        Returns a panel object corresponding to this panel column name.
+        Returns a `Panel` object corresponding to this panel column name.
 
         If no panel exists for this column a `ValueError` will be raised.
         """
@@ -207,9 +210,6 @@ class Trelliscope:
 
         return tr
 
-    # TODO: Verify this is acceptable as "add_view",
-    # It was the method for set_view, but add seems more appropriate
-    #def set_view(self, view: View):
     def add_view(self, view: View):
         """
         Adds the provided view to the stored dictionary. The key will be the view's name,
@@ -231,7 +231,6 @@ class Trelliscope:
 
         return tr
 
-    # TODO: Verify it is ok to rename this from set_input to add_input
     def add_input(self, input: Input):
         """
         Adds the provided input to the stored dictionary. The key will be the input's name,
@@ -747,7 +746,7 @@ class Trelliscope:
             pass
         elif meta_column.dtype == "category":
             meta = FactorMeta(meta_name)
-        elif is_numeric_dtype(meta_column.dtype):
+        elif utils.is_numeric_dtype(meta_column.dtype):
             meta = NumberMeta(meta_name)
         elif utils.is_string_column(meta_column):
             # Check if all the entries start with http
@@ -889,7 +888,7 @@ class Trelliscope:
     def _infer_panels(self):
         """
         If no panels are already present, this method will look through each column to try to infer
-        a panel column. If it finds one that can be inferred, it will create the appropriate
+        panel columns. If it finds columns that can be inferred, it will create the appropriate
         panel class and add it to the Trelliscope object.
 
         Returns a copy of the Trelliscope object. The original is not modified.
@@ -906,8 +905,12 @@ class Trelliscope:
             figure_columns = utils.find_figure_columns(tr.data_frame)
             
             for figure_column in figure_columns:
-                # TODO: Should we use the factory method here?
-                #panel = Panel.create_panel(tr.data_frame, figure_column)
+                # This could be refactored into a factory method on the Panel class
+                # such as Panel.create_panel(tr.data_frame, figure_column)
+                # The advantage would be that the panel creation logic could be isolated
+                # and owned by the Panel class, rather than it being in the Trelliscope class
+                # the disadvantage is that at this point, we already know the panel should be
+                # a FigurePanel, whereas the factory would have to discover that on its own.
 
                 # Get all the right values from the dataset (such as ext)
                 panel_source = FilePanelSource(is_local=True)
@@ -925,9 +928,6 @@ class Trelliscope:
                 # but the image column is defined in terms of being
                 # local, which is the opposite
                 is_local = not is_remote
-
-                # TODO: Should we use the factory method here?
-                #panel = Panel.create_panel(tr.data_frame, figure_column)
 
                 # TODO: Get all the right values from the dataset (such as ext)
 
@@ -1352,11 +1352,15 @@ class Trelliscope:
 
     def set_panel_options(self, panel_options_dictionary:dict):
         """
-        Sets the panel options.
+        Used to pre-specify information about the `Panel` objects before they are actually
+        created. Then, later when the `Panel` object is inferred, data from this object will be used
+        to populate it.
+
+        If panel objects already exist for the associated panels, a warning will be generated.
 
         Params:
             panel_options_dictionary:dict - This should be a dictionary mapping
-                the name of the panel to a PanelOptions object.
+                the name of the panel to a `PanelOptions` object.
 
         Returns a copy of the Trelliscope object. The original is not modified.
         """
@@ -1365,32 +1369,33 @@ class Trelliscope:
         for panel_name in panel_options_dictionary:
             panel_options:PanelOptions = panel_options_dictionary[panel_name]
 
-            if not tr._has_panel(panel_name):
-                raise ValueError(f"Error: Cannot set panel_options for {panel_name} because it is not in the list of panels.")
+            if not isinstance(panel_options, PanelOptions):
+                raise ValueError(f"Error: Panel options for {panel_name} must be specified using a PanelOptions object.")
 
-            panel = tr._get_panel(panel_name)
-
-            # TODO: Handle the case of each type of panel here
-            # Could polymorphism be used here to clean this up?
-
-            # if isinstance(panel, LazyPanel):
-            #     if panel_options.format == "html":
-            #         panel_options.type = "iframe"
-            #     else
-            #         panel_options.type = "img"
-            # else:
-            #     if utils.is_image_column(tr.data_frame, panel_name):
-            #         panel_options.type = "img"
-            #     else:
-            #         panel_options.type = "iframe"
-
-            #     # SB: I think The aspect ratio should be set when constructing the object
-            #     #panel_options.aspect = panel_options.width / panel_options.height
-
+            if tr._has_panel(panel_name):
+                logging.warn(f"Setting PanelOptions for a panel `{panel_name}` that already exists. " +
+                             "The PanelOptions are designed to be set before panels are created.")
+                
             tr.panel_options[panel_name] = panel_options
 
-
         return tr
+
+    # SB: This method doesn't really make sense because the only properties you
+    # can really set at this point are the aspect ratio and maybe the extension.
+    # def _update_panel(self, panel_name:str, panel_options:PanelOptions):
+    #     """
+    #     Updates an existing panel by the provided name with the information
+    #     stored in the provided panel_options object.
+
+    #     Params:
+    #         panel_name:str - The name of the panel to update.
+    #         panel_options:PanelOptions - The values to set.
+
+    #     Side Effects: This method does not make a copy of the trelliscope object,
+    #     but rather modifies the Panel directly.
+    #     """
+    #     panel = self._get_panel(panel_name)
+    #     panel.set_options(panel_options)
 
     def view_trelliscope(self):
         """

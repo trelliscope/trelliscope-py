@@ -298,12 +298,9 @@ def find_figure_columns(df:pd.DataFrame):
     Finds a list of columns in the dataframe that are completely filled with
     `Figure` objects.
     """
-
-    # SB: This function (and its unit tests)  place a dependency on plotly,
-    # because they check for plotly figure object. If this is not desired,
-    # another approach could be used such as checking for a "facel_panel"
-    # column name or something similar.
-
+    # Note this method places a dependency on plotly, which is otherwise not
+    # needed for basic Trelliscope functionality.
+    
     figure_cols = []
     obj_cols = [col for col in df.columns if is_object_dtype(df[col])]
 
