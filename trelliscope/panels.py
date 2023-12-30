@@ -92,8 +92,8 @@ class Panel:
         # In R, there is a check here for lazy panels. This will need to be added when those
         # are made available in Python.
 
-        if panel_options is not None and panel_options.prerender:
-            panel_source = LocalWebSocketPanelSource()
+        if panel_options is not None and not panel_options.prerender:
+            #panel_source = LocalWebSocketPanelSource()
             raise NotImplementedError("Local Web Socket Panel Source is not implemented yet.")
         else:
             panel_source = FilePanelSource(is_local=True)
@@ -102,6 +102,9 @@ class Panel:
             panel_source.is_local = True
             panel = FigurePanel(panel_column, source=panel_source)
             
+            if panel_options is not None and panel_options.format is not None:
+                panel.extension = panel_options.format
+
         elif is_known_image_col or utils.is_image_column(df, panel_column):
             is_local = not utils.is_all_remote(df[panel_column])
             panel_source.is_local = is_local
@@ -119,10 +122,6 @@ class Panel:
             if panel_options.aspect is not None:
                 panel.aspect_ratio = panel_options.aspect
             
-            if panel_options.format is not None:
-                panel.extension = panel_options.format
-
-
         # TODO: Implement infer aspect ratio logic if it is not specified explicitly.
         # In R, this is found in the `infer_aspect_ratio` function in infer.R
 

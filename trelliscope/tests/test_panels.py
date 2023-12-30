@@ -159,12 +159,15 @@ def test_set_panel_options_dict(iris_df_no_duplicates: pd.DataFrame):
     assert po2.prerender == False
     assert po2.type == Panel._PANEL_TYPE_IMAGE
 
-@pytest.mark.skip("Options are not used yet when the panels are created.")
-def test_set_panel_options(iris_df_no_duplicates: pd.DataFrame):
-    with tempfile.TemporaryDirectory() as temp_dir_name:
-        tr = Trelliscope(iris_df_no_duplicates, "Iris", path=temp_dir_name)
-        
-        # This will infer the panels if they have not been set
-        tr.write_display()
+def test_set_panel_options(mars_df: pd.DataFrame):
+    with tempfile.TemporaryDirectory() as output_dir:
 
+        panel_options = PanelOptions(width=500, height=500, format="png", force=True, prerender=True, type=Panel._PANEL_TYPE_IMAGE)
+        options_dict = {"img_src":panel_options}
 
+        tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
+        tr = tr.set_panel_options(options_dict)
+        tr = tr.infer_panels()
+
+        panel = tr._get_panel("img_src")
+        assert panel.aspect_ratio == pytest.approx(1.0, 0.01)

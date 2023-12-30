@@ -30,6 +30,9 @@ test = [
 addopts = [
     "--import-mode=importlib",
 ]
+testpaths = [
+  "trelliscope/tests"
+]
 
 [project.urls]
 "Homepage" = "https://github.com/trelliscope/trelliscope-py"
