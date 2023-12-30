@@ -449,7 +449,7 @@ class Trelliscope:
             logging.info(f"Using jsonp={jsonp}")
 
         # Infer panels if needed
-        tr = tr._infer_panels()
+        tr = tr.infer_panels()
         panels = tr._get_panel_columns()
 
         if len(panels) == 0:
@@ -885,7 +885,7 @@ class Trelliscope:
     #     return self
     #     # return tr
 
-    def _infer_panels(self):
+    def infer_panels(self):
         """
         If no panels are already present, this method will look through each column to try to infer
         panel columns. If it finds columns that can be inferred, it will create the appropriate

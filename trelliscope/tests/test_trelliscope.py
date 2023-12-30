@@ -306,7 +306,7 @@ def test_set_primary_panel(mars_df: pd.DataFrame):
 def test_infer_panels(mars_df: pd.DataFrame):
     with tempfile.TemporaryDirectory() as output_dir:
         tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
-        tr = tr._infer_panels()
+        tr = tr.infer_panels()
 
         assert len(tr.panels) == 1
         

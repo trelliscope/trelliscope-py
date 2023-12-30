@@ -153,7 +153,7 @@ def test_set_panel_options_dict(iris_df_no_duplicates: pd.DataFrame):
     assert po2.prerender == False
     assert po2.type == Panel._PANEL_TYPE_IMAGE
 
-@pytest.skip("Options are not used yet when the panels are created.")
+@pytest.mark.skip("Options are not used yet when the panels are created.")
 def test_set_panel_options(iris_df_no_duplicates: pd.DataFrame):
     with tempfile.TemporaryDirectory() as temp_dir_name:
         tr = Trelliscope(iris_df_no_duplicates, "Iris", path=temp_dir_name)
