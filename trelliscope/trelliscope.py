@@ -84,8 +84,9 @@ class Trelliscope:
             self._infer_primary_panel()
 
 
-        #TODO: Is there a reason this is not a true uuid?
-        self.id = uuid.uuid4().hex[:8]
+        # In R, the id is only 8 digits, but it should not hurt to use a proper uuid
+        # self.id = uuid.uuid4().hex[:8] # This would only use 8 digits as in the R version
+        self.id = uuid.uuid4().hex[:8] # This uses a proper uuid
 
         if self.description is None:
             self.description = self.name
