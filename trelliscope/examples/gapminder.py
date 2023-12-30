@@ -10,7 +10,7 @@ from trelliscope.facets import facet_panels
 from trelliscope.state import NumberRangeFilterState
 
 # set up some constants for the example
-use_small_dataset = True
+use_small_dataset = False
 use_single_panel_approach = False
 
 GAPMINDER_CSV_URL = "https://raw.githubusercontent.com/trelliscope/trelliscope-py/main/trelliscope/examples/external_data/gapminder.csv"

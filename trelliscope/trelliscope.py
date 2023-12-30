@@ -21,6 +21,7 @@ from .panels import Panel, ImagePanel, IFramePanel, FigurePanel, PanelOptions
 from .panel_source import PanelSource, FilePanelSource
 from . import utils
 from . import html_utils
+from .progress_bar import ProgressBar
 
 class Trelliscope:
     """
@@ -82,7 +83,6 @@ class Trelliscope:
         if self.primary_panel is None:
             # If there are panels defined already, this will select one to be the primary panel
             self._infer_primary_panel()
-
 
         # In R, the id is only 8 digits, but it should not hurt to use a proper uuid
         # self.id = uuid.uuid4().hex[:8] # This would only use 8 digits as in the R version
@@ -1098,7 +1098,8 @@ class Trelliscope:
         html_utils.write_widget(output_path, id, config_file, is_spa)
 
     @staticmethod
-    def __write_figure(row, fig_column:str, output_dir_for_writing:str, output_dir_for_dataframe:str, extension:str, key_cols:list):
+    def __write_figure(row, fig_column:str, output_dir_for_writing:str, output_dir_for_dataframe:str, extension:str,
+                       key_cols:list, progress_bar:ProgressBar=None):
         """
         Saves a figure object to an image file. This function is designed to be passed to
         a DataFrame.apply() call to write out each figure.
@@ -1126,8 +1127,14 @@ class Trelliscope:
         filename_for_writing = os.path.join(output_dir_for_writing, f"{filename_prefix}.{extension}")
         filename_for_dataframe = os.path.join(output_dir_for_dataframe, f"{filename_prefix}.{extension}")
         
-        logging.debug(f"Saving image {filename_for_writing}")
+        #logging.debug(f"Saving image {filename_for_writing}")
         fig.write_image(filename_for_writing)
+
+        try:
+            progress_bar.record_progress()
+        except Exception as e:
+            # If the progress display has a problem, just ignore it.
+            pass
 
         return filename_for_dataframe
 
@@ -1166,6 +1173,8 @@ class Trelliscope:
             # SB: For now, let's preserve the old with another column
             tr.data_frame[panel.figure_varname] = tr.data_frame[panel_col]
 
+            progress_bar = ProgressBar(len(tr.data_frame), "Saving Images:")
+
             tr.data_frame[panel_col] = tr.data_frame.apply(
                 lambda row: Trelliscope.__write_figure(
                         row=row,
@@ -1173,7 +1182,8 @@ class Trelliscope:
                         output_dir_for_writing=absolute_output_dir,
                         output_dir_for_dataframe=relative_output_dir,
                         extension=extension,
-                        key_cols=self.key_cols
+                        key_cols=self.key_cols,
+                        progress_bar=progress_bar
                     ), axis=1
                 )
 
