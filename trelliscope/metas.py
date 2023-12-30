@@ -199,7 +199,7 @@ class StringMeta(Meta):
         return df
 
 class PanelMeta(Meta):
-    """ A Meta for string data. """
+    """ A Meta for Panels. """
     def __init__(self, panel:Panel, label: str = None, tags: list = None):
         super().__init__(type=Meta.TYPE_PANEL, varname=panel.varname, label=label, tags=tags,
             filterable=False, sortable=False)
