@@ -901,7 +901,6 @@ class Trelliscope:
 
                 # Create the panel
                 panel = Panel.create_panel(df=tr.data_frame, panel_column=column, panel_options=panel_options, is_known_figure_col=True)
-
                 tr = tr.add_panel(panel)
 
             # Check for image panels
@@ -912,7 +911,6 @@ class Trelliscope:
 
                 # Create the panel
                 panel = Panel.create_panel(df=tr.data_frame, panel_column=column, panel_options=panel_options, is_known_image_col=True)
-
                 tr = tr.add_panel(panel)
 
         # If the primary panel is None, try to re-infer it, because there may be one now

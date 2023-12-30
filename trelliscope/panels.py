@@ -61,10 +61,6 @@ class Panel:
         # Check that varname exists
         utils.check_has_variable(df, self.varname)
 
-        # Check that the extension matches
-        # TODO: Add this in
-        pass
-
     @staticmethod
     def create_panel(df: pd.DataFrame, panel_column: str, panel_options:PanelOptions=None,
                      is_known_figure_col:bool=False, is_known_image_col:bool=False):
