@@ -279,10 +279,7 @@ def _extension_matches(text:str, ext_to_match:str, match_case:bool = False):
 
     Designed to be used as a "lambda" function in an apply method.
     """
-    (_, ext) = os.path.splitext(text)
-
-    # Get rid of the leading . in .jpg
-    ext = ext.removeprefix(".")
+    ext = get_extension(text)
 
     is_match = False
 
@@ -305,12 +302,27 @@ def find_figure_columns(df:pd.DataFrame):
     obj_cols = [col for col in df.columns if is_object_dtype(df[col])]
 
     for col in obj_cols:
-        if isinstance(df[col][0], plotly.graph_objs.Figure):
-            # The first row is a Figure, check all now
-            if df[col].apply(lambda x: isinstance(x, plotly.graph_objs.Figure)).all():
-                figure_cols.append(col)
+        if is_figure_column(df, col):
+            figure_cols.append(col)
     
     return figure_cols
+
+def is_figure_column(df:pd.DataFrame, col:str):
+    """
+    Determine if the column is explicitly filled with `Figure` objects.
+
+    Params:
+        df:pd.DataFrame - The dataframe
+        col:str - The column to check
+    """
+    is_figure = False
+
+    if isinstance(df[col][0], plotly.graph_objs.Figure):
+        # The first row is a Figure, check all now
+        if df[col].apply(lambda x: isinstance(x, plotly.graph_objs.Figure)).all():
+            is_figure = True
+    
+    return is_figure
 
 def find_image_columns(df:pd.DataFrame):
     """
@@ -326,6 +338,21 @@ def find_image_columns(df:pd.DataFrame):
 
     return image_cols
 
+def get_extension(item:str) -> str:
+    """
+    Gets the file extension of the provided item.
+
+    Returns:
+        The extension (with no leading ".", so it will return "jpg" not ".jpg".)
+    """
+    # Get the extension of the first item
+    (_, ext) = os.path.splitext(item)
+
+    # Remove the leading . in .jpg
+    ext = ext.removeprefix(".")
+
+    return ext
+
 def is_image_column(df:pd.DataFrame, col:str) -> bool:
     """
     Returns True if the provided column is an image column, meaning
@@ -333,11 +360,8 @@ def is_image_column(df:pd.DataFrame, col:str) -> bool:
     """
     is_image = False
 
-    # Get the extension of the first item
-    (_, ext) = os.path.splitext(df[col][0])
-
-    # Get rid of the leading . in .jpg
-    ext = ext.removeprefix(".")
+    # Get extension of the first item
+    ext = get_extension(df[col][0])
 
     if ext in valid_image_extensions:
         # The first row had a valid image extension, now check if
@@ -358,10 +382,7 @@ def check_image_extension(list_to_check:list, get_error_message_function=__gener
         ValueError - If the check fails.
     """
     for item in list_to_check:
-        filename, ext = os.path.splitext(item)
-        
-        # Get rid of the leading . in .jpg
-        ext = ext.removeprefix(".")
+        ext = get_extension(item)
         
         if ext not in valid_image_extensions:
             # Found invalid file extension

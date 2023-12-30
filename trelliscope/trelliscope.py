@@ -730,16 +730,6 @@ class Trelliscope:
         if meta_name in panel_cols:
             panel = self._get_panel(meta_name)
             meta = PanelMeta(panel)
-
-            # # TODO: what should these values be?
-            # panel_type = None 
-            # source_type = None
-            # aspect = meta_column.aspect_ratio
-
-            # meta = PanelMeta(varname=meta_name,
-            #                  panel_type=panel_type,
-            #                  source=PanelSource(source_type),
-            #                  aspect=aspect)
         elif meta_name in panel_figure_cols:
             # These are the original figure columns held for backup.
             # They are not desired in the output, so they are skipped here.
@@ -895,50 +885,37 @@ class Trelliscope:
         """
 
         tr = self.__copy()
-        # In R, this logic is found in the as_trelliscope function
+        # Note: In R, this logic is found in the as_trelliscope function
         
         panel_cols = tr._get_panel_columns()
 
         if len(panel_cols) == 0:
-            # No panels were found
+            # No panels exist yet
+
             # Check for a `Figure` col
             figure_columns = utils.find_figure_columns(tr.data_frame)
             
-            for figure_column in figure_columns:
-                # This could be refactored into a factory method on the Panel class
-                # such as Panel.create_panel(tr.data_frame, figure_column)
-                # The advantage would be that the panel creation logic could be isolated
-                # and owned by the Panel class, rather than it being in the Trelliscope class
-                # the disadvantage is that at this point, we already know the panel should be
-                # a FigurePanel, whereas the factory would have to discover that on its own.
+            for column in figure_columns:
+                # If there is a predefined panel options object for this column, use it
+                panel_options = tr._get_panel_options(column)
 
-                # Get all the right values from the dataset (such as ext)
-                panel_source = FilePanelSource(is_local=True)
-                panel = FigurePanel(figure_column, source=panel_source)
+                # Create the panel
+                panel = Panel.create_panel(df=tr.data_frame, panel_column=column, panel_options=panel_options, is_known_figure_col=True)
 
                 tr = tr.add_panel(panel)
 
             # Check for image panels
             image_columns = utils.find_image_columns(tr.data_frame)
+            for column in image_columns:
+                # If there is a predefined panel options object for this column, use it
+                panel_options = tr._get_panel_options(column)
 
-            for image_column in image_columns:
-                is_remote = utils.is_all_remote(tr.data_frame[image_column])
-
-                # The logic in this function is about being remote
-                # but the image column is defined in terms of being
-                # local, which is the opposite
-                is_local = not is_remote
-
-                # TODO: Get all the right values from the dataset (such as ext)
-
-                # If it is a local image file, copy it to the output directory
-                should_copy = is_local
-
-                panel_source = FilePanelSource(is_local=is_local)
-                panel = ImagePanel(image_column, source=panel_source, should_copy_to_output=should_copy)
+                # Create the panel
+                panel = Panel.create_panel(df=tr.data_frame, panel_column=column, panel_options=panel_options, is_known_image_col=True)
 
                 tr = tr.add_panel(panel)
 
+        # If the primary panel is None, try to re-infer it, because there may be one now
         if tr.primary_panel is None:
             tr._infer_primary_panel()
 
@@ -1379,6 +1356,18 @@ class Trelliscope:
             tr.panel_options[panel_name] = panel_options
 
         return tr
+    
+    def _get_panel_options(self, panel_name:str):
+        """
+        Gets the `PanelOptions` object associated with the provided panel_name, if it exists. If
+        it does not exist, None will be returned.
+        """
+        panel_options = None
+
+        if panel_name in self.panel_options:
+            panel_options = self.panel_options[panel_name]
+
+        return panel_options
 
     def view_trelliscope(self):
         """

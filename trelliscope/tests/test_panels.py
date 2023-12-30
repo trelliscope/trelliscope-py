@@ -134,8 +134,14 @@ def test_set_panel_options_dict(iris_df_no_duplicates: pd.DataFrame):
     tr = Trelliscope(iris_df_no_duplicates, "Iris")
     tr = tr.set_panel_options(options_dict)
 
-    po1 = tr.panel_options["Sepal.Length"]
-    po2 = tr.panel_options["Sepal.Width"]
+    # po1 = tr.panel_options["Sepal.Length"]
+    # po2 = tr.panel_options["Sepal.Width"]
+
+    po1 = tr._get_panel_options("Sepal.Length")
+    po2 = tr._get_panel_options("Sepal.Width")
+    po3 = tr._get_panel_options("Unknown panel")
+
+    assert po3 is None
 
     assert po1.width == 600
     assert po1.height == 400

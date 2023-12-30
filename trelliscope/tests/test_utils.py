@@ -288,6 +288,12 @@ def test_is_all_remote_with_local(mars_df:pd.DataFrame):
     mars_df.at[0, "img_src"] = "local.png"
     assert not utils.is_all_remote(mars_df["img_src"])
 
+def test_get_extension():
+    assert utils.get_extension("file.png") == "png"
+    assert utils.get_extension("file.jpg") == "jpg"
+    assert utils.get_extension("file.png.jpg") == "jpg"
+    assert utils.get_extension("file") == ""
+
 def test_extension_matches():
     text = "file.png"
     assert utils._extension_matches(text, "png")
