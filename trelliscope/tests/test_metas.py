@@ -7,6 +7,7 @@ from trelliscope.metas import Meta, NumberMeta, StringMeta, CurrencyMeta, DateMe
 from trelliscope.panels import ImagePanel
 from trelliscope.panel_source import FilePanelSource
 from trelliscope import Trelliscope
+from trelliscope import utils
 
 def test_string_meta_init(iris_df):
     meta = StringMeta(varname="Species", label="label", tags=[])
@@ -182,15 +183,23 @@ def test_factor_meta(iris_df):
     meta3 = FactorMeta("Species", levels=["setosa", "virginica", "versicolor", "stuff"])
     meta3.check_with_data(iris_df)
 
-@pytest.mark.skip("Feature is not implemented yet")
-def test_date_meta(iris_plus_df):
+def test_date_meta(iris_plus_df: pd.DataFrame):
     meta = DateMeta("date")
     meta.check_with_data(iris_plus_df)
 
-@pytest.mark.skip("Feature is not implemented yet")
 def test_datetime_meta(iris_plus_df):
     meta = DatetimeMeta("datetime")
     meta.check_with_data(iris_plus_df)
+
+    # The value is not a dt yet
+    assert not utils.is_datetime_column(iris_plus_df["datetime"], must_be_datetime_objects=True)
+
+    df2 = meta.cast_variable(iris_plus_df)
+
+    # The original df is changed
+    assert utils.is_datetime_column(iris_plus_df["datetime"], must_be_datetime_objects=True)
+    assert utils.is_datetime_column(df2["datetime"], must_be_datetime_objects=False)
+
 
 def test_geo_meta(iris_plus_df):
     meta = GeoMeta("coords", latvar="lat", longvar="long")

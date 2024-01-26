@@ -491,3 +491,35 @@ def test_find_figure_columns(iris_df:pd.DataFrame):
     # Check to see if we can find them both
     figure_columns = utils.find_figure_columns(iris_df)
     assert figure_columns == ["fig", "fig2"]
+
+def test_is_datetime_column(iris_plus_df: pd.DataFrame):
+    # This column is already datetime objects, so it should pass either way
+    assert utils.is_datetime_column(iris_plus_df["date"], True)
+    assert utils.is_datetime_column(iris_plus_df["date"], False)
+
+    # This column is a string so it should pass only if coerced
+    assert not utils.is_datetime_column(iris_plus_df["datetime"], True)
+    assert utils.is_datetime_column(iris_plus_df["datetime"], False)
+
+    # This column is not a date, so it should fail both
+    assert not utils.is_datetime_column(iris_plus_df["Sepal.Width"], True)
+    # This is not a good test because the numeric value can be coerced and "work"
+    #assert not utils.is_datetime_column(iris_plus_df["Sepal.Width"], False)
+
+    # This column is not a date, so it should fail both
+    assert not utils.is_datetime_column(iris_plus_df["Species"], True)
+    assert not utils.is_datetime_column(iris_plus_df["Species"], False)
+
+def test_check_datetime(iris_plus_df: pd.DataFrame):
+    utils.check_datetime(iris_plus_df, "date")
+    utils.check_datetime(iris_plus_df, "datetime")
+
+    # This is not a good test because the numeric value can be coerced and "work"
+    # This column is not a date, so it should fail
+    # with pytest.raises(ValueError, match="is not a date time column"):
+    #     utils.check_datetime(iris_plus_df, "Sepal.Width")
+
+    # This column is not a date, so it should fail
+    with pytest.raises(ValueError, match="is not a date time column"):
+        utils.check_datetime(iris_plus_df, "Species")
+

@@ -295,6 +295,7 @@ class FactorMeta(Meta):
         # rather than just a string. And it seems like this would be a
         # better place to actual infer the levels than the "check_variable"
         # function above.
+        raise NotImplementedError()
         df[self.varname] = df[self.varname].astype(str)
         return df
 
@@ -304,13 +305,7 @@ class DateMeta(Meta):
             filterable=True, sortable=True)
 
     def check_variable(self, df: pd.DataFrame):
-        # TODO: Determine approach to dates in pandas. Should they
-        # be actual date objects, or should they be strings that
-        # are representations of the date
-
-        # TODO: Implement this to verify column is a date
-        raise NotImplementedError()
-
+        utils.check_datetime(df, self.varname, self._get_data_error_message)
 
 class DatetimeMeta(Meta):
     def __init__(self, varname: str, label: str = None, tags: list = None, timezone="UTC"):
@@ -322,12 +317,28 @@ class DatetimeMeta(Meta):
         self.timezone = timezone
 
     def check_variable(self, df: pd.DataFrame):
-        # TODO: Determine approach to dates in pandas. Should they
-        # be actual date objects, or should they be strings that
-        # are representations of the date
+        utils.check_datetime(df, self.varname, self._get_data_error_message)
 
-        # TODO: Implement this to verify column is a date
-        raise NotImplementedError()
+    def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Converts the `self.varname` column in the data frame to be a DateTime type.
+        This will change the original data frame.
+        Params:
+            df: Pandas DataFrame
+        Returns:
+            The updated Pandas DataFrame
+        """
+    def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
+        # Convert the Series to datetime with errors='coerce'
+        df[self.varname] = pd.to_datetime(df[self.varname], errors='coerce')
+
+        # Check if every value is a valid date
+        are_all_dates = df[self.varname].notna().all()
+
+        if not are_all_dates:
+            raise ValueError("Not all values could be coerced into DateTime values.")
+
+        return df
 
 
 class GraphMeta(Meta):
