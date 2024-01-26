@@ -162,6 +162,22 @@ def check_string_datatype(df: pd.DataFrame, varname: str, get_error_message_func
     if not is_string_column(df[varname]):
         raise ValueError(get_error_message_function(f"The variable '{varname}' is not a string."))
 
+def check_datetime(df: pd.DataFrame, varname: str, get_error_message_function=__generic_error_message):
+    """
+    Verify that in the dataframe, the column 'varname' is a datetime column. The column
+    can either contain DateTime objects, or it can contain strings that can be easily
+    coerced to DateTime objects.
+
+    Params:
+        df: Pandas DataFrame
+        varname: The variable name to check
+        get_error_message_function: The function to call to get the error message template
+    Raises:
+        ValueError - If the check fails.
+    """
+    if not is_datetime_column(column=df[varname], must_be_datetime_objects=False):
+        raise ValueError(get_error_message_function(f"The variable '{varname}' is not a date time column."))
+
 def check_atomic_vector(df: pd.DataFrame, varname: str, get_error_message_function=__generic_error_message):
     """
     Verify that in the dataframe, the column 'varname' is an atomic vector, or
@@ -524,3 +540,25 @@ def is_string_column(column: pd.Series):
             is_string = True
 
     return is_string
+
+def is_datetime_column(column: pd.Series, must_be_datetime_objects:bool):
+    """
+    Checks to see if all values in the provided column (Pandas Series) are
+    valid datetime objects.
+
+    Params:
+        column: pd.Series - The data series in question
+        must_be_datetime_objects: bool - Must the values already be datetime
+            objects? If False, this will check to see if they can
+            all be coerced to valid objects.
+    """
+    are_all_dates = False
+
+    if must_be_datetime_objects:
+        are_all_dates = column.apply(lambda v: isinstance(v, datetime)).all()
+    else:
+        new_series = pd.to_datetime(column, errors='coerce')
+        print(new_series)
+        are_all_dates = new_series.notna().all()
+
+    return are_all_dates
