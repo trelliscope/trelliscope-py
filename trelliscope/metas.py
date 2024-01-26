@@ -245,10 +245,7 @@ class FactorMeta(Meta):
             filterable=True, sortable=True)
 
         if levels is not None:
-            # TODO: Add appropriate checks here depending on how we want to
-            # pass this in store this variable. In R, the levels seems to be a
-            # column in the dataframe, but I don't think that will be the cas here.
-            pass
+            utils.check_is_list(levels, self._get_error_message)
 
         self.levels = levels
 

@@ -183,6 +183,10 @@ def test_factor_meta(iris_df):
     meta3 = FactorMeta("Species", levels=["setosa", "virginica", "versicolor", "stuff"])
     meta3.check_with_data(iris_df)
 
+    # Try a case where the levels variable is are not a list
+    with pytest.raises(ValueError, match="to be a list"):
+        meta4 = FactorMeta("Species", levels="this is a string")
+
 def test_date_meta(iris_plus_df: pd.DataFrame):
     meta = DateMeta("date")
     meta.check_with_data(iris_plus_df)
