@@ -11,7 +11,7 @@ from pandas.api.types import is_numeric_dtype
 import webbrowser
 
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 from .metas import Meta, StringMeta, NumberMeta, HrefMeta, FactorMeta, PanelMeta
 from .state import DisplayState, LayoutState, LabelState, SortState, FilterState, CategoryFilterState
