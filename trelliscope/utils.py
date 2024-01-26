@@ -558,7 +558,6 @@ def is_datetime_column(column: pd.Series, must_be_datetime_objects:bool):
         are_all_dates = column.apply(lambda v: isinstance(v, datetime)).all()
     else:
         new_series = pd.to_datetime(column, errors='coerce')
-        print(new_series)
         are_all_dates = new_series.notna().all()
 
     return are_all_dates
