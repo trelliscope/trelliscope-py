@@ -22,9 +22,11 @@ classifiers = [
 
 [project.optional-dependencies]
 dev = [
+    "trelliscope[test]",
     "ruff~=0.1"
 ]
 test = [
+    "pytest~=7.4"
 ]
 
 [tool.pytest.ini_options]
@@ -53,14 +55,20 @@ select = [
     "T201", # Print Statement
     "S", # flake8-bandit
 ]
-ignore = ["E501"]  # Black take care of line-too-long
+ignore = ["E501"]  # allow too-long lines if they cannot be fixed safely, such as docstrings.
+
 
 [tool.ruff.isort]
 known-first-party = ["trelliscope"]
 
+
 [tool.ruff.flake8-tidy-imports]
 # Disallow all relative imports.
 ban-relative-imports = "all"
+
+[tool.ruff.per-file-ignores]
+"{*/__init__.py}" = ["F401"]  # allow unused imports in __init__ files
+"{trelliscope/tests/*}" = ["S101"]  # Allow 'assert' in tests
 
 [tool.mypy]
 ignore_missing_imports = true
