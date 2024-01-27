@@ -3,6 +3,7 @@ import os
 import re
 from collections.abc import Iterable
 from datetime import date, datetime
+from typing import Callable
 
 import pandas as pd
 import plotly
@@ -62,26 +63,8 @@ def check_positive_numeric(
         raise ValueError(message)
 
 
-def check_int(
-    value_to_check, name: str, get_error_message_function=__generic_error_message
-):
-    """
-    Verify that the provided value is an integer. If not, this will raise
-    an error.
-    Params:
-        value_to_check: The value in question.
-        name: The variable name for the error message.
-        get_error_message_function: The function to call to get the error message template.
-    Raises:
-        TypeError - If the check fails.
-    """
-    if not isinstance(value_to_check, int):
-        message = get_error_message_function(f"{name} must be an integer.")
-        raise TypeError(message)
-
-
 def check_bool(
-    value_to_check, name: str, get_error_message_function=__generic_error_message
+    value_to_check, name: str, get_error_message_function: Callable = __generic_error_message
 ):
     """
     Verify that the provided value is a boolean. If not, this will raise
@@ -657,7 +640,7 @@ def is_string_column(column: pd.Series):
         # This is a "string dtype" but that could include other types of
         # objects such as a plotly `Figure`, so verify that the first value
         # is actually a string.
-        if type(column[0]) == str:
+        if isinstance(column[0], str):
             is_string = True
 
     return is_string

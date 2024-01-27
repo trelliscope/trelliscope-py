@@ -10,14 +10,19 @@ import webbrowser
 
 import pandas as pd
 
-logging.basicConfig(level=logging.INFO)
-
-from . import html_utils, utils
-from .input import Input
-from .metas import FactorMeta, HrefMeta, Meta, NumberMeta, PanelMeta, StringMeta
-from .panels import FigurePanel, ImagePanel, Panel, PanelOptions
-from .progress_bar import ProgressBar
-from .state import (
+from trelliscope import html_utils, utils
+from trelliscope.input import Input
+from trelliscope.metas import (
+    FactorMeta,
+    HrefMeta,
+    Meta,
+    NumberMeta,
+    PanelMeta,
+    StringMeta,
+)
+from trelliscope.panels import FigurePanel, ImagePanel, Panel, PanelOptions
+from trelliscope.progress_bar import ProgressBar
+from trelliscope.state import (
     CategoryFilterState,
     DisplayState,
     FilterState,
@@ -25,7 +30,10 @@ from .state import (
     LayoutState,
     SortState,
 )
+
 from .view import View
+
+logging.basicConfig(level=logging.INFO)
 
 
 class Trelliscope:
@@ -514,7 +522,7 @@ class Trelliscope:
         """
         tr = self.__copy()
 
-        panel_path = os.path.join(tr.get_displays_path(), "panels")
+        os.path.join(tr.get_displays_path(), "panels")
 
         # TODO: Fill this in
 
@@ -529,7 +537,6 @@ class Trelliscope:
         # Is it necessary to make a copy in this case? In R it was not
         # tr = self.__copy()
 
-        format = None
         # TODO: add check of panel format here.
         # format = tr.panel_format
 
@@ -1188,8 +1195,9 @@ class Trelliscope:
 
         try:
             progress_bar.record_progress()
-        except Exception:
+        except Exception as e:
             # If the progress display has a problem, just ignore it.
+            logging.debug(f"Error recording progress: {e}")
             pass
 
         return filename_for_dataframe

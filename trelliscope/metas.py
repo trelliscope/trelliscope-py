@@ -401,16 +401,15 @@ class DatetimeMeta(Meta):
         utils.check_datetime(df, self.varname, self._get_data_error_message)
 
     def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Converts the `self.varname` column in the data frame to be a DateTime type.
+        """Converts the `self.varname` column in the data frame to be a DateTime type.
+
         This will change the original data frame.
+
         Params:
             df: Pandas DataFrame
         Returns:
             The updated Pandas DataFrame
         """
-
-    def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
         # Convert the Series to datetime with errors='coerce'
         df[self.varname] = pd.to_datetime(df[self.varname], errors="coerce")
 

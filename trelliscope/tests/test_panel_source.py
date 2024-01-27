@@ -31,13 +31,14 @@ def test_rest_panel_source():
 
 
 def test_local_web_socket_panel_source():
-    panel_source = LocalWebSocketPanelSource("u", 1234)
+    expected_port = 1234
+    panel_source = LocalWebSocketPanelSource("u", expected_port)
     assert panel_source.type == "localWebSocket"
     assert panel_source.url == "u"
-    assert panel_source.port == 1234
+    assert panel_source.port == expected_port
 
     assert panel_source.to_dict() == {
         "type": "localWebSocket",
         "url": "u",
-        "port": 1234,
+        "port": expected_port,
     }

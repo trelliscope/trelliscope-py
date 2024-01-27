@@ -246,7 +246,7 @@ class CategoryFilterState(FilterState):
 
         # TODO: Verify that this should work for a list and a single value
         # The R unit test indicates that it should
-        if type(values) == str:
+        if isinstance(values, str):
             self.values = [values]
         else:
             self.values = values

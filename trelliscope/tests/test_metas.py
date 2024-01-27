@@ -27,10 +27,10 @@ def test_string_meta_init(iris_df):
 
     assert meta.type == "string"
     assert meta.varname == "Species"
-    assert meta.filterable == True
-    assert meta.sortable == True
+    assert meta.filterable is True
+    assert meta.sortable is True
     assert meta.label == "label"
-    assert type(meta.tags) == list
+    assert isinstance(meta.tags, list)
 
     meta.check_variable(iris_df)
 
@@ -45,8 +45,8 @@ def test_number_meta_init(iris_df):
     number_meta = NumberMeta("Sepal.Length")
     assert number_meta.type == "number"
     assert number_meta.varname == "Sepal.Length"
-    assert number_meta.filterable == True
-    assert number_meta.sortable == True
+    assert number_meta.filterable is True
+    assert number_meta.sortable is True
     assert number_meta.label is None
     assert number_meta.tags == []
 
@@ -57,9 +57,9 @@ def test_number_meta_with_string(iris_df):
     number_meta = NumberMeta("Species")
     assert number_meta.type == "number"
     assert number_meta.varname == "Species"
-    assert number_meta.filterable == True
-    assert number_meta.sortable == True
-    assert number_meta.label == None
+    assert number_meta.filterable is True
+    assert number_meta.sortable is True
+    assert number_meta.label is None
     assert number_meta.tags == []
 
     with pytest.raises(ValueError):
@@ -110,9 +110,10 @@ def test_number_meta(iris_df):
     meta = NumberMeta("Sepal.Length", label="Sepal length of the iris")
     assert meta.label == "Sepal length of the iris"
 
-    meta = NumberMeta("whatever", digits=2, locale=False)
-    assert meta.digits == 2
-    assert meta.locale == False
+    n_number_digits = 2
+    meta = NumberMeta("whatever", digits=n_number_digits, locale=False)
+    assert meta.digits == n_number_digits
+    assert meta.locale is False
 
     with pytest.raises(ValueError, match=r"Could not find variable"):
         meta.check_with_data(iris_df)
@@ -128,7 +129,7 @@ def test_number_meta(iris_df):
         meta = NumberMeta("Sepal.Length", locale="a")
 
 
-def test_currency_meta(iris_df):
+def test_currency_meta_init(iris_df):
     meta = CurrencyMeta(
         "Sepal.Length", label="Sepal length of the iris", tags="a tag", code="EUR"
     )
@@ -161,7 +162,7 @@ def test_currency_meta(iris_df):
         meta4.check_with_data(iris_df)
 
     with pytest.raises(ValueError, match=r"must be one of"):
-        meta5 = CurrencyMeta("Sepal.Length", code="ASD")
+        CurrencyMeta("Sepal.Length", code="ASD")
 
 
 def test_string_meta(iris_df):
@@ -204,7 +205,7 @@ def test_factor_meta(iris_df):
 
     # Try a case where the levels variable is are not a list
     with pytest.raises(ValueError, match="to be a list"):
-        meta4 = FactorMeta("Species", levels="this is a string")
+        FactorMeta("Species", levels="this is a string")
 
 
 def test_date_meta(iris_plus_df: pd.DataFrame):
@@ -269,7 +270,7 @@ def test_panel_meta(iris_df_no_duplicates: pd.DataFrame):
             should_copy_to_output=False,
         )
 
-        tr = Trelliscope(iris_df, "Iris", path=temp_dir_name).add_panel(pnl)
+        Trelliscope(iris_df, "Iris", path=temp_dir_name).add_panel(pnl)
 
         meta = PanelMeta(pnl, "img_panel")
 

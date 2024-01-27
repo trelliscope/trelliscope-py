@@ -20,12 +20,9 @@ def test_panels_setup_no_uniquely_identifying_columns(iris_df: pd.DataFrame):
         # pnl = ImagePanel("img_panel", source=FilePanelSource(True), aspect_ratio=1.5)
 
         with pytest.raises(ValueError, match="Could not find columns"):
-            tr = (
+            (
                 Trelliscope(iris_df, "Iris", path=temp_dir_name)
-                #   .add_panel(pnl)
             )
-
-            # tr.write_display()
 
 
 def test_panels_setup(iris_df_no_duplicates: pd.DataFrame):
@@ -97,54 +94,77 @@ def test_panels_setup_options(iris_df: pd.DataFrame):
         tr = Trelliscope(iris_df, "Iris", path=temp_dir_name).write_display()
 
 
-def test_panel_options_init():
+def test_panel_options_init_default():
     # default params
+    expected_width = 600
+    expected_height = 400
+
     panel_options = PanelOptions()
-    assert panel_options.width == 600
-    assert panel_options.height == 400
+    assert panel_options.width == expected_width
+    assert panel_options.height == expected_height
     assert panel_options.aspect == pytest.approx(1.5, 0.01)
     assert panel_options.format is None
-    assert panel_options.force == False
-    assert panel_options.prerender == True
+    assert panel_options.force is False
+    assert panel_options.prerender is True
     assert panel_options.type is None
 
+
+def test_panel_options_init_no_aspect_ratio():
     # specified params (except aspect ratio)
+    expected_width = 500
+    expected_height = 500
+    expected_format = "png"
+    expected_force = True
+    expected_prerender = False
+    expected_type = Panel._PANEL_TYPE_IMAGE
+
     panel_options = PanelOptions(
-        width=500,
-        height=500,
-        format="png",
-        force=True,
-        prerender=False,
-        type=Panel._PANEL_TYPE_IMAGE,
+        width=expected_width,
+        height=expected_height,
+        format=expected_format,
+        force=expected_force,
+        prerender=expected_prerender,
+        type=expected_type,
     )
-    assert panel_options.width == 500
-    assert panel_options.height == 500
+    assert panel_options.width == expected_width
+    assert panel_options.height == expected_height
     assert panel_options.aspect == pytest.approx(1.0, 0.01)
-    assert panel_options.format == "png"
-    assert panel_options.force == True
-    assert panel_options.prerender == False
-    assert panel_options.type == Panel._PANEL_TYPE_IMAGE
+    assert panel_options.format == expected_format
+    assert panel_options.force is expected_force
+    assert panel_options.prerender is expected_prerender
+    assert panel_options.type == expected_type
 
-    # specified params (including aspect ratio)
+
+def test_panel_options_init_with_aspect_ratio():
+    expected_width = 500
+    expected_height = 500
+    expected_format = "png"
+    expected_force = True
+    expected_prerender = False
+    expected_type = Panel._PANEL_TYPE_IMAGE
+    aspect_ratio = 2.0
+
     panel_options = PanelOptions(
-        width=500,
-        height=500,
-        format="png",
-        force=True,
-        prerender=False,
-        type=Panel._PANEL_TYPE_IMAGE,
-        aspect=2.0,
+        width=expected_width,
+        height=expected_height,
+        format=expected_format,
+        force=expected_force,
+        prerender=expected_prerender,
+        type=expected_type,
+        aspect=aspect_ratio,
     )
-    assert panel_options.width == 500
-    assert panel_options.height == 500
+    assert panel_options.width == expected_width
+    assert panel_options.height == expected_height
     assert panel_options.aspect == pytest.approx(2.0, 0.01)
-    assert panel_options.format == "png"
-    assert panel_options.force == True
-    assert panel_options.prerender == False
-    assert panel_options.type == Panel._PANEL_TYPE_IMAGE
+    assert panel_options.format == expected_format
+    assert panel_options.force is expected_force
+    assert panel_options.prerender is expected_prerender
+    assert panel_options.type == expected_type
 
+
+def test_panel_options_init_invalid_format():
     with pytest.raises(ValueError):
-        panel_options = PanelOptions(format="doc")
+        PanelOptions(format="doc")
 
 
 def test_set_panel_options_dict(iris_df_no_duplicates: pd.DataFrame):
@@ -166,30 +186,13 @@ def test_set_panel_options_dict(iris_df_no_duplicates: pd.DataFrame):
     tr = Trelliscope(iris_df_no_duplicates, "Iris")
     tr = tr.set_panel_options(options_dict)
 
-    # po1 = tr.panel_options["Sepal.Length"]
-    # po2 = tr.panel_options["Sepal.Width"]
-
     po1 = tr._get_panel_options("Sepal.Length")
     po2 = tr._get_panel_options("Sepal.Width")
     po3 = tr._get_panel_options("Unknown panel")
 
     assert po3 is None
-
-    assert po1.width == 600
-    assert po1.height == 400
-    assert po1.aspect == pytest.approx(1.5, 0.01)
-    assert po1.format is None
-    assert po1.force == False
-    assert po1.prerender == True
-    assert po1.type is None
-
-    assert po2.width == 500
-    assert po2.height == 500
-    assert po2.aspect == pytest.approx(1.0, 0.01)
-    assert po2.format == "png"
-    assert po2.force == True
-    assert po2.prerender == False
-    assert po2.type == Panel._PANEL_TYPE_IMAGE
+    assert po1 is panel_options1
+    assert po2 is panel_options2
 
 
 def test_set_panel_options(mars_df: pd.DataFrame):
