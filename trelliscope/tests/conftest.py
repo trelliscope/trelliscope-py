@@ -10,7 +10,7 @@ import pytest
 from trelliscope import Trelliscope
 
 DATA_DIR = "external_data"
-IRIS_DF_FILENAME = "iris.data"
+IRIS_DF_FILENAME = "iris.csv"
 MARS_DF_FILENAME = "mars_rover.csv"
 
 # def pytest_configure(config):
@@ -26,7 +26,7 @@ def loaded_iris_df() -> pd.DataFrame:
     iris_path = os.path.join(DATA_DIR, IRIS_DF_FILENAME)
 
     data = pkgutil.get_data(__name__, iris_path)
-    df = pd.read_pickle(BytesIO(data))
+    df = pd.read_csv(BytesIO(data))
 
     return df
 
