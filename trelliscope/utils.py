@@ -3,7 +3,7 @@ import os
 import re
 from collections.abc import Iterable
 from datetime import date, datetime
-from typing import Callable
+from typing import Any, Callable
 
 import pandas as pd
 import plotly
@@ -64,7 +64,9 @@ def check_positive_numeric(
 
 
 def check_bool(
-    value_to_check, name: str, get_error_message_function: Callable = __generic_error_message
+    value_to_check,
+    name: str,
+    get_error_message_function: Callable = __generic_error_message,
 ):
     """
     Verify that the provided value is a boolean. If not, this will raise
@@ -510,7 +512,7 @@ def sanitize(text: str, to_lower=True) -> str:
     return text
 
 
-def get_jsonp_wrap_text_dict(jsonp: bool, function_name: str) -> dict():
+def get_jsonp_wrap_text_dict(jsonp: bool, function_name: str) -> dict[str, Any]:
     """
     Gets the starting and ending text to use for the config file.
     If it is jsonp, it will have a function name and ()'s. If it is
@@ -551,7 +553,7 @@ def get_file_path(directory: str, filename_no_ext: str, jsonp: bool):
     return file_path
 
 
-def read_jsonp(file: str) -> dict():
+def read_jsonp(file: str) -> dict[str, Any]:
     """
     Reads the json content of the .json or .jsonp file. If the file is
     a .jsonp file, the function name and ()'s will be ignored.

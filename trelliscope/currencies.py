@@ -9,7 +9,7 @@ import pandas as pd
 CURRENCY_FILE = "external_data/currencies.csv"
 
 
-def get_valid_currencies() -> list():
+def get_valid_currencies() -> list[str]:
     data = pkgutil.get_data(__name__, CURRENCY_FILE)
     currency_df = pd.read_csv(BytesIO(data))
 
