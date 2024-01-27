@@ -22,6 +22,7 @@ classifiers = [
 
 [project.optional-dependencies]
 dev = [
+    "ruff~=0.1"
 ]
 test = [
 ]
@@ -37,3 +38,29 @@ testpaths = [
 [project.urls]
 "Homepage" = "https://github.com/trelliscope/trelliscope-py"
 "Bug Tracker" = "https://github.com/trelliscope/trelliscope-py/issues"
+
+
+[tool.ruff]
+line-length = 88
+show-fixes = true
+select = [
+    "F",   # Pyflakes
+    "W",   # pycodestyle
+    "E",   # pycodestyle
+    "I",   # isort
+    "UP",  # pyupgrade
+    "PL",  # Pylint
+    "T201", # Print Statement
+    "S", # flake8-bandit
+]
+ignore = ["E501"]  # Black take care of line-too-long
+
+[tool.ruff.isort]
+known-first-party = ["trelliscope"]
+
+[tool.ruff.flake8-tidy-imports]
+# Disallow all relative imports.
+ban-relative-imports = "all"
+
+[tool.mypy]
+ignore_missing_imports = true
