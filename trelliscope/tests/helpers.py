@@ -12,4 +12,4 @@ def compare_json(actual_json: str, expected_json: str):
     actual_json_dict = json.loads(actual_json)
     expected_json_dict = json.loads(expected_json)
 
-    assert actual_json == expected_json
+    assert actual_json_dict == expected_json_dict
