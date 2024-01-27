@@ -1,4 +1,4 @@
-name: Lint and Test
+name: Lint
 
 on:
   push:
@@ -31,5 +31,5 @@ jobs:
         run: pip freeze
       - name: Ruff linter
         run: |
-          ruff --fix --exit-non-zero-on-fix
-          ruff format --check
+          ruff check . --fix --exit-non-zero-on-fix
+          ruff format . --check
