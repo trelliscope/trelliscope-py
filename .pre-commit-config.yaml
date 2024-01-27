@@ -1,4 +1,4 @@
-exclude: ^(.vscode/|trelliscope/resources/)
+exclude: ^(.vscode/|trelliscope/resources/|trelliscope/external_data/|trelliscope/tests/external_data/)
 default_stages: [commit, manual]
 
 repos:
@@ -7,10 +7,9 @@ repos:
     rev: v0.1.13
     hooks:
       - id: ruff
-        args: [ --fix, --exit-non-zero-on-fix ]
+        args: [ --fix ]
         types_or: [ python, pyi ]
       - id: ruff-format
-        args: [ --check ]
         types_or: [ python, pyi ]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
