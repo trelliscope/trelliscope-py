@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pkgutil
 from io import BytesIO
 
