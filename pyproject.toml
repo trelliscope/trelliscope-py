@@ -55,8 +55,7 @@ select = [
     "T201", # Print Statement
     "S", # flake8-bandit
 ]
-ignore = ["E501"]  # allow too-long lines if they cannot be fixed safely, such as docstrings.
-
+ignore = ["E501", "PLR0913"]  # allow too-long lines if they cannot be fixed safely, and dont check N function arguments.
 
 [tool.ruff.isort]
 known-first-party = ["trelliscope"]
@@ -69,6 +68,6 @@ ban-relative-imports = "all"
 [tool.ruff.per-file-ignores]
 "{*/__init__.py}" = ["F401"]  # allow unused imports in __init__ files
 "{trelliscope/tests/*}" = ["S101"]  # Allow 'assert' in tests
-
+"{trelliscope/examples/*}" = ["T201"]  # Allow 'print' statements in examples
 [tool.mypy]
 ignore_missing_imports = true
