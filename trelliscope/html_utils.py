@@ -2,15 +2,16 @@
 Contains utility functions that facilitate the html, JavaScript,
 and other widgets needed for Trelliscope viewing.
 """
+import json
 import os
 import shutil
 import uuid
-import json
 from importlib import resources
 
 JAVASCRIPT_SOURCE_PACKAGE = "trelliscope.resources.javascript"
 
-def write_javascript_lib(output_path:str) -> None:
+
+def write_javascript_lib(output_path: str) -> None:
     """
     Writes the JavaScript lib code to the directory specified.
 
@@ -28,14 +29,22 @@ def write_javascript_lib(output_path:str) -> None:
             # TODO: verify that this works if the package is zipped, etc.
             shutil.copytree(file, new_output)
 
-def write_widget(output_path:str, trelliscope_id:str, config_info:str, is_spa:bool) -> None:
-    html_content = _get_index_html_content(output_path, trelliscope_id, config_info, is_spa)
+
+def write_widget(
+    output_path: str, trelliscope_id: str, config_info: str, is_spa: bool
+) -> None:
+    html_content = _get_index_html_content(
+        output_path, trelliscope_id, config_info, is_spa
+    )
     html_file = os.path.join(output_path, "index.html")
-    
+
     with open(html_file, "w") as output_file:
         output_file.write(html_content)
 
-def _get_index_html_content(output_path:str, trelliscope_id:str, config_info:str, is_spa:bool) -> str:
+
+def _get_index_html_content(
+    output_path: str, trelliscope_id: str, config_info: str, is_spa: bool
+) -> str:
     # TODO: Decide how to handle Javascript file version numbers to include
     HTML_WIDGET_FILE = "lib/htmlwidgets-1.6.2/htmlwidgets.js"
     CSS_FILE = "lib/trs-0.6.0/css/main.74ce0792.css"
@@ -53,13 +62,10 @@ def _get_index_html_content(output_path:str, trelliscope_id:str, config_info:str
         width = "100vw"
         height = "100vh"
 
-    widget_params = {"x": {
-        "id": trelliscope_id,
-        "config_info": config_info,
-        "spa": is_spa
-        },
+    widget_params = {
+        "x": {"id": trelliscope_id, "config_info": config_info, "spa": is_spa},
         "evals": [],
-        "jsHooks": []
+        "jsHooks": [],
     }
 
     widget_params_str = json.dumps(widget_params)

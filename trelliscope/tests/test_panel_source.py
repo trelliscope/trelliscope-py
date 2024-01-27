@@ -1,13 +1,19 @@
-from trelliscope.panel_source import FilePanelSource, RESTPanelSource, LocalWebSocketPanelSource
+from trelliscope.panel_source import (
+    FilePanelSource,
+    LocalWebSocketPanelSource,
+    RESTPanelSource,
+)
+
 
 def test_file_panel_source():
     panel_source = FilePanelSource(True)
     assert panel_source.type == "file"
-    assert panel_source.to_dict() == {"type": "file", "isLocal":True}
+    assert panel_source.to_dict() == {"type": "file", "isLocal": True}
 
     panel_source = FilePanelSource(False)
     assert panel_source.type == "file"
-    assert panel_source.to_dict() == {"type": "file", "isLocal":False}
+    assert panel_source.to_dict() == {"type": "file", "isLocal": False}
+
 
 def test_rest_panel_source():
     panel_source = RESTPanelSource("u", "a", "h")
@@ -20,8 +26,9 @@ def test_rest_panel_source():
         "type": "REST",
         "url": "u",
         "apiKey": "a",
-        "headers": "h"
-        }
+        "headers": "h",
+    }
+
 
 def test_local_web_socket_panel_source():
     panel_source = LocalWebSocketPanelSource("u", 1234)
@@ -32,5 +39,5 @@ def test_local_web_socket_panel_source():
     assert panel_source.to_dict() == {
         "type": "localWebSocket",
         "url": "u",
-        "port": 1234
-        }
+        "port": 1234,
+    }

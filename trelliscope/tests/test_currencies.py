@@ -1,5 +1,5 @@
 from trelliscope.currencies import get_valid_currencies
-import os
+
 
 def test_currency_list():
     valid_list = get_valid_currencies()

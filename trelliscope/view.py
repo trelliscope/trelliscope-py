@@ -1,18 +1,23 @@
-import json
 import copy
-from .state import SortState, LabelState, DisplayState, FilterState, LayoutState
+import json
 
-class View():
+from .state import DisplayState, FilterState, LabelState, LayoutState, SortState
+
+
+class View:
     # TODO: Verify desirable API around passing in states
     # Should they be a list? Should it just be the display obj?
     # Should we keep an option for both single sort and multiple sort?
-    def __init__(self, name:str,
-            layout_state : LayoutState = None,
-            label_state : LabelState = None,
-            sort_state : SortState = None,
-            sort_states : list = [],
-            filter_state : FilterState = None,
-            filter_states : list = []):
+    def __init__(
+        self,
+        name: str,
+        layout_state: LayoutState = None,
+        label_state: LabelState = None,
+        sort_state: SortState = None,
+        sort_states: list = [],
+        filter_state: FilterState = None,
+        filter_states: list = [],
+    ):
         self.name = name
 
         display_state = DisplayState()
@@ -28,7 +33,7 @@ class View():
 
         for sort_state in sort_states:
             display_state.set(sort_state, add=True)
-        
+
         if filter_state is not None:
             display_state.set(filter_state, add=True)
 
@@ -52,8 +57,7 @@ class View():
             indent_value = 2
 
         return json.dumps(self.to_dict(), indent=indent_value)
-    
+
     def _copy(self):
         # TODO: Shallow or deep copy??
         return copy.deepcopy(self)
-    
