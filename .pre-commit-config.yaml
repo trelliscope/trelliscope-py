@@ -1,3 +1,4 @@
+exclude: ^(.vscode/|trelliscope/resources/)
 default_stages: [commit, manual]
 
 repos:
