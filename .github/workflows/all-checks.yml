@@ -1,0 +1,35 @@
+name: Run all checks on Trelliscope
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        type: string
+        default: ''
+  push:
+    paths-ignore:
+      - ".vscode/**"
+      - '**.md'
+
+jobs:
+  unit-tests:
+    strategy:
+      matrix:
+        os: [ windows-latest, ubuntu-latest ]
+        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11" ]
+    uses: ./.github/workflows/unit-tests.yml
+    with:
+      os: ${{ matrix.os }}
+      python-version: ${{ matrix.python-version }}
+      branch: ${{ inputs.branch }}
+
+  lint:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        python-version: [ "3.11" ]
+    uses: ./.github/workflows/lint.yml
+    with:
+      os: ${{ matrix.os }}
+      python-version: ${{ matrix.python-version }}
+      branch: ${{ inputs.branch }}

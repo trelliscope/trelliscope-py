@@ -26,13 +26,17 @@ dev = [
     "ruff~=0.1"
 ]
 test = [
-    "pytest~=7.4"
+    "pytest~=7.4",
+    "pytest-cov~=2.5"
 ]
 
 [tool.pytest.ini_options]
-addopts = [
-    "--import-mode=importlib",
-]
+addopts = """
+--import-mode=importlib \
+--cov-report term-missing \
+--cov trelliscope -ra
+"""
+
 testpaths = [
   "trelliscope/tests"
 ]
