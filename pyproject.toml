@@ -69,6 +69,3 @@ ban-relative-imports = "all"
 [tool.ruff.per-file-ignores]
 "{*/__init__.py}" = ["F401"]  # allow unused imports in __init__ files
 "{trelliscope/tests/*}" = ["S101"]  # Allow 'assert' in tests
-
-[tool.mypy]
-ignore_missing_imports = true
