@@ -20,9 +20,7 @@ def test_panels_setup_no_uniquely_identifying_columns(iris_df: pd.DataFrame):
         # pnl = ImagePanel("img_panel", source=FilePanelSource(True), aspect_ratio=1.5)
 
         with pytest.raises(ValueError, match="Could not find columns"):
-            (
-                Trelliscope(iris_df, "Iris", path=temp_dir_name)
-            )
+            (Trelliscope(iris_df, "Iris", path=temp_dir_name))
 
 
 def test_panels_setup(iris_df_no_duplicates: pd.DataFrame):
@@ -40,9 +38,11 @@ def test_panels_setup(iris_df_no_duplicates: pd.DataFrame):
             should_copy_to_output=False,
         )
 
-        tr = Trelliscope(iris_df, "Iris", path=temp_dir_name).add_panel(pnl)
-
-        tr.write_display()
+        (
+            Trelliscope(iris_df, "Iris", path=temp_dir_name)
+            .add_panel(pnl)
+            .write_display()
+        )
 
 
 @pytest.mark.skip("Still considering various options for this")
@@ -91,7 +91,7 @@ def test_panels_setup_options(iris_df: pd.DataFrame):
         #     .write_display())
 
         # infer panels implicitly
-        tr = Trelliscope(iris_df, "Iris", path=temp_dir_name).write_display()
+        Trelliscope(iris_df, "Iris", path=temp_dir_name).write_display()
 
 
 def test_panel_options_init_default():

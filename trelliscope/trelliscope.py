@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 import glob
 import json
@@ -7,6 +9,7 @@ import shutil
 import tempfile
 import uuid
 import webbrowser
+from typing import Any
 
 import pandas as pd
 
@@ -630,7 +633,7 @@ class Trelliscope:
 
         return filename
 
-    def _check_app_config(self, app_dir, jsonp) -> dict():
+    def _check_app_config(self, app_dir, jsonp) -> dict[str, Any]:
         """
         Gets the app config. If a config file exists in the `app_dir`
         it will be used. Otherwise, a new config will be created and

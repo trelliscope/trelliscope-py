@@ -89,6 +89,46 @@ ruff check --fix .  # Lint all files in the current directory, and fix any fixab
 ruff format .       # Format all files in the current directory.
 ```
 
+## Set up `pre-commit`
+
+Using pre-commit, you as a developer can ensure that certain checks are done before committing changes. By making
+sure you only commit code when it passes these checks, we reduce the number of Github Actions that are run and
+we can ensure that pushed code passes quality checks.
+
+### Install pre-commit
+
+Install it using the extra `dev` dependencies with this package,
+
+```
+pip install -e .[dev]
+```
+
+Or separately,
+
+```
+pip install pre-commit
+```
+
+### Enable pre-commit
+
+To enable pre-commit, you install it. It will look at the `.pre-commit-config.yaml` file, and also use settings
+from the `pyproject.toml` to set up.
+
+```
+pre-commit install
+```
+
+### Running pre-commit
+
+Pre-commit will automatically apply to files you are trying to commit. Your commit will be denied if checks
+are not succesful.
+
+To manually apply pre-commit to all files, run this,
+
+```
+pre-commit run --all-files
+```
+
 ## Deactivate Virtual Environment
 When finished, if desired, you can deactivate the virtual environment:
 ```
