@@ -1,17 +1,30 @@
-import tempfile
-import pandas as pd
-from pandas.api.types import is_string_dtype
-import pytest
 import json
-from trelliscope.metas import Meta, NumberMeta, StringMeta, CurrencyMeta, DateMeta, DatetimeMeta, FactorMeta, GeoMeta, GraphMeta, HrefMeta, PanelMeta
-from trelliscope.panels import ImagePanel
+import tempfile
+
+import pandas as pd
+import pytest
+from pandas.api.types import is_string_dtype
+
+from trelliscope import Trelliscope, utils
+from trelliscope.metas import (
+    CurrencyMeta,
+    DateMeta,
+    DatetimeMeta,
+    FactorMeta,
+    GeoMeta,
+    GraphMeta,
+    HrefMeta,
+    NumberMeta,
+    PanelMeta,
+    StringMeta,
+)
 from trelliscope.panel_source import FilePanelSource
-from trelliscope import Trelliscope
-from trelliscope import utils
+from trelliscope.panels import ImagePanel
+
 
 def test_string_meta_init(iris_df):
     meta = StringMeta(varname="Species", label="label", tags=[])
-    
+
     assert meta.type == "string"
     assert meta.varname == "Species"
     assert meta.filterable == True
@@ -27,6 +40,7 @@ def test_string_meta_init(iris_df):
     meta.varname = "Sepal.Length"
     meta.check_variable(iris_df)
 
+
 def test_number_meta_init(iris_df):
     number_meta = NumberMeta("Sepal.Length")
     assert number_meta.type == "number"
@@ -37,6 +51,7 @@ def test_number_meta_init(iris_df):
     assert number_meta.tags == []
 
     number_meta.check_variable(iris_df)
+
 
 def test_number_meta_with_string(iris_df):
     number_meta = NumberMeta("Species")
@@ -50,6 +65,7 @@ def test_number_meta_with_string(iris_df):
     with pytest.raises(ValueError):
         number_meta.check_variable(iris_df)
 
+
 def test_check_varname(iris_df):
     meta = NumberMeta("Sepal.Length", tags="stuff")
     meta.check_with_data(iris_df)
@@ -57,6 +73,7 @@ def test_check_varname(iris_df):
     meta.varname = "abcdef"
     with pytest.raises(ValueError):
         meta.check_with_data(iris_df)
+
 
 def test_check_with_data(iris_df):
     meta = NumberMeta("Sepal.Length", tags="stuff")
@@ -68,7 +85,7 @@ def test_check_with_data(iris_df):
     with pytest.raises(ValueError):
         # Now an exception should be raised
         meta.check_with_data(iris_df)
-    
+
     meta.varname = "Species"
     with pytest.raises(ValueError):
         # Now an exception should be raised
@@ -77,7 +94,6 @@ def test_check_with_data(iris_df):
     meta.varname = "Sepal.Length"
 
     meta.check_variable(iris_df)
-
 
 
 def test_number_meta(iris_df):
@@ -94,7 +110,7 @@ def test_number_meta(iris_df):
     meta = NumberMeta("Sepal.Length", label="Sepal length of the iris")
     assert meta.label == "Sepal length of the iris"
 
-    meta = NumberMeta("whatever", digits = 2, locale = False)
+    meta = NumberMeta("whatever", digits=2, locale=False)
     assert meta.digits == 2
     assert meta.locale == False
 
@@ -106,22 +122,25 @@ def test_number_meta(iris_df):
         meta.check_with_data(iris_df)
 
     with pytest.raises(TypeError, match=r"must be an integer"):
-        meta = NumberMeta("Sepal.Length", digits = "a")
+        meta = NumberMeta("Sepal.Length", digits="a")
 
     with pytest.raises(TypeError, match=r"must be logical"):
-        meta = NumberMeta("Sepal.Length", locale = "a")
+        meta = NumberMeta("Sepal.Length", locale="a")
+
 
 def test_currency_meta(iris_df):
-    meta = CurrencyMeta("Sepal.Length", label="Sepal length of the iris",
-                tags="a tag", code="EUR")
+    meta = CurrencyMeta(
+        "Sepal.Length", label="Sepal length of the iris", tags="a tag", code="EUR"
+    )
     assert meta.varname == "Sepal.Length"
     assert meta.label == "Sepal length of the iris"
     assert meta.tags == ["a tag"]
     assert meta.code == "EUR"
 
+
 def test_currency_meta(iris_df):
     meta = CurrencyMeta("Sepal.Length", tags="stuff")
-    
+
     meta.check_with_data(iris_df)
     assert meta.tags == ["stuff"]
 
@@ -187,21 +206,27 @@ def test_factor_meta(iris_df):
     with pytest.raises(ValueError, match="to be a list"):
         meta4 = FactorMeta("Species", levels="this is a string")
 
+
 def test_date_meta(iris_plus_df: pd.DataFrame):
     meta = DateMeta("date")
     meta.check_with_data(iris_plus_df)
+
 
 def test_datetime_meta(iris_plus_df):
     meta = DatetimeMeta("datetime")
     meta.check_with_data(iris_plus_df)
 
     # The value is not a dt yet
-    assert not utils.is_datetime_column(iris_plus_df["datetime"], must_be_datetime_objects=True)
+    assert not utils.is_datetime_column(
+        iris_plus_df["datetime"], must_be_datetime_objects=True
+    )
 
     df2 = meta.cast_variable(iris_plus_df)
 
     # The original df is changed
-    assert utils.is_datetime_column(iris_plus_df["datetime"], must_be_datetime_objects=True)
+    assert utils.is_datetime_column(
+        iris_plus_df["datetime"], must_be_datetime_objects=True
+    )
     assert utils.is_datetime_column(df2["datetime"], must_be_datetime_objects=False)
 
 
@@ -209,12 +234,14 @@ def test_geo_meta(iris_plus_df):
     meta = GeoMeta("coords", latvar="lat", longvar="long")
     meta.check_with_data(iris_plus_df)
 
+
 @pytest.mark.skip("Feature is not implemented yet")
 def test_graph_meta(iris_plus_df):
-    #TODO: The iris_plus_df will need to have extra columns added for this
+    # TODO: The iris_plus_df will need to have extra columns added for this
 
     meta = GraphMeta("lst", "id", "to")
     meta.check_with_data(iris_plus_df)
+
 
 def test_href_meta(iris_plus_df):
     # First use a proper href category
@@ -226,19 +253,23 @@ def test_href_meta(iris_plus_df):
     with pytest.raises(ValueError, match="Data type is not a string"):
         meta2.check_with_data(iris_plus_df)
 
+
 def test_panel_meta(iris_df_no_duplicates: pd.DataFrame):
     iris_df = iris_df_no_duplicates
-    
+
     with tempfile.TemporaryDirectory() as temp_dir_name:
         # this is test code that just sets all images to this test_image.png string
         # it is not a proper use of the images, but gives us something to use in testing.
         iris_df["img_panel"] = "test_image.png"
-        
-        pnl = ImagePanel("img_panel", source=FilePanelSource(is_local=True), aspect_ratio=1.5, should_copy_to_output=False)
 
-        tr = (Trelliscope(iris_df, "Iris", path=temp_dir_name)
-                .add_panel(pnl)
-                )
+        pnl = ImagePanel(
+            "img_panel",
+            source=FilePanelSource(is_local=True),
+            aspect_ratio=1.5,
+            should_copy_to_output=False,
+        )
+
+        tr = Trelliscope(iris_df, "Iris", path=temp_dir_name).add_panel(pnl)
 
         meta = PanelMeta(pnl, "img_panel")
 
@@ -262,4 +293,3 @@ def test_panel_meta(iris_df_no_duplicates: pd.DataFrame):
             }"""
 
         assert json.loads(actual_json) == json.loads(expected_json)
-

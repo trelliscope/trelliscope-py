@@ -1,11 +1,14 @@
 import json
+
 import pandas as pd
-from .panel_source import PanelSource
-from .panels import Panel
 
 from trelliscope import utils
 
-class Meta():
+from .panel_source import PanelSource
+from .panels import Panel
+
+
+class Meta:
     """
     The base class for all Meta variants.
     """
@@ -21,14 +24,22 @@ class Meta():
     TYPE_GRAPH = "graph"
     TYPE_GEO = "geo"
 
-    def __init__(self, type: str, varname: str, filterable: bool, sortable: bool, label: str = None, tags: list = None):
+    def __init__(
+        self,
+        type: str,
+        varname: str,
+        filterable: bool,
+        sortable: bool,
+        label: str = None,
+        tags: list = None,
+    ):
         self.type = type
         self.varname = varname
         self.filterable = filterable
         self.sortable = sortable
         self.label = label
         self.tags = []
-        
+
         if tags is None:
             # TODO: Verify this behavior, it's slightly different than what is done in R
             self.tags = []
@@ -125,15 +136,29 @@ class Meta():
 
 
 class NumberMeta(Meta):
-    """ A Meta for numeric data. """
-    def __init__(self, varname: str, label: str = None, tags: list = None, digits: int = None, locale: bool = True):
-        super().__init__(type=Meta.TYPE_NUMBER, varname=varname, label=label, tags=tags,
-            filterable=True, sortable=True)
+    """A Meta for numeric data."""
+
+    def __init__(
+        self,
+        varname: str,
+        label: str = None,
+        tags: list = None,
+        digits: int = None,
+        locale: bool = True,
+    ):
+        super().__init__(
+            type=Meta.TYPE_NUMBER,
+            varname=varname,
+            label=label,
+            tags=tags,
+            filterable=True,
+            sortable=True,
+        )
 
         if digits is not None:
             utils.check_scalar(digits, "digits", self._get_error_message)
             utils.check_int(digits, "digits", self._get_error_message)
-        
+
         if locale is not None:
             utils.check_scalar(digits, "locale", self._get_error_message)
             utils.check_bool(locale, "locale", self._get_data_error_message)
@@ -148,11 +173,19 @@ class NumberMeta(Meta):
         """
         utils.check_numeric(df, self.varname, self._get_data_error_message)
 
+
 class CurrencyMeta(Meta):
-    """ A Meta for currency data. """
-    def __init__(self, varname, label: str = None, tags: list = None, code = "USD"):
-        super().__init__(type=Meta.TYPE_CURRENCY, varname=varname, label=label, tags=tags,
-            filterable=True, sortable=True)
+    """A Meta for currency data."""
+
+    def __init__(self, varname, label: str = None, tags: list = None, code="USD"):
+        super().__init__(
+            type=Meta.TYPE_CURRENCY,
+            varname=varname,
+            label=label,
+            tags=tags,
+            filterable=True,
+            sortable=True,
+        )
 
         if code is not None:
             utils.check_scalar(code, "code", self._get_error_message)
@@ -169,12 +202,20 @@ class CurrencyMeta(Meta):
         """
         utils.check_numeric(df, self.varname, self._get_data_error_message)
 
+
 class StringMeta(Meta):
-    """ A Meta for string data. """
+    """A Meta for string data."""
+
     def __init__(self, varname: str, label: str = None, tags: list = None):
-        super().__init__(type=Meta.TYPE_STRING, varname=varname, label=label, tags=tags,
-            filterable=True, sortable=True)
-        
+        super().__init__(
+            type=Meta.TYPE_STRING,
+            varname=varname,
+            label=label,
+            tags=tags,
+            filterable=True,
+            sortable=True,
+        )
+
     def check_variable(self, df: pd.DataFrame):
         """
         Verifies that the column in the data frame is an atomic vector
@@ -182,7 +223,7 @@ class StringMeta(Meta):
         anything that can easily be coerced to it.
         """
         # This would check that hte datatype is actually a string:
-        #utils.check_string_datatype(df, self.varname, self._get_data_error_message)
+        # utils.check_string_datatype(df, self.varname, self._get_data_error_message)
 
         utils.check_atomic_vector(df, self.varname, self._get_data_error_message)
 
@@ -198,13 +239,23 @@ class StringMeta(Meta):
         df[self.varname] = df[self.varname].astype(str)
         return df
 
-class PanelMeta(Meta):
-    """ A Meta for Panels. """
-    def __init__(self, panel:Panel, label: str = None, tags: list = None):
-        super().__init__(type=Meta.TYPE_PANEL, varname=panel.varname, label=label, tags=tags,
-            filterable=False, sortable=False)
 
-        utils.check_positive_numeric(panel.aspect_ratio, "aspect", self._get_error_message)
+class PanelMeta(Meta):
+    """A Meta for Panels."""
+
+    def __init__(self, panel: Panel, label: str = None, tags: list = None):
+        super().__init__(
+            type=Meta.TYPE_PANEL,
+            varname=panel.varname,
+            label=label,
+            tags=tags,
+            filterable=False,
+            sortable=False,
+        )
+
+        utils.check_positive_numeric(
+            panel.aspect_ratio, "aspect", self._get_error_message
+        )
         self.aspect = panel.aspect_ratio
 
         if not isinstance(panel.source, PanelSource):
@@ -212,7 +263,9 @@ class PanelMeta(Meta):
 
         self.panel_source = panel.source
 
-        utils.check_enum(panel.panel_type_str, ["img", "iframe"], self._get_error_message)
+        utils.check_enum(
+            panel.panel_type_str, ["img", "iframe"], self._get_error_message
+        )
 
         self.panel_type = panel.panel_type_str
 
@@ -220,12 +273,15 @@ class PanelMeta(Meta):
         result = super().to_dict()
 
         result["aspect"] = self.aspect
-        
-        result.pop("panel_source", None) # remove the reference to the object put in by the default behavior
+
+        result.pop(
+            "panel_source", None
+        )  # remove the reference to the object put in by the default behavior
         result["source"] = self.panel_source.to_dict()
 
-
-        result.pop("panel_type", None) # remove the reference to the object put in by the default behavior
+        result.pop(
+            "panel_type", None
+        )  # remove the reference to the object put in by the default behavior
         # notice this does not have an _ because this is what the JavaScript expects
         result["paneltype"] = self.panel_type
 
@@ -238,11 +294,21 @@ class PanelMeta(Meta):
         # TODO: Fill this in
         pass
 
+
 class FactorMeta(Meta):
-    """ A meta for a categorical, factor variable. """
-    def __init__(self, varname: str, label: str = None, tags: list = None, levels: list = None):
-        super().__init__(type=Meta.TYPE_FACTOR, varname=varname, label=label, tags=tags,
-            filterable=True, sortable=True)
+    """A meta for a categorical, factor variable."""
+
+    def __init__(
+        self, varname: str, label: str = None, tags: list = None, levels: list = None
+    ):
+        super().__init__(
+            type=Meta.TYPE_FACTOR,
+            varname=varname,
+            label=label,
+            tags=tags,
+            filterable=True,
+            sortable=True,
+        )
 
         if levels is not None:
             utils.check_is_list(levels, self._get_error_message)
@@ -257,7 +323,7 @@ class FactorMeta(Meta):
         """
         if df[self.varname].dtype != "category":
             df[self.varname] = df[self.varname].astype("category")
-        
+
         self.levels = df[self.varname].cat.categories.to_list()
 
         # if df[self.varname].dtype == "category":
@@ -277,8 +343,10 @@ class FactorMeta(Meta):
             self.infer_levels(df)
 
         # Ensure that levels match the data
-        utils.check_exhaustive_levels(df, self.levels, self.varname, self._get_data_error_message)
-    
+        utils.check_exhaustive_levels(
+            df, self.levels, self.varname, self._get_data_error_message
+        )
+
     def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Converts the `self.varname` column in the data frame to be a string type.
@@ -296,19 +364,35 @@ class FactorMeta(Meta):
         df[self.varname] = df[self.varname].astype(str)
         return df
 
+
 class DateMeta(Meta):
     def __init__(self, varname: str, label: str = None, tags: list = None):
-        super().__init__(type=Meta.TYPE_DATE, varname=varname, label=label, tags=tags,
-            filterable=True, sortable=True)
+        super().__init__(
+            type=Meta.TYPE_DATE,
+            varname=varname,
+            label=label,
+            tags=tags,
+            filterable=True,
+            sortable=True,
+        )
 
     def check_variable(self, df: pd.DataFrame):
         utils.check_datetime(df, self.varname, self._get_data_error_message)
 
+
 class DatetimeMeta(Meta):
-    def __init__(self, varname: str, label: str = None, tags: list = None, timezone="UTC"):
-        super().__init__(type=Meta.TYPE_DATETIME, varname=varname, label=label, tags=tags,
-            filterable=True, sortable=True)
-        
+    def __init__(
+        self, varname: str, label: str = None, tags: list = None, timezone="UTC"
+    ):
+        super().__init__(
+            type=Meta.TYPE_DATETIME,
+            varname=varname,
+            label=label,
+            tags=tags,
+            filterable=True,
+            sortable=True,
+        )
+
         # TODO: Consider validating timezone
 
         self.timezone = timezone
@@ -325,9 +409,10 @@ class DatetimeMeta(Meta):
         Returns:
             The updated Pandas DataFrame
         """
+
     def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
         # Convert the Series to datetime with errors='coerce'
-        df[self.varname] = pd.to_datetime(df[self.varname], errors='coerce')
+        df[self.varname] = pd.to_datetime(df[self.varname], errors="coerce")
 
         # Check if every value is a valid date
         are_all_dates = df[self.varname].notna().all()
@@ -339,11 +424,23 @@ class DatetimeMeta(Meta):
 
 
 class GraphMeta(Meta):
-    def __init__(self, varname: str, label: str = None, tags: list = None, idvarname: str = None,
-                direction: str = "none"):
-        super().__init__(type=Meta.TYPE_GRAPH, varname=varname, label=label, tags=tags,
-            filterable=True, sortable=False)
-        
+    def __init__(
+        self,
+        varname: str,
+        label: str = None,
+        tags: list = None,
+        idvarname: str = None,
+        direction: str = "none",
+    ):
+        super().__init__(
+            type=Meta.TYPE_GRAPH,
+            varname=varname,
+            label=label,
+            tags=tags,
+            filterable=True,
+            sortable=False,
+        )
+
         utils.check_enum(direction, ("none", "to", "from"), self._get_error_message)
 
         self.direction = direction
@@ -351,14 +448,29 @@ class GraphMeta(Meta):
 
     def check_variable(self, df: pd.DataFrame):
         utils.check_has_variable(df, self.idvarname, self._get_data_error_message)
-        utils.check_graph_var(df, self.varname, self.idvarname, self._get_data_error_message)
+        utils.check_graph_var(
+            df, self.varname, self.idvarname, self._get_data_error_message
+        )
 
 
 class GeoMeta(Meta):
-    def __init__(self, varname: str, latvar: str, longvar: str, label: str = None, tags: list = None,):
-        super().__init__(type=Meta.TYPE_GEO, varname=varname, label=label, tags=tags,
-            filterable=True, sortable=False)
-        
+    def __init__(
+        self,
+        varname: str,
+        latvar: str,
+        longvar: str,
+        label: str = None,
+        tags: list = None,
+    ):
+        super().__init__(
+            type=Meta.TYPE_GEO,
+            varname=varname,
+            label=label,
+            tags=tags,
+            filterable=True,
+            sortable=False,
+        )
+
         self.latvar = latvar
         self.longvar = longvar
 
@@ -384,12 +496,17 @@ class GeoMeta(Meta):
 
 class HrefMeta(Meta):
     def __init__(self, varname: str, label: str = None, tags: list = None):
-        super().__init__(type=Meta.TYPE_HREF, varname=varname, label=label, tags=tags,
-            filterable=False, sortable=False)
-        
+        super().__init__(
+            type=Meta.TYPE_HREF,
+            varname=varname,
+            label=label,
+            tags=tags,
+            filterable=False,
+            sortable=False,
+        )
+
     def check_variable(self, df: pd.DataFrame):
         if not utils.is_string_column(df[self.varname]):
             raise ValueError(self._get_data_error_message("Data type is not a string"))
 
     # TODO: Add cast variable?
-
