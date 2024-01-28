@@ -73,6 +73,22 @@ pytest trelliscope/tests >test-output.log
 pytest trelliscope/tests | tee test-output.log
 ```
 
+## Format code with Ruff
+
+This codebase uses Ruff to define and check codestyle.
+
+### Install linting dependencies
+
+```
+pip install -e .[lint]
+```
+
+### Run checks and formatter with Ruff
+```
+ruff check --fix .  # Lint all files in the current directory, and fix any fixable errors.
+ruff format .       # Format all files in the current directory.
+```
+
 ## Deactivate Virtual Environment
 When finished, if desired, you can deactivate the virtual environment:
 ```
