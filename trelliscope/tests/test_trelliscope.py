@@ -39,11 +39,11 @@ def test_to_dict(iris_tr: Trelliscope):
 
 def test_no_name(iris_df_no_duplicates: pd.DataFrame):
     iris_df = iris_df_no_duplicates
-    tr = Trelliscope(iris_df, "iris")
+    Trelliscope(iris_df, "iris")
 
     # Trelliscopes need a name param
     with pytest.raises(TypeError, match=r"missing .* required .* argument"):
-        tr = Trelliscope(iris_df)
+        Trelliscope(iris_df)
 
 
 # def test_no_img_panel(iris_df: pd.DataFrame):
@@ -236,10 +236,14 @@ def test_copy_images_to_build_directory(mars_df: pd.DataFrame):
                 file_name = os.path.basename(original_file)
                 temp_dir_file = os.path.join(temp_dir2, file_name)
 
-                with urllib.request.urlopen(original_file, timeout=1) as response, open(
-                    temp_dir_file, "wb"
-                ) as out_file:
-                    shutil.copyfileobj(response, out_file)
+                # security check to disallow urls starting with file: or custom schemas.
+                if not original_file.startswith(("http:", "https:")):
+                    raise ValueError("URL must start with 'http:' or 'https:'")
+                else:
+                    with urllib.urlopen(original_file, timeout=1) as response, open(
+                        temp_dir_file, "wb"
+                    ) as out_file:
+                        shutil.copyfileobj(response, out_file)
 
                 mars_df["img_src"][i] = temp_dir_file
 
@@ -277,8 +281,8 @@ def test_set_default_sort(mars_df: pd.DataFrame):
     )
 
     tr = tr.set_default_sort(["img2", "img3"])
-
-    assert len(tr.state.sort) == 2
+    expected_n_sort = 2
+    assert len(tr.state.sort) == expected_n_sort
 
     sort_keys = list(tr.state.sort.keys())
 
@@ -296,7 +300,8 @@ def test_set_default_sort(mars_df: pd.DataFrame):
     # Overwrite
     tr = tr.set_default_sort(["img_src", "img2"], ["asc", "desc"])
 
-    assert len(tr.state.sort) == 2
+    expected_n_sort = 2
+    assert len(tr.state.sort) == expected_n_sort
 
     sort_keys = list(tr.state.sort.keys())
 
@@ -311,8 +316,8 @@ def test_set_default_sort(mars_df: pd.DataFrame):
 
     # Append
     tr = tr.set_default_sort(["img3"], add=True)
-
-    assert len(tr.state.sort) == 3
+    expected_n_sort = 3
+    assert len(tr.state.sort) == expected_n_sort
 
     sort_keys = list(tr.state.sort.keys())
 

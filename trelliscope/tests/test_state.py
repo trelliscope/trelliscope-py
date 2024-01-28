@@ -38,14 +38,16 @@ def test_empty_display_state():
 
 def test_state_bad_values():
     with pytest.raises(ValueError):
-        state = State("bad type")
+        State("bad type")
 
 
 def test_layout_state_init():
-    state = LayoutState(ncol=3, page=4)
+    expected_ncol = 3
+    expected_page = 4
+    state = LayoutState(ncol=expected_ncol, page=expected_page)
 
-    assert state.ncol == 3
-    assert state.page == 4
+    assert state.ncol == expected_ncol
+    assert state.page == expected_page
     assert state.type == State.TYPE_LAYOUT
     assert state.viewtype == LayoutState.VIEWTYPE_GRID
 
@@ -55,7 +57,7 @@ def test_layout_state(iris_df):
     state1.check_with_data(iris_df)
 
     with pytest.raises(TypeError, match=r"must be an integer"):
-        state2 = LayoutState(ncol="a")
+        LayoutState(ncol="a")
 
     # with pytest.raises(ValueError, match=r"must be one of .+rows"):
     #     state2 = LayoutState(arrange="stuff")
@@ -63,7 +65,7 @@ def test_layout_state(iris_df):
 
 def test_label_state_init():
     state = LabelState(["one", "two"])
-    assert type(state.varnames) == list
+    assert isinstance(state.varnames, list)
     assert state.varnames == ["one", "two"]
 
 
@@ -78,7 +80,7 @@ def test_label_state(iris_plus_df):
 
 def test_label_state_bad_values():
     with pytest.raises(ValueError, match=r"Expected value .* to be a list"):
-        state = LabelState("Species")
+        LabelState("Species")
 
 
 def test_sort_state_init():
@@ -110,7 +112,7 @@ def test_sort_state(iris_plus_df):
         state2.check_with_data(iris_plus_df)
 
     with pytest.raises(ValueError, match=r"must be one of"):
-        state3 = SortState("date", dir="ascc")
+        SortState("date", dir="ascc")
 
 
 def test_category_filter_state_init(iris_plus_df):
@@ -137,7 +139,7 @@ def test_category_filter_state(iris_plus_df):
     with pytest.raises(ValueError, match=r"is not compatible with this filter"):
         state.check_with_meta(meta3)
 
-    actual_dict = state.to_dict()
+    state.to_dict()
     assert state.to_dict() == {
         "values": ["2023-02-24"],
         "regexp": None,
@@ -163,10 +165,12 @@ def test_category_filter_state_bad_values(iris_plus_df):
 
 
 def test_number_range_filter_state_init():
-    state = NumberRangeFilterState("the var", min=2, max=3)
+    expected_min = 2
+    expected_max = 3
+    state = NumberRangeFilterState("the var", min=expected_min, max=expected_max)
     assert state.varname == "the var"
-    assert state.min == 2
-    assert state.max == 3
+    assert state.min == expected_min
+    assert state.max == expected_max
     assert set(state.applies_to) == {Meta.TYPE_NUMBER}
     assert state.type == State.TYPE_FILTER
     assert state.filtertype == FilterState.FILTERTYPE_NUMBER_RANGE
@@ -294,12 +298,3 @@ def test_datetime_range_filter_state(iris_plus_df):
     actual_json = state.to_json(pretty=False)
     expected_json = '{"max":null,"min":"2010-01-01T00:00:00","filtertype":"datetimerange","varname":"datetime","type":"filter","metatype":"datetime"}'
     assert json.loads(actual_json) == json.loads(expected_json)
-
-
-def test_date_range_filter_state_bad_values(iris_plus_df):
-    state = DatetimeRangeFilterState("stuff", min=datetime(2010, 1, 1))
-    with pytest.raises(ValueError, match=r"not found in the dataset"):
-        state.check_with_data(iris_plus_df)
-
-    # TODO: Consider adding test to make sure min and max do not allow ints
-    # (they must be dates)

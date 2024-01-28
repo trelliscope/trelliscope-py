@@ -418,10 +418,11 @@ def test_get_dataframe_grouped_columns(mars_df: pd.DataFrame):
     assert cols[0] == "class"
 
     # Try multiple columns
-    grouped_df = mars_df.groupby(["camera", "class"])[["sol"]].mean()
+    group_columns = ["camera", "class"]
+    grouped_df = mars_df.groupby(group_columns)[["sol"]].mean()
     cols = utils.get_dataframe_grouped_columns(grouped_df)
-    assert len(cols) == 2
-    assert cols == ["camera", "class"]
+    assert len(cols) == len(group_columns)
+    assert cols == group_columns
 
 
 def test_get_string_columns(mars_df: pd.DataFrame):
@@ -446,7 +447,7 @@ def test_get_numeric_columns(mars_df: pd.DataFrame):
     assert set(cols) == {"sol"}
 
 
-def test_get_uniquely_identifying_cols(mars_df: pd.DataFrame):
+def test_get_uniquely_identifying_cols_mars(mars_df: pd.DataFrame):
     cols = utils.get_uniquely_identifying_cols(mars_df)
     assert cols == ["camera", "earth_date", "class", "img_src"]
 
@@ -461,7 +462,7 @@ def test_get_uniquely_identifying_cols(mars_df: pd.DataFrame):
     assert cols == ["camera", "earth_date", "class"]
 
 
-def test_get_uniquely_identifying_cols(iris_df: pd.DataFrame):
+def test_get_uniquely_identifying_cols_iris(iris_df: pd.DataFrame):
     cols = utils.get_uniquely_identifying_cols(iris_df)
     assert cols == []
 
@@ -477,33 +478,33 @@ def test_get_uniquely_identifying_cols(iris_df: pd.DataFrame):
 
 
 def test_is_string_column(mars_df: pd.DataFrame):
-    assert utils.is_string_column(mars_df["camera"]) == True
-    assert utils.is_string_column(mars_df["class"]) == True
-    assert utils.is_string_column(mars_df["img_src"]) == True
-    assert utils.is_string_column(mars_df["sol"]) == False
+    assert utils.is_string_column(mars_df["camera"]) is True
+    assert utils.is_string_column(mars_df["class"]) is True
+    assert utils.is_string_column(mars_df["img_src"]) is True
+    assert utils.is_string_column(mars_df["sol"]) is False
 
 
 def test_is_string_column_categorical(mars_df: pd.DataFrame):
-    assert utils.is_string_column(mars_df["camera"]) == True
+    assert utils.is_string_column(mars_df["camera"]) is True
 
     mars_df["camera"] = mars_df["camera"].astype("category")
 
     assert isinstance(mars_df["camera"].dtype, pd.api.types.CategoricalDtype)
-    assert utils.is_string_column(mars_df["camera"]) == False
+    assert utils.is_string_column(mars_df["camera"]) is False
 
 
 def test_is_string_column_numeric(iris_df: pd.DataFrame):
-    assert utils.is_string_column(iris_df["Sepal.Length"]) == False
-    assert utils.is_string_column(iris_df["Sepal.Width"]) == False
-    assert utils.is_string_column(iris_df["Petal.Length"]) == False
-    assert utils.is_string_column(iris_df["Petal.Width"]) == False
-    assert utils.is_string_column(iris_df["Species"]) == True
+    assert utils.is_string_column(iris_df["Sepal.Length"]) is False
+    assert utils.is_string_column(iris_df["Sepal.Width"]) is False
+    assert utils.is_string_column(iris_df["Petal.Length"]) is False
+    assert utils.is_string_column(iris_df["Petal.Width"]) is False
+    assert utils.is_string_column(iris_df["Species"]) is True
 
 
 def test_is_string_column_object(iris_df: pd.DataFrame):
     # Make a column of lists
     iris_df["list_col"] = iris_df.apply(lambda x: [], axis=1)
-    assert utils.is_string_column(iris_df["list_col"]) == False
+    assert utils.is_string_column(iris_df["list_col"]) is False
 
     # Make of column of ImagePanels
 
@@ -513,7 +514,7 @@ def test_is_string_column_object(iris_df: pd.DataFrame):
     iris_df["panel_col"] = iris_df.apply(
         lambda x: ImagePanel("test_var", source=FilePanelSource(True)), axis=1
     )
-    assert utils.is_string_column(iris_df["panel_col"]) == False
+    assert utils.is_string_column(iris_df["panel_col"]) is False
 
 
 def test_find_figure_columns(iris_df: pd.DataFrame):

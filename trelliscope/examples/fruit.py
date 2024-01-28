@@ -41,7 +41,7 @@ def main():
 
     # Grammar of Dashboard
     # Note that the image column will be found and inferred to be the panel
-    tr = Trelliscope(df, name).write_display().view_trelliscope()
+    Trelliscope(df, name).write_display().view_trelliscope()
 
 
 if __name__ == "__main__":

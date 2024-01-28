@@ -113,7 +113,7 @@ def main():
     # )
 
     # Setting various parameters explicitly
-    tr = (
+    (
         Trelliscope(joined_df, name="gapminder")
         .set_default_labels(["country", "continent"])
         .set_default_layout(3)
