@@ -1,0 +1,48 @@
+name: Run all checks on Trelliscope
+
+on:
+  workflow_dispatch:
+  push:
+    paths-ignore:
+      - ".vscode/**"
+      - '**.md'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  unit-tests-ubuntu:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        python-version: [ "3.8", "3.9", "3.10", "3.11" ]
+    uses: ./.github/workflows/unit-tests.yml
+    with:
+      os: ${{ matrix.os }}
+      python-version: ${{ matrix.python-version }}
+
+  unit-tests-windows:
+    # Because these take longer, only run on push/pull request to 'main' or on manual trigger
+    if: >
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      || github.event_name == 'pull_request'
+      || github.event_name == 'workflow_call'
+    strategy:
+      matrix:
+        os: [ windows-latest ]
+        python-version: [ "3.8", "3.9", "3.10", "3.11" ]
+    uses: ./.github/workflows/unit-tests.yml
+    with:
+      os: ${{ matrix.os }}
+      python-version: ${{ matrix.python-version }}
+
+  lint:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        python-version: [ "3.11" ]
+    uses: ./.github/workflows/lint.yml
+    with:
+      os: ${{ matrix.os }}
+      python-version: ${{ matrix.python-version }}
+      branch: ${{ inputs.branch }}

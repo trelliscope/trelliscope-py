@@ -2,7 +2,7 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.hatch.build.wheel]
+[tool.hatch.build]
 packages = ["trelliscope"]
 exclude = ["trelliscope/tests"]
 
@@ -22,7 +22,7 @@ authors = [
 ]
 description = "A python interface to the Trelliscope data science library."
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 classifiers = [
 ]
 
