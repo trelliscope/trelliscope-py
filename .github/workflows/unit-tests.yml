@@ -1,35 +1,57 @@
 name: Run unit-tests
 
-on: [push]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   unit-tests:
     strategy:
       matrix:
-        os: [ windows-2019, ubuntu-latest ]
+        os: [ windows-latest, ubuntu-latest ]
         python-version: [ "3.8", "3.9", "3.10", "3.11" ]
+        include:
+          - os: ubuntu-latest
+            python-version: 3.11
+            run_on_feature_branch: true
     runs-on: ${{ matrix.os }}
+    # Only run entire test suite when triggered manually, or on push/PR to 'main' branch
+    env:
+      SHOULD_RUN: >
+        (github.event_name == 'push' && github.ref != 'refs/heads/main' && matrix.run_on_feature_branch)
+        || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        || github.event_name != 'push'
+#        || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        if: env.SHOULD_RUN
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
+        if: env.SHOULD_RUN
         with:
           python-version: ${{ matrix.python-version }}
       - name: Cache python packages for Linux
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && env.SHOULD_RUN
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ matrix.os }}-python-${{ matrix.python-version }}
       - name: Cache python packages for Windows
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-latest' && env.SHOULD_RUN
         uses: actions/cache@v3
         with:
           path: ~\AppData\Local\pip\Cache
           key: ${{ matrix.os }}-python-${{ matrix.python-version }}
       - name: Install dependencies
+        if: env.SHOULD_RUN
         run: |
             pip install .[test]
       - name: Run unit tests
+        if: env.SHOULD_RUN
         run: pytest
