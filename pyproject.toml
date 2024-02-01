@@ -2,11 +2,6 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-#[tool.hatch.build]
-#include = [
-#  "/trelliscope/external_data/*.csv",
-#]
-
 [project]
 name = "trelliscope"
 dependencies = [
