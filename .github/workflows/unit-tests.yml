@@ -12,16 +12,16 @@ jobs:
     strategy:
       matrix:
         os: [ windows-latest, ubuntu-latest ]
-        python-version: [ 3.8, 3.9, 3.10, 3.11 ]
+        python-version: [ "3.8", "3.9", "3.10", "3.11" ]
         include:
           - os: ubuntu-latest
-            python-version: 3.11
+            python-version: "3.11"
             run_always: true
     runs-on: ${{ matrix.os }}
     # Only run entire test suite when triggered manually, or on push/PR to 'main' branch
     env:
       SHOULD_RUN: >
-        (matrix.run_always)
+        matrix.run_always
         || (github.event_name == 'push' && github.ref == 'refs/heads/main')
         || github.event_name != 'push'
     steps:
