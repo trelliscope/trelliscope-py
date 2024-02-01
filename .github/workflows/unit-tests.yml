@@ -30,6 +30,6 @@ jobs:
           key: ${{ matrix.os }}-python-${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-            pip install .[test]
+            pip install -e  .[test]
       - name: Run unit tests
         run: pytest
