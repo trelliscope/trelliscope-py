@@ -9,7 +9,6 @@ dependencies = [
     "kaleido == 0.1.*",
     "plotly >= 5.18.0",
     "plotly-express >= 0.4.1",
-    "numpy>=1.26.2"
 ]
 version = "0.0.0-alpha1"
 authors = [
