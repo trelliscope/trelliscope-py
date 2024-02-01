@@ -20,7 +20,7 @@ jobs:
     # Only run windows test suite when triggered manually, or on push/PR to 'main' branch
     env:
       SHOULD_RUN: >
-        (${{ matrix.run_always }} == 'TOPKEK')
+        ${{ matrix.run_always == 'TOPKEK' }}
 #        || (github.event_name == 'push' && github.ref == 'refs/heads/main')
 #        || (github.event_name != 'push')
     steps:
