@@ -6,7 +6,7 @@ jobs:
   unit-tests:
     strategy:
       matrix:
-        os: [ windows-latest, ubuntu-latest ]
+        os: [ windows-2019, ubuntu-latest ]
         python-version: [ "3.8", "3.9", "3.10", "3.11" ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -30,6 +30,6 @@ jobs:
           key: ${{ matrix.os }}-python-${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-            pip install -e  .[test]
+            pip install .[test]
       - name: Run unit tests
         run: pytest
