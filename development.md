@@ -59,7 +59,14 @@ pytest --version
 ```
 
 ### Running PyTest
-You can run all tests in the project:
+You can run all tests in the project using the options specified in teh pyproject.toml file:
+
+```
+pytest
+```
+
+Alternatively, you can run the tests directly:
+
 ```
 pytest trelliscope/tests/
 ```
