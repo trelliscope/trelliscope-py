@@ -666,7 +666,7 @@ def is_datetime_column(column: pd.Series, must_be_datetime_objects: bool):
     if must_be_datetime_objects:
         are_all_dates = column.apply(lambda v: isinstance(v, datetime)).all()
     else:
-        new_series = pd.to_datetime(column, errors="coerce")
+        new_series = pd.to_datetime(column, errors="coerce", format="mixed")
         are_all_dates = new_series.notna().all()
 
     return are_all_dates
