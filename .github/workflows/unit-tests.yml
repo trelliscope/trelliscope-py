@@ -1,41 +1,35 @@
 name: Run unit-tests
 
-on:
-  workflow_call:
-    inputs:
-      os:
-        type: string
-      python-version:
-        type: string
-      branch:
-        type: string
-        default: ''
+on: [push]
+
 jobs:
   unit-tests:
-    runs-on: ${{ inputs.os }}
+    strategy:
+      matrix:
+        os: [ windows-latest, ubuntu-latest ]
+        python-version: [ "3.8", "3.9", "3.10", "3.11" ]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.branch }}
-      - name: Set up Python ${{inputs.python-version}}
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
-          python-version: ${{inputs.python-version}}
+          python-version: ${{ matrix.python-version }}
       - name: Cache python packages for Linux
-        if: inputs.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest'
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{inputs.os}}-python-${{inputs.python-version}}
+          key: ${{ matrix.os }}-python-${{ matrix.python-version }}
       - name: Cache python packages for Windows
-        if: inputs.os == 'windows-latest'
+        if: matrix.os == 'windows-latest'
         uses: actions/cache@v3
         with:
           path: ~\AppData\Local\pip\Cache
-          key: ${{inputs.os}}-python-${{inputs.python-version}}
+          key: ${{ matrix.os }}-python-${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-            pip install -e .[test]
+            pip install .[test]
       - name: Run unit tests
         run: pytest
