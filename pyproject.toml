@@ -44,6 +44,9 @@ addopts = """
 --cov trelliscope -ra
 """
 
+[tool.coverage.run]
+omit = [ "trelliscope/tests/*" ]
+
 testpaths = [
   "trelliscope/tests"
 ]
