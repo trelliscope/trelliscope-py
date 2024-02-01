@@ -21,7 +21,7 @@ jobs:
     # Only run entire test suite when triggered manually, or on push/PR to 'main' branch
     env:
       SHOULD_RUN: >
-        (github.event_name == 'push' && github.ref != 'refs/heads/main' && matrix.run_on_feature_branch)
+        (github.event_name == 'push' && matrix.run_on_feature_branch)
         || (github.event_name == 'push' && github.ref == 'refs/heads/main')
         || github.event_name != 'push'
 #        || github.event_name == 'workflow_dispatch'
