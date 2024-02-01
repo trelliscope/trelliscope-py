@@ -2,6 +2,11 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+#[tool.hatch.build]
+#include = [
+#  "/trelliscope/external_data/*.csv",
+#]
+
 [project]
 name = "trelliscope"
 dependencies = [
@@ -9,6 +14,7 @@ dependencies = [
     "kaleido == 0.1.*",
     "plotly >= 5.18.0",
     "plotly-express >= 0.4.1",
+    "importlib_resources;python_version<'3.9'"
 ]
 version = "0.0.0-alpha1"
 authors = [
