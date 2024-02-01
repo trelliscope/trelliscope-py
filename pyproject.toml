@@ -43,6 +43,8 @@ testpaths = [
   "trelliscope/tests"
 ]
 
+filterwarnings = ["ignore::DeprecationWarning:.*pytest_cov.*:"]
+
 [project.urls]
 "Homepage" = "https://github.com/trelliscope/trelliscope-py"
 "Bug Tracker" = "https://github.com/trelliscope/trelliscope-py/issues"
