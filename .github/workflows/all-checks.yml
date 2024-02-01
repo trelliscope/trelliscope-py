@@ -41,4 +41,3 @@ jobs:
     with:
       os: ubuntu-latest
       python-version: "3.11"
-      branch: ${{ inputs.branch }}

@@ -1,16 +1,21 @@
 name: Lint
 
-on: [ workflow_call ]
-
+on:
+  workflow_call:
+    inputs:
+      os:
+        type: string
+      python-version:
+        type: string
 jobs:
   linter:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.os }}
     steps:
       - name: Checkout Code Repository
         uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: ${{ inputs.python-version }}
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.0
