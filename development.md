@@ -29,15 +29,6 @@ In the root directory of the project, run:
 pip install -e .
 ```
 
-## Install other libraries
-While not tecnically required by Trelliscope, it is likely that you will want
-to install Plotly Express in the virtual environment and the corresponding `kaleido`
-to write Plotly images.
-```
-pip install plotly-express
-pip install kaleido
-```
-
 ## Verify Trelliscope package is accessible
 Run a simple trelliscope example:
 ```
@@ -45,13 +36,24 @@ python trelliscope/examples/fruit.py
 ```
 This creates a directory for the output called `./test-build-output/`
 
+## Install development libraries
+The standard dependencies are sufficient to use Trelliscope. If you plan to do development with Trelliscope you will also want to install the optional dependencies for "dev" and "test".
+
+Windows
+```
+pip install -e .[dev]
+```
+
+Please note that on MacOS the `[]` characters will be pulled out by the shell, so you should enclose them in `''` characters as follows:
+
+Linux/macOS
+```
+pip install -e .'[dev]'
+```
+
+
 ## Run the Unit tests
-### Installing PyTest
-If you do not already have PyTest installed, you can install it with:
-```
-pip install -U pytest
-```
-Verify installation:
+Verify pytest installation:
 ```
 pytest --version
 ```
@@ -59,12 +61,12 @@ pytest --version
 ### Running PyTest
 You can run all tests in the project:
 ```
-pytest trelliscope/tests
+pytest trelliscope/tests/
 ```
 
 Note that PyTest can also be invoked via Python on the command line:
 ```
-python -m pytest trelliscope/tests
+python -m pytest trelliscope/tests/
 ```
 
 Also note that, if desired, you can redirect the output to a file, or tee it so that it goes to a file and to the console:
@@ -80,7 +82,7 @@ This codebase uses Ruff to define and check codestyle.
 ### Install linting dependencies
 
 ```
-pip install -e .[lint]
+pip install -e .'[lint]'
 ```
 
 ### Run checks and formatter with Ruff
