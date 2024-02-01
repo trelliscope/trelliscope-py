@@ -25,11 +25,11 @@ classifiers = [
 dev = [
     "trelliscope[test]",
     "ruff~=0.1",
+    "pre-commit"
 ]
 test = [
     "pytest~=7.4",
-    "pytest-cov~=2.5",
-    "pre-commit"
+    "pytest-cov~=2.5"
 ]
 
 [tool.pytest.ini_options]
