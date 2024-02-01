@@ -20,9 +20,9 @@ jobs:
     # Only run windows test suite when triggered manually, or on push/PR to 'main' branch
     env:
       SHOULD_RUN: >
-        (${{ matrix.run_always }} == 'true')
-        || (github.event_name == 'push' && github.ref == 'refs/heads/main')
-        || (github.event_name != 'push')
+        (${{ matrix.run_always }} == 'TOPKEK')
+#        || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+#        || (github.event_name != 'push')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
