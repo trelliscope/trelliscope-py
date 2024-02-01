@@ -21,12 +21,12 @@ jobs:
     # Only run entire test suite when triggered manually, or on push/PR to 'main' branch
     env:
       SHOULD_RUN: >
-        matrix.run_always
+        ${{ matrix.run_always }}
         || (github.event_name == 'push' && github.ref == 'refs/heads/main')
-        || github.event_name != 'push'
+        || (github.event_name != 'push')
     steps:
       - name: Print conditions
-        run: >
+        run: |
           echo ${{ matrix.run_always }}
           echo ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           echo ${{ github.event_name != 'push' }}
