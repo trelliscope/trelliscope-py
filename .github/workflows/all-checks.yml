@@ -37,12 +37,8 @@ jobs:
       python-version: ${{ matrix.python-version }}
 
   lint:
-    strategy:
-      matrix:
-        os: [ ubuntu-latest ]
-        python-version: [ "3.11" ]
     uses: ./.github/workflows/lint.yml
     with:
-      os: ${{ matrix.os }}
-      python-version: ${{ matrix.python-version }}
+      os: ubuntu-latest
+      python-version: "3.11"
       branch: ${{ inputs.branch }}
