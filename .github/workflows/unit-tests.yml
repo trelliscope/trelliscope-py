@@ -25,7 +25,7 @@ jobs:
 #        || (github.event_name != 'push')
     steps:
       - name: Echo condition
-        if: env.SHOULD_RUN
+        if: ${{ env.SHOULD_RUN }}
         run: echo ${{ env.SHOULD_RUN }}
       - name: Checkout code
         uses: actions/checkout@v4
