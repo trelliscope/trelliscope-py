@@ -8,7 +8,8 @@ dependencies = [
     "pandas >= 1.5.2",
     "kaleido == 0.1.*",
     "plotly >= 5.18.0",
-    "plotly-express >= 0.4.1"
+    "plotly-express >= 0.4.1",
+    "numpy>=1.26.2"
 ]
 version = "0.0.0-alpha1"
 authors = [
@@ -23,7 +24,8 @@ classifiers = [
 [project.optional-dependencies]
 dev = [
     "trelliscope[test]",
-    "ruff~=0.1"
+    "ruff~=0.1",
+    "pre-commit"
 ]
 test = [
     "pytest~=7.4",
