@@ -25,11 +25,6 @@ jobs:
         || (github.event_name == 'push' && github.ref == 'refs/heads/main')
         || (github.event_name != 'push')
     steps:
-      - name: Print conditions
-        run: |
-          echo ${{ matrix.run_always }}
-          echo ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          echo ${{ github.event_name != 'push' }}
       - name: Checkout code
         uses: actions/checkout@v4
         if: env.SHOULD_RUN
