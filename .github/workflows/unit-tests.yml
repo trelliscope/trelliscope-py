@@ -17,7 +17,7 @@ jobs:
           - os: ubuntu-latest
             run_always: 'true'
     runs-on: ${{ matrix.os }}
-    # Only run entire test suite when triggered manually, or on push/PR to 'main' branch
+    # Only run windows test suite when triggered manually, or on push/PR to 'main' branch
     env:
       SHOULD_RUN: >
         (${{ matrix.run_always }} == 'true')
