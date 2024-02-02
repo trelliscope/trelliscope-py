@@ -2,6 +2,11 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build]
+packages = ["trelliscope"]
+exclude = ["trelliscope/tests"]
+
+
 [project]
 name = "trelliscope"
 dependencies = [
@@ -9,6 +14,7 @@ dependencies = [
     "kaleido == 0.1.*",
     "plotly >= 5.18.0",
     "plotly-express >= 0.4.1",
+    "importlib_resources;python_version<'3.9'"
 ]
 version = "0.0.0-alpha1"
 authors = [
@@ -16,7 +22,7 @@ authors = [
 ]
 description = "A python interface to the Trelliscope data science library."
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 classifiers = [
 ]
 
@@ -37,6 +43,9 @@ addopts = """
 --cov-report term-missing \
 --cov trelliscope -ra
 """
+
+[tool.coverage.run]
+omit = [ "trelliscope/tests/*" ]
 
 testpaths = [
   "trelliscope/tests"
