@@ -35,7 +35,7 @@ jobs:
         $SPHINX docs/ _build/html/
     - name: Create Pages artifact
       run: |
-        tar -czf github-pages.tar.gz docs/_build/html
+        tar -czf github-pages.tar.gz _build/html
   deploy:
       permissions:
         contents: read
