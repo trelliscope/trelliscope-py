@@ -1,7 +1,13 @@
 import copy
 import json
 
-from .state import DisplayState, FilterState, LabelState, LayoutState, SortState
+from trelliscope.state import (
+    DisplayState,
+    FilterState,
+    LabelState,
+    LayoutState,
+    SortState,
+)
 
 
 class View:

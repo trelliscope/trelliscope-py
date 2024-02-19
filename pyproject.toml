@@ -21,14 +21,20 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-dev = [
-    "trelliscope[test]",
-    "ruff~=0.1",
-    "pre-commit"
-]
 test = [
     "pytest~=7.4",
     "pytest-cov~=2.5"
+]
+docs = [
+    "sphinx~=7.2",
+    "nbsphinx~=0.9",
+    "sphinx-rtd-theme~=2.0",
+    "myst_parser~=2.0"
+]
+dev = [
+    "trelliscope[test,docs]",
+    "ruff~=0.1",
+    "pre-commit~=3.6"
 ]
 
 [tool.pytest.ini_options]
