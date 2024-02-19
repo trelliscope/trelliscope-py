@@ -5,6 +5,7 @@ import os
 import re
 from collections.abc import Iterable
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any, Callable
 
 import pandas as pd
@@ -546,12 +547,11 @@ def write_window_js_file(file_path: str, window_var_name: str, content: str):
         output_file.write(wrapped_content)
 
 
-def get_file_path(directory: str, filename_no_ext: str, jsonp: bool):
+def get_file_path(directory: str, filename_no_ext: str, jsonp: bool) -> str:
     file_ext = "jsonp" if jsonp else "json"
     filename = f"{filename_no_ext}.{file_ext}"
 
-    file_path = os.path.join(directory, filename)
-
+    file_path = (Path(directory) / filename).as_posix()
     return file_path
 
 
