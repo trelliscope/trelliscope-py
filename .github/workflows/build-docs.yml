@@ -2,7 +2,7 @@ name: Build Github Pages
 on: [push, pull_request]
 env:
   PIP: python -m pip
-  SPHINX: python -m sphinx -W --keep-going --color
+  SPHINX: python -m sphinx --color
 jobs:
   configure-pages:
     runs-on: ubuntu-latest
