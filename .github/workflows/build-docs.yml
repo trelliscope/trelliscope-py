@@ -26,4 +26,4 @@ jobs:
         $PIP install .[docs]
     - name: Build HTML
       run: |
-        $SPHINX doc/ _build/html/
+        $SPHINX docs/ _build/html/
