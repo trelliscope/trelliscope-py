@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 from collections.abc import Iterable
 from datetime import date, datetime
@@ -446,13 +445,9 @@ def get_extension(item: str) -> str:
     Returns:
         The extension (with no leading ".", so it will return "jpg" not ".jpg".)
     """
-    # Get the extension of the first item
-    (_, ext) = os.path.splitext(item)
-
-    # Remove the leading . in .jpg
-    ext = ext.removeprefix(".")
-
-    return ext
+    item_suffix = Path(item).suffix
+    extension = item_suffix.replace(".", "")
+    return extension
 
 
 def is_image_column(df: pd.DataFrame, col: str) -> bool:
@@ -540,7 +535,7 @@ def write_json_file(file_path: str, jsonp: bool, function_name: str, content: st
         output_file.write(wrapped_content)
 
 
-def write_window_js_file(file_path: str, window_var_name: str, content: str):
+def write_window_js_file(file_path: str, window_var_name: str, content: str) -> None:
     wrapped_content = f"window.{window_var_name} = {content}"
 
     with open(file_path, "w") as output_file:
@@ -551,8 +546,8 @@ def get_file_path(directory: str, filename_no_ext: str, jsonp: bool) -> str:
     file_ext = "jsonp" if jsonp else "json"
     filename = f"{filename_no_ext}.{file_ext}"
 
-    file_path = (Path(directory) / filename).as_posix()
-    return file_path
+    file_path = Path(directory) / filename
+    return file_path.as_posix()
 
 
 def read_jsonp(file: str) -> dict[str, Any]:

@@ -7,25 +7,15 @@ on:
         type: string
       python-version:
         type: string
-      branch:
-        type: string
-        default: ''
-
 jobs:
   linter:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.os }}
     steps:
       - name: Checkout Code Repository
         uses: actions/checkout@v4
-      - name: Cache python packages for Linux
-        if: inputs.os == 'ubuntu-latest'
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{inputs.os}}-python-${{inputs.python-version}}
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: ${{ inputs.python-version }}
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.0
