@@ -38,6 +38,7 @@ docs = [
     "sphinx-autodoc-typehints~=2.0",
     "myst_parser~=2.0",
     "ipython~=8.21",
+    "ipykernel~=6.29",
     "sphinx-copybutton~=0.5",
 ]
 dev = [
