@@ -52,21 +52,7 @@ html_static_path = ["_static"]
 # html_favicon = 'favicon.svg'
 html_title = project + " version " + release
 html_theme = "sphinx_rtd_theme"
-# html_theme_options = {
-#     'navigation_with_keys': True,
-#     'navbar_title': 'nbsphinx',
-#     'navbar_site_name': 'Pages',
-#     #'navbar_pagenav': False,
-#     'navbar_sidebarrel': True,
-#     'navbar_pagenav_name': 'This Page',
-#     #'globaltoc_depth': -1,
-#     'navbar_fixed_top': True,
-#     'source_link_position': 'none',
-#     #'bootswatch_theme': 'cosmo',
-#     #'bootswatch_theme': 'lumen',
-#     #'bootswatch_theme': 'sandstone',
-#     'bootswatch_theme': 'spacelab',
-# }
+html_theme_options = {}
 
 # Autodoc
 autodoc_member_order = "bysource"

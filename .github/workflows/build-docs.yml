@@ -1,4 +1,4 @@
-name: Build HTML on macOS
+name: Build Github Pages
 on: [push, pull_request]
 env:
   PIP: python -m pip

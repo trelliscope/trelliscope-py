@@ -29,7 +29,8 @@ docs = [
     "sphinx~=7.2",
     "nbsphinx~=0.9",
     "sphinx-rtd-theme~=2.0",
-    "myst_parser~=2.0"
+    "myst_parser~=2.0",
+    "ipython~=8.21",
 ]
 dev = [
     "trelliscope[test,docs]",

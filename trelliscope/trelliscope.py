@@ -184,11 +184,13 @@ class Trelliscope:
         """
         Adds the provided meta to the stored dictionary with a key of the meta's
         `varname`. If this key was already present it will be replaced.
-        Params:
-            meta: Meta - The Meta object to add.
 
-        Returns a copy of the Trelliscope object with the meta added. The original
-        Trelliscope object is not modified.
+        Args:
+            meta: The Meta object to add.
+
+        Returns:
+            Returns a copy of the Trelliscope object with the meta added. The original
+            Trelliscope object is not modified.
         """
         tr = self.__copy()
 
@@ -210,7 +212,8 @@ class Trelliscope:
     def set_metas(self, meta_list: list):
         """
         Helper method to add a list of metas at once.
-        Params:
+
+        Args:
             meta_list: list(Meta) - The list of meta objects to add.
 
         Returns a copy of the Trelliscope object with the metas added. The original
@@ -226,7 +229,8 @@ class Trelliscope:
     def set_state(self, state: DisplayState):
         """
         Sets the state to the provided one.
-        Params:
+
+        Args:
             state: DisplayState - The new state to add.
 
         Returns a copy of the Trelliscope object with the state added. The original
@@ -242,7 +246,8 @@ class Trelliscope:
         """
         Adds the provided view to the stored dictionary. The key will be the view's name,
         and it will replace a view of that name if it already existed.
-        Params:
+
+        Args:
             view: View - The view to add.
 
         Returns a copy of the Trelliscope object with the view added. The original
@@ -326,7 +331,7 @@ class Trelliscope:
         Returns the directory where the panels for this dataset are saved, which is
         a child of the display path for this particular dataset.
 
-        Params:
+        Args:
             panel_col:str - The name of the panel column.
             is_absolute:bool - Should an absolute path be returned? If not, a relative
                 path will be returned instead.
@@ -368,7 +373,7 @@ class Trelliscope:
         """
         Returns a json string of the information stored in this object.
 
-        Params:
+        Args:
             pretty: bool - Should the json be pretty printed / indented?
         """
         indent_value = None
@@ -454,7 +459,7 @@ class Trelliscope:
         Write the contents of this display. In the process, all necessary
         Trelliscope parameters will be inferred if they are not present.
 
-        Params:
+        Args:
             force_write: bool - Should the panels be forced to be written even
                 if they have already been written?
             jsonp: bool - If true, app files are written as "jsonp" format, otherwise
@@ -639,7 +644,7 @@ class Trelliscope:
         it will be used. Otherwise, a new config will be created and
         the config information returned.
 
-        Params:
+        Args:
             app_dir: str - The displays directory
             jsonp: bool - Should jsonp be used instead of json?
         """
@@ -746,7 +751,7 @@ class Trelliscope:
         Infers an individual meta variable from the provided column. If an appropriate
         Meta is not found for this column `None` is returned.
 
-        Params:
+        Args:
             meta_column: pd.Series - The Pandas column to infer from.
             meta_name: str - The name of the column.
 
@@ -993,7 +998,8 @@ class Trelliscope:
         """
         Copies an image to a new directory and updates the reference in the dataframe. This function is
         designed to be passed to a DataFrame.apply() call to copy each image
-        Params:
+
+        Args:
             row - The DataFrame row
             image_column:str - The name of the column containing the image
             output_dir_for_writing:str - Used for writing the image. It is most likely an
@@ -1052,7 +1058,8 @@ class Trelliscope:
     def _update_display_list(self, app_path: str, jsonp: bool, id: str):
         """
         Update the list of all displays in an app directory.
-        Params:
+
+        Args:
             app_path: str - The path where all of the displays are stored
             jsonp: bool - If true, files are read and written as "jsonp" format,
                 otherwise "json" format. The "jsonp" format makes it possible to browse a
@@ -1096,7 +1103,7 @@ class Trelliscope:
         """
         Writes the meta data file.
 
-        Params:
+        Args:
             jsonp: bool - Should jsonp format be used instead of json?
             id: str - The id for the data set.
         """
@@ -1165,7 +1172,8 @@ class Trelliscope:
         """
         Saves a figure object to an image file. This function is designed to be passed to
         a DataFrame.apply() call to write out each figure.
-        Params:
+
+        Args:
             row - The DataFrame row
             fig_column:str - The name of the figure column to write out
             output_dir_for_writing:str - Used for writing the image. It is most likely an
@@ -1285,7 +1293,8 @@ class Trelliscope:
     def set_default_labels(self, varnames: list):
         """
         Add a labels state specification to a trelliscope display.
-        Params:
+
+        Args:
             varnames:list(str) - The varnames for the labels.
 
         Returns a copy of the Trelliscope object. The original is not modified.
@@ -1305,7 +1314,8 @@ class Trelliscope:
     def set_default_layout(self, ncol: int = 1, page: int = 1):
         """
         Add a layout state specification to a trelliscope display.
-        Params:
+
+        Args:
             ncol:int - The number of columns.
             page:int - The number of pages.
 
@@ -1327,15 +1337,18 @@ class Trelliscope:
     ):
         """
         Adds a SortState to the Trelliscope.
-        Params:
-            varnames:list - A list of variable names to sort on.
-            sort_directions: - A list of "asc" and "desc" for each variable to sort on. If None,
+
+        Args:
+            varnames: A list of variable names to sort on.
+            sort_directions: A list of "asc" and "desc" for each variable to sort on. If None,
                 then ascending sort will be used for all variables. If a single direction is passed
                 in the list, it will be used for all varnames.
-            add:bool - Should an existing sort specification be added to? (If `False` (default),
+            add: Should an existing sort specification be added to? (If `False` (default),
                 the entire sort specification will be overridden).
 
-        Returns a copy of the Trelliscope object. The original is not modified.
+
+        Returns:
+            Returns a copy of the Trelliscope object. The original is not modified.
         """
         tr = self.__copy()
 
@@ -1368,7 +1381,8 @@ class Trelliscope:
     def set_default_filters(self, filters: list = [], add: bool = True):
         """
         Add a filter state specifications to a trelliscope display.
-        Params:
+
+        Args:
             filters:list - A list of FilterState specifications
             add:bool - Should existing filter state specifications be added to?
                 If False, the entire filter state specification will be overridden.
@@ -1396,7 +1410,7 @@ class Trelliscope:
         Sets the primary panel. Note that a panel with this name
         should already be defined as a panel.
 
-        Params:
+        Args:
             panel_column_name:str - The name of the panel column.
 
         Returns a copy of the Trelliscope object. The original is not modified.
@@ -1418,7 +1432,7 @@ class Trelliscope:
 
         If panel objects already exist for the associated panels, a warning will be generated.
 
-        Params:
+        Args:
             panel_options_dictionary:dict - This should be a dictionary mapping
                 the name of the panel to a `PanelOptions` object.
 
