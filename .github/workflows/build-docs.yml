@@ -1,0 +1,29 @@
+name: Build HTML on macOS
+on: [push, pull_request]
+env:
+  PIP: python -m pip
+  SPHINX: python -m sphinx -W --keep-going --color
+jobs:
+  html-macos:
+    runs-on: macos-latest
+    steps:
+    - name: Clone repo
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Install pandoc
+      run: |
+        brew install pandoc
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3
+    - name: Double-check Python version
+      run: |
+        python --version
+    - name: Install Python package
+      run: |
+        $PIP install .[docs]
+    - name: Build HTML
+      run: |
+        $SPHINX doc/ _build/html/
