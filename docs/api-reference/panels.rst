@@ -1,5 +1,5 @@
 Panels
-==========================================
+======
 
 .. automodule:: trelliscope.panels
   :members:

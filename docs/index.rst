@@ -13,16 +13,20 @@ Welcome to Trelliscope-py's documentation!
    :maxdepth: 4
    :hidden:
 
-   readme-link
+   quickstart
    notebooks/installation
    notebooks/introduction
 
 .. toctree::
    :caption: API
-   :maxdepth: 2
+   :maxdepth: 3
+   :hidden:
 
    api-reference/trelliscope
    api-reference/panels
+   api-reference/facets
+   api-reference/meta
+   api-reference/html_utils
 
 .. toctree::
    :caption: Development

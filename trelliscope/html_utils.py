@@ -20,9 +20,8 @@ def write_javascript_lib(output_path: str) -> None:
     """
     Writes the JavaScript lib code to the directory specified.
 
-    Params:
-        output_path:str - The path to the parent directory to
-            write to, (not including "lib").
+    Args:
+        output_path: The path to the parent directory to write to, (not including "lib").
     """
     for file in files(JAVASCRIPT_SOURCE_PACKAGE).iterdir():
         if file.is_dir():
@@ -35,6 +34,14 @@ def write_javascript_lib(output_path: str) -> None:
 def write_widget(
     output_path: str, trelliscope_id: str, config_info: str, is_spa: bool
 ) -> None:
+    """Write index.html file for trelliscope widget to ``output_path``.
+
+    Args:
+        output_path: Output directory to write index.html file to.
+        trelliscope_id: id of trelliscope widget that is referenced in index.html.
+        config_info: Filename of .jsonp file containing config info.
+        is_spa: Boolean whether widget is single-page-app.
+    """
     html_content = _get_index_html_content(
         output_path, trelliscope_id, config_info, is_spa
     )

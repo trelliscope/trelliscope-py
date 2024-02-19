@@ -12,6 +12,11 @@ CURRENCY_FILE = "external_data/currencies.csv"
 
 
 def get_valid_currencies() -> list[str]:
+    """Get a list of pre-defined currencies.
+
+    Returns:
+        A list of the ISO 4217 alpha code of common currencies.
+    """
     data = pkgutil.get_data(__name__, CURRENCY_FILE)
     currency_df = pd.read_csv(BytesIO(data))
 

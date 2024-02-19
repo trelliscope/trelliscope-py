@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 import pandas as pd
 
@@ -10,6 +11,9 @@ from trelliscope.panels import Panel
 class Meta:
     """
     The base class for all Meta variants.
+
+    The Meta objects describe each variable in the Trelliscope widget and controls
+    their filtering, sorting, tags, rounding, etc.
     """
 
     TYPE_STRING = "string"
@@ -32,6 +36,16 @@ class Meta:
         label: str = None,
         tags: list = None,
     ):
+        """
+
+        Args:
+            type: Type of the variable, should match one of the class TYPE_* attributes.
+            varname: Name of variable
+            filterable: Boolean whether variable can be filtered by.
+            sortable: Boolean whether variable can be sorted by.
+            label: Label of the variable being displayed.
+            tags: List of string tags used for categorizing the variable.
+        """
         self.type = type
         self.varname = varname
         self.filterable = filterable
@@ -49,29 +63,32 @@ class Meta:
         else:
             raise ValueError("Tags is an unrecognized type.")
 
-    def _get_error_message(self, error_text: str):
-        """
-        Returns a generic error message string using the provided text,
-        combined with the the Meta type and varname.
-        Params:
-            error_text: str - the text of the message to include
+    def _get_error_message(self, error_text: str) -> str:
+        """Returns a generic error message string using the provided text,
+        combined with the Meta type and varname.
+
+        Args:
+            error_text: The text of the message to include
         """
         return f"While defining a `{self.type}` meta variable for the variable `{self.varname}`: `{error_text}`"
 
-    def _get_data_error_message(self, error_text: str):
-        """
-        Returns a data specific error message string using the provided text,
-        combined with the the varname.
-        Params:
+    def _get_data_error_message(self, error_text: str) -> str:
+        """Returns a data specific error message string using the provided text,
+        combined with the varname.
+
+        Args:
             error_text: str - the text of the message to include
         """
         return f"While checking meta variable definition for variable `{self.varname}` against the data: `{error_text}`"
 
-    def to_dict(self) -> dict:
-        """
-        Gets a dictionary containing the attributes of the meta. This
-        could be used directly, but if JSON is desired, consider using the
+    def to_dict(self) -> dict[str, Any]:
+        """Gets a dictionary containing the attributes of the meta.
+
+        This could be used directly, but if JSON is desired, consider using the
         `to_json` method instead, which calls this one internally.
+
+        Returns:
+            A dictionary of this class properties.
         """
         # Default __dict__ behavior is sufficient, because we don't have custom inner types
         result = self.__dict__.copy()
@@ -83,11 +100,14 @@ class Meta:
         return result
 
     def to_json(self, pretty: bool = True) -> str:
-        """
-        Gets a JSON string containing all the attributes of a meta. This
+        """Gets a JSON string containing all the attributes of a meta. This
         is used when serializing.
-        Params:
-            pretty: bool - Whether to pretty print the JSON for the string.
+
+        Args:
+            pretty: Boolean whether to dump JSON with indent=2.
+
+        Returns:
+            JSON representation of this object.
         """
         indent_value = None
 
@@ -96,46 +116,52 @@ class Meta:
 
         return json.dumps(self.to_dict(), indent=indent_value)
 
-    def check_varname(self, df: pd.DataFrame):
-        """
-        Ensures that the varname exists as a column in the provided
-        pandas DataFrame. If it does not, this will raise an error.
-        Params:
-            df: Pandas DataFrame - The dataframe that should contain the column.
+    def check_varname(self, df: pd.DataFrame) -> None:
+        """Assert that the varname exists as a column in the provided
+        pandas DataFrame.
+
+        Args:
+            df: The dataframe that should contain the column.
+
         Raises:
-            ValueError - If the varname is not found.
+            ValueError: If the varname is not found.
         """
         utils.check_has_variable(df, self.varname, self._get_error_message)
 
-    def check_variable(self, df: pd.DataFrame):
-        """
-        Overridden in sub-classes to contain any variable checks specific
-        to that type. If the check fails, this will raise an error.
+    def check_variable(self, df: pd.DataFrame) -> None:
+        """Overridden in sub-classes to contain any variable checks specific
+        to that type.
+
+        If the check fails, this should raise an error.
+
         Params:
-            df: Pandas DataFrame - The dataframe that to check against.
+            df: he dataframe that to check.
         Raises:
-            ValueError - If the check fails.
+            ValueError: If the check fails.
         """
-        # To be overridden by sub classes
         pass
 
-    def check_with_data(self, df: pd.DataFrame):
-        """
-        Runs all checks of this meta against the data. Calls methods
-        to check that the variable exists in the dataframe and any
+    def check_with_data(self, df: pd.DataFrame) -> None:
+        """Runs checks of this meta on the ``df``.
+
+        Calls methods to check that the variable exists in the dataframe and any
         additional checks for specific sub classes. If these checks fail,
         this will raise an error.
+
         Params:
-            df: Pandas DataFrame - The dataframe to check against.
+            df: The dataframe to check.
         Raises:
-            ValueError - If the check fails.
+            ValueError: If any of the checks fail.
         """
         self.check_varname(df)
         self.check_variable(df)
 
 
 class NumberMeta(Meta):
-    """A Meta for numeric data."""
+    """A Meta for numeric data.
+
+    A Number Meta is always filterable and sortable.
+    """
 
     def __init__(
         self,
@@ -145,6 +171,18 @@ class NumberMeta(Meta):
         digits: int = None,
         locale: bool = True,
     ):
+        """
+
+        Args:
+            varname: Name of variable.
+            label: Label of the variable being displayed.
+            tags: List of string tags used for categorizing the variable.
+            digits: Number of digits to display in the variable.
+            locale: Boolean choice whether to use locale for digits (TODO: describe this.)
+
+        Raises:
+            ValueError: If ``digits`` is not an integer scalar. Or, if ``locale`` is given but ``digits`` is not.
+        """
         super().__init__(
             type=Meta.TYPE_NUMBER,
             varname=varname,
@@ -166,9 +204,13 @@ class NumberMeta(Meta):
         self.locale = locale
 
     def check_variable(self, df: pd.DataFrame):
-        """
-        Verifies that the column in the data frame specified by
-        the varname is numeric.
+        """Verifies that the column in the data frame specified by the varname is numeric.
+
+        Args:
+            df: Dataframe that should contain a column matching ``self.varname``.
+
+        Raises:
+            ValueError: if ``self.varname`` column in the data frame is not numeric.
         """
         utils.check_numeric(df, self.varname, self._get_data_error_message)
 

@@ -6,10 +6,11 @@ from trelliscope.panel_source import FilePanelSource, PanelSource
 
 
 class PanelOptions:
-    """
-    Stores settings associated with panel. The PanelOptions object is used by the `Trelliscope`
-    `set_panel_options` method to pre-specify information about the `Panel` before it is actually
-    created. Then, later when the `Panel` object is inferred, data from this object will be used
+    """Stores settings associated with panel.
+
+    The PanelOptions object is used by the :func:`trelliscope.trelliscope.Trelliscope.set_panel_options`
+    method to pre-specify information about the :class:`.Panel` before it is actually
+    created. Then, later when the :class:`.Panel` object is inferred, data from this object will be used
     to populate it.
     """
 
@@ -23,6 +24,22 @@ class PanelOptions:
         type: str = None,
         aspect: float = None,
     ) -> None:
+        """
+
+        Args:
+            width: Strictly positive integer representing the panel width in pixels.
+            height: Stricly positive integer representing the panel height in pixels.
+            format: One of 'png', 'svg' or 'html'. If `None` then is inferred.
+            force: (Default False) Whether to force creation of plots, even if they already exist.
+            prerender: (Default True) Prerender.
+            type: Type of panel. TODO: list possible types.
+            aspect: Aspect ratio of the panel, if not given it is determined from ``width`` / ``height``.
+
+        Raises:
+            ValueError: If ``width`` or ``height`` is not a positive numeric value.
+                Or, if ``force`` or ``prerender`` is not a boolean.
+                Or, if ``format`` not an allowed value.
+        """
         utils.check_positive_numeric(width, "width")
         utils.check_positive_numeric(height, "height")
         utils.check_bool(force, "force")
