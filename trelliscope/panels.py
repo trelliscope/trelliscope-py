@@ -1,8 +1,8 @@
+"""Panels module."""
 import pandas as pd
 
 from trelliscope import utils
-
-from .panel_source import FilePanelSource, PanelSource
+from trelliscope.panel_source import FilePanelSource, PanelSource
 
 
 class PanelOptions:
@@ -45,6 +45,8 @@ class PanelOptions:
 
 
 class Panel:
+    """Base Panel object."""
+
     _FIGURE_SUFFIX = "__FIGURE"
     _PANEL_TYPE_IMAGE = "img"
     _PANEL_TYPE_IFRAME = "iframe"

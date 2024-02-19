@@ -3,9 +3,8 @@ import json
 import pandas as pd
 
 from trelliscope import utils
-
-from .panel_source import PanelSource
-from .panels import Panel
+from trelliscope.panel_source import PanelSource
+from trelliscope.panels import Panel
 
 
 class Meta:

@@ -1,3 +1,4 @@
+"""Trelliscope main interface module."""
 from __future__ import annotations
 
 import copy
@@ -33,8 +34,7 @@ from trelliscope.state import (
     LayoutState,
     SortState,
 )
-
-from .view import View
+from trelliscope.view import View
 
 logging.basicConfig(level=logging.INFO)
 
@@ -67,10 +67,9 @@ class Trelliscope:
         keysig: str = None,
         server: str = None,
     ):
-        """
-        Instantiate a Trelliscope display object.
+        """Instantiate a Trelliscope display object.
 
-        Params:
+        Args:
             dataFrame: A data frame that contains the metadata of the display as well as
                 a column that indicates the panels to be displayed.
             name: Name of the trelliscope display.
@@ -260,15 +259,16 @@ class Trelliscope:
 
         return tr
 
-    def add_input(self, input: Input):
+    def add_input(self, input: Input) -> Trelliscope:
         """
         Adds the provided input to the stored dictionary. The key will be the input's name,
         and it will replace an input of that name if it already existed.
-        Params:
-            input: Input - The input to add.
 
-        Returns a copy of the Trelliscope object. The original
-        Trelliscope object is not modified.
+        Args:
+            input: The input to add.
+
+        Returns:
+            Returns a copy of the Trelliscope object. The original Trelliscope object is not modified.
         """
         tr = self.__copy()
 

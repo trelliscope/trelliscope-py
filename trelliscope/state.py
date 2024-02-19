@@ -7,8 +7,7 @@ from datetime import date, datetime
 import pandas as pd
 
 from trelliscope import utils
-
-from .metas import Meta
+from trelliscope.metas import Meta
 
 
 class State:
