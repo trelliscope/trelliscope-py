@@ -1,5 +1,5 @@
-import os
 import tempfile
+from pathlib import Path
 
 from trelliscope import html_utils
 
@@ -35,9 +35,9 @@ def test_write_index_html():
             output_dir, trelliscope_id=id, javascript_version=version
         )
 
-        index_html_file = os.path.join(output_dir, "index.html")
+        index_html_file = Path(output_dir) / "index.html"
 
-        assert os.path.isfile(index_html_file)
+        assert Path(index_html_file).is_file()
 
         with open(index_html_file) as input_file:
             html = input_file.read()

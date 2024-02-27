@@ -2,7 +2,7 @@
 Contains utility functions that facilitate the html, JavaScript,
 and other widgets needed for Trelliscope viewing.
 """
-import os
+from pathlib import Path
 
 
 def write_index_html(
@@ -25,7 +25,7 @@ def write_index_html(
         javascript_version = "0.7.5"
 
     html_content = _get_index_html_content(trelliscope_id, javascript_version)
-    html_file = os.path.join(output_path, "index.html")
+    html_file = Path(output_path) / "index.html"
 
     with open(html_file, "w") as output_file:
         output_file.write(html_content)
