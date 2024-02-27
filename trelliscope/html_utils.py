@@ -1,6 +1,5 @@
 """
-Contains utility functions that facilitate the html, JavaScript,
-and other widgets needed for Trelliscope viewing.
+Contains utility functions that facilitate writing the html and support files for viewing.
 """
 from pathlib import Path
 
