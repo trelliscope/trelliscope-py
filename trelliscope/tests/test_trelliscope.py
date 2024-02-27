@@ -75,16 +75,6 @@ def test_standard_setup(iris_df_no_duplicates: pd.DataFrame):
         # Clean up
 
 
-def test_write_javascript(mars_df: pd.DataFrame):
-    with tempfile.TemporaryDirectory() as output_dir:
-        tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
-        tr._create_output_dirs()
-        tr._write_javascript_lib()
-
-        expected_lib_dir = os.path.join(tr.get_output_path(), "lib")
-        assert os.path.isdir(expected_lib_dir)
-
-
 def test_get_thumbnail_url(mars_df: pd.DataFrame):
     """
     Tests the case where the thumbnail url is simply the first row

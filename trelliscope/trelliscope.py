@@ -506,8 +506,7 @@ class Trelliscope:
         # name (ie. the output path)
         tr._update_display_list(tr.get_output_path(), jsonp, config["id"])
 
-        tr._write_javascript_lib()
-        tr._write_widget()
+        tr._write_index_html()
 
         logging.info(f"Trelliscope written to `{tr.get_output_path()}`")
 
@@ -1135,22 +1134,12 @@ class Trelliscope:
             content=meta_data_json,
         )
 
-    def _write_javascript_lib(self):
+    def _write_index_html(self):
         """
-        Writes the JavaScript libraries to the output directory
+        Writes the main index.html file for the Trelliscope.
         """
         output_path = self.get_output_path()
-        html_utils.write_javascript_lib(output_path)
-
-    def _write_widget(self):
-        output_path = self.get_output_path()
-        config_path = self._get_existing_config_filename()
-        config_file = os.path.basename(config_path)
-
-        id = self.id
-        is_spa = True
-
-        html_utils.write_widget(output_path, id, config_file, is_spa)
+        html_utils.write_index_html(output_path, self.id)
 
     @staticmethod
     def __write_figure(
