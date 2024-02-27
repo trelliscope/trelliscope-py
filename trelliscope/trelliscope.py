@@ -55,7 +55,7 @@ class Trelliscope:
 
     def __init__(
         self,
-        dataFrame: pd.DataFrame,
+        data_frame: pd.DataFrame,
         name: str,
         description: str = None,
         key_cols=None,
@@ -66,12 +66,13 @@ class Trelliscope:
         pretty_meta_data: bool = False,
         keysig: str = None,
         server: str = None,
+        javascript_version: str = None,
     ):
         """
         Instantiate a Trelliscope display object.
 
-        Params:
-            dataFrame: A data frame that contains the metadata of the display as well as
+        Args:
+            data_frame: A data frame that contains the metadata of the display as well as
                 a column that indicates the panels to be displayed.
             name: Name of the trelliscope display.
             description: Description of the trelliscope display. If none is provided, the
@@ -84,11 +85,15 @@ class Trelliscope:
                 using [`write_display()`].
             force_plot: Should the panels be forced to be plotted, even if they have
                 already been plotted and have not changed since the previous plotting?
+            javascript_version = None: If a specific version of the Trelliscope JavaScript
+                from the CDN is desired it can be specified here. If the default value of
+                `None` is provided, the JavaScript version compatible with this version
+                of the Python Package will be used.
         """
 
         # TODO: Add lots of checks here to ensure the data types match etc
 
-        self.data_frame: pd.DataFrame = dataFrame
+        self.data_frame: pd.DataFrame = data_frame
         self.name: str = name
         self.description: str = description
         self.tags: list = tags
@@ -99,6 +104,7 @@ class Trelliscope:
         self.keysig: str = keysig
         self.server: str = server
         self.thumbnail_url: str = None
+        self.javascript_version = javascript_version
 
         self.facet_cols: list = None
 
@@ -1139,7 +1145,11 @@ class Trelliscope:
         Writes the main index.html file for the Trelliscope.
         """
         output_path = self.get_output_path()
-        html_utils.write_index_html(output_path, self.id)
+        html_utils.write_index_html(
+            output_path=output_path,
+            trelliscope_id=self.id,
+            javascript_version=self.javascript_version,
+        )
 
     @staticmethod
     def __write_figure(
