@@ -4,6 +4,8 @@ and other widgets needed for Trelliscope viewing.
 """
 from pathlib import Path
 
+DEFAULT_JAVASCRIPT_VERSION = "0.7.5"
+
 
 def write_index_html(
     output_path: str, trelliscope_id: str, javascript_version: str = None
@@ -21,8 +23,7 @@ def write_index_html(
     """
 
     if javascript_version is None:
-        # TODO: Read this from the main config file
-        javascript_version = "0.7.5"
+        javascript_version = DEFAULT_JAVASCRIPT_VERSION
 
     html_content = _get_index_html_content(trelliscope_id, javascript_version)
     html_file = Path(output_path) / "index.html"
