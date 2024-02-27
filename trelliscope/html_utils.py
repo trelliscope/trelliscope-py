@@ -60,3 +60,19 @@ def _get_index_html_content(trelliscope_id: str, javascript_version: str) -> str
 </html>
 """
     return index_html_content
+
+
+def write_id_file(output_path: str, trelliscope_id: str) -> None:
+    """
+    Writes the id file that belongs in the main output directory.
+
+    Args:
+        output_path: The absolute path to the directory that will contain
+            the file.
+        trelliscope_id: The ID of the Trelliscope object.
+    """
+
+    id_file = Path(output_path) / "id"
+
+    with open(id_file, "w") as output_file:
+        output_file.write(trelliscope_id)

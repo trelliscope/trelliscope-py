@@ -119,7 +119,7 @@ class Trelliscope:
 
         # In R, the id is only 8 digits, but it should not hurt to use a proper uuid
         # self.id = uuid.uuid4().hex[:8] # This would only use 8 digits as in the R version
-        self.id = uuid.uuid4().hex[:8]  # This uses a proper uuid
+        self.id = uuid.uuid4().hex  # This uses a proper uuid
 
         if self.description is None:
             self.description = self.name
@@ -512,7 +512,7 @@ class Trelliscope:
         # name (ie. the output path)
         tr._update_display_list(tr.get_output_path(), jsonp, config["id"])
 
-        tr._write_index_html()
+        tr._write_index_and_id_files()
 
         logging.info(f"Trelliscope written to `{tr.get_output_path()}`")
 
@@ -1140,9 +1140,9 @@ class Trelliscope:
             content=meta_data_json,
         )
 
-    def _write_index_html(self):
+    def _write_index_and_id_files(self) -> None:
         """
-        Writes the main index.html file for the Trelliscope.
+        Writes the main index.html file and the id file for the Trelliscope.
         """
         output_path = self.get_output_path()
         html_utils.write_index_html(
@@ -1150,6 +1150,8 @@ class Trelliscope:
             trelliscope_id=self.id,
             javascript_version=self.javascript_version,
         )
+
+        html_utils.write_id_file(output_path=output_path, trelliscope_id=self.id)
 
     @staticmethod
     def __write_figure(

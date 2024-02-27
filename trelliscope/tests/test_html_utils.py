@@ -53,3 +53,19 @@ def test_write_index_html():
 
             assert f"<body onload=\"trelliscopeApp('{id}', 'config.jsonp')\">" in html
             assert f'<div id="{id}" class="trelliscope-spa">' in html
+
+
+def test_write_id_file():
+    id = "def456"
+
+    with tempfile.TemporaryDirectory() as output_dir:
+        html_utils.write_id_file(output_dir, trelliscope_id=id)
+
+        id_file = Path(output_dir) / "id"
+
+        assert Path(id_file).is_file()
+
+        with open(id_file) as input_file:
+            id_from_file = input_file.read()
+
+            assert id_from_file.strip() == id

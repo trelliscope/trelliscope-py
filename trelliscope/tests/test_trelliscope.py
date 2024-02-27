@@ -72,7 +72,12 @@ def test_standard_setup(iris_df_no_duplicates: pd.DataFrame):
         )
         tr.write_display()
 
-        # Clean up
+        id_file = os.path.join(tr.get_output_path(), "id")
+
+        with open(id_file) as input_file:
+            id_from_file = input_file.read()
+
+            assert id_from_file.strip() == tr.id
 
 
 def test_standard_setup_explicit_javascript_version(
