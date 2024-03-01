@@ -69,6 +69,7 @@ html_theme = "sphinx_rtd_theme"
 html_theme_options = {}
 # pygments_style, pygments_dark_style = "sphinx", "monokai"
 
+nbsphinx_execute = "always"
 nbsphinx_kernel_name = "python3"
 
 intersphinx_mapping = {
