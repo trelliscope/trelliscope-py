@@ -1,62 +1,71 @@
-import os
-import re
 import tempfile
-
-import pandas as pd
+from pathlib import Path
 
 from trelliscope import html_utils
 
 
-def test_write_javascript(mars_df: pd.DataFrame):
-    with tempfile.TemporaryDirectory() as output_dir:
-        html_utils.write_javascript_lib(output_dir)
-
-        expected_lib_dir = os.path.join(output_dir, "lib")
-        assert os.path.isdir(expected_lib_dir)
-
-        files = os.listdir(expected_lib_dir)
-
-        # Check if at least one item in the directory contains the
-        # substring with part of the expected lib name (we don't want to)
-        # test for a certain version number
-        assert any(("htmlwidgets-" in file) for file in files)
-        assert any(("trs-" in file) for file in files)
-        assert any(("trs-binding-" in file) for file in files)
-
-        for file in files:
-            if "trelliscope_widget-binding" in file:
-                widget_binding_dir = os.path.join(expected_lib_dir, file)
-
-                widget_files = os.listdir(widget_binding_dir)
-                assert "trelliscope_widget.js" in widget_files
-
-
 def test_get_index_html_content():
-    with tempfile.TemporaryDirectory() as output_dir:
+    version = "0.2.3"
+    id = "abc123"
+
+    with tempfile.TemporaryDirectory():
         html = html_utils._get_index_html_content(
-            output_dir, "abc123", "config.jsonp", True
+            trelliscope_id=id, javascript_version=version
         )
 
-        assert '<script src="lib/htmlwidgets' in html
-        assert '<script src="lib/trs-binding' in html
-        assert '<div id="htmlwidget-' in html
-        assert re.search(r'"id":\s*"abc123"', html)
-        assert re.search(r'"config_info":\s*"config.jsonp"', html)
+        assert (
+            f'<script src="https://unpkg.com/trelliscopejs-lib@{version}/dist/assets/index.js"></script>'
+            in html
+        )
+        assert (
+            f'<link href="https://unpkg.com/trelliscopejs-lib@{version}/dist/assets/index.css" rel="stylesheet" />'
+            in html
+        )
+
+        assert f"<body onload=\"trelliscopeApp('{id}', 'config.jsonp')\">" in html
+        assert f'<div id="{id}" class="trelliscope-spa">' in html
 
 
-def test_write_widget():
+def test_write_index_html():
+    version = "0.4.6"
+    id = "def456"
+
     with tempfile.TemporaryDirectory() as output_dir:
-        html_utils.write_widget(output_dir, "abc123", "config.jsonp", True)
+        html_utils.write_index_html(
+            output_dir, trelliscope_id=id, javascript_version=version
+        )
 
-        index_html_file = os.path.join(output_dir, "index.html")
+        index_html_file = Path(output_dir) / "index.html"
 
-        assert os.path.isfile(index_html_file)
+        assert Path(index_html_file).is_file()
 
         with open(index_html_file) as input_file:
             html = input_file.read()
 
-            assert '<script src="lib/htmlwidgets' in html
-            assert '<script src="lib/trs-binding' in html
-            assert '<div id="htmlwidget-' in html
-            assert re.search(r'"id":\s*"abc123"', html)
-            assert re.search(r'"config_info":\s*"config.jsonp"', html)
+            assert (
+                f'<script src="https://unpkg.com/trelliscopejs-lib@{version}/dist/assets/index.js"></script>'
+                in html
+            )
+            assert (
+                f'<link href="https://unpkg.com/trelliscopejs-lib@{version}/dist/assets/index.css" rel="stylesheet" />'
+                in html
+            )
+
+            assert f"<body onload=\"trelliscopeApp('{id}', 'config.jsonp')\">" in html
+            assert f'<div id="{id}" class="trelliscope-spa">' in html
+
+
+def test_write_id_file():
+    id = "def456"
+
+    with tempfile.TemporaryDirectory() as output_dir:
+        html_utils.write_id_file(output_dir, trelliscope_id=id)
+
+        id_file = Path(output_dir) / "id"
+
+        assert Path(id_file).is_file()
+
+        with open(id_file) as input_file:
+            id_from_file = input_file.read()
+
+            assert id_from_file.strip() == id
