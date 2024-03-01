@@ -1,8 +1,3 @@
-.. Trelliscope-py documentation master file, created by
-   sphinx-quickstart on Mon Feb 19 16:10:43 2024.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Welcome to Trelliscope-py's documentation!
 ==========================================
 
@@ -10,23 +5,25 @@ Welcome to Trelliscope-py's documentation!
 
 .. toctree::
    :caption: Getting started
-   :maxdepth: 4
-   :hidden:
+   :maxdepth: 3
 
-   quickstart
+   notebooks/quickstart
    notebooks/installation
-   notebooks/introduction
 
 .. toctree::
-   :caption: API
+   :caption: Usage
+   :maxdepth: 2
+
+   notebooks/example_mars_rover
+   notebooks/example_fruit_from_urls
+   notebooks/example_gapminder
+
+.. toctree::
+   :caption: API reference
    :maxdepth: 3
    :hidden:
 
-   api-reference/trelliscope
-   api-reference/panels
-   api-reference/facets
-   api-reference/meta
-   api-reference/html_utils
+   api_reference/modules
 
 .. toctree::
    :caption: Development
