@@ -66,6 +66,7 @@ class Trelliscope:
         pretty_meta_data: bool = False,
         keysig: str = None,
         server: str = None,
+        show_progress_bar: bool = True,
     ):
         """Instantiate a Trelliscope display object.
 
@@ -98,6 +99,7 @@ class Trelliscope:
         self.keysig: str = keysig
         self.server: str = server
         self.thumbnail_url: str = None
+        self.show_progress_bar = show_progress_bar
 
         self.facet_cols: list = None
 
@@ -1250,7 +1252,10 @@ class Trelliscope:
             # SB: For now, let's preserve the old with another column
             tr.data_frame[panel.figure_varname] = tr.data_frame[panel_col]
 
-            progress_bar = ProgressBar(len(tr.data_frame), "Saving Images:")
+            if tr.show_progress_bar is True:
+                progress_bar = ProgressBar(len(tr.data_frame), "Saving Images:")
+            else:
+                progress_bar = None
 
             tr.data_frame[panel_col] = tr.data_frame.apply(
                 lambda row: Trelliscope.__write_figure(
