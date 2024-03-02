@@ -71,16 +71,7 @@ filterwarnings = ["ignore::DeprecationWarning:.*pytest_cov.*:"]
 [tool.ruff]
 line-length = 88
 show-fixes = true
-select = [
-    "F",   # Pyflakes
-    "W",   # pycodestyle
-    "E",   # pycodestyle
-    "I",   # isort
-    "UP",  # pyupgrade
-    "PL",  # Pylint
-    "T201", # Print Statement
-    "S", # flake8-bandit
-]
+
 
 [tool.ruff.lint]
 select = [
@@ -92,19 +83,23 @@ select = [
     "PL",  # Pylint
     "T201", # Print Statement
     "S", # flake8-bandit
+    "D", # pydocstyle
 ]
-ignore = ["E501", "PLR0913"]  # allow too-long lines if they cannot be fixed safely, and dont check N function arguments.
+ignore = ["E501", "PLR0913", "D417"]  # allow too-long lines if they cannot be fixed safely, and dont check N function arguments.
 
 [tool.ruff.lint.isort]
 known-first-party = ["trelliscope"]
 
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.ruff.lint.flake8-tidy-imports]
 # Disallow all relative imports.
 ban-relative-imports = "all"
 
 [tool.ruff.lint.per-file-ignores]
-"{*/__init__.py}" = ["F401"]  # allow unused imports in __init__ files
+"{*/__init__.py}" = ["F401","D104"]  # allow unused imports in __init__ files and dont require docstrings
+"{trelliscope/tests/*,docs/*}" = ["D"]  # Dont check docstrings in tests
 "{trelliscope/tests/*}" = ["S101"]  # Allow 'assert' in tests
 "{trelliscope/examples/*,trelliscope/progress_bar.py}" = ["T201"]  # Allow 'print' statements in examples and progress_bar
 [tool.mypy]
