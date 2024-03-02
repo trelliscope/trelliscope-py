@@ -1,3 +1,8 @@
+"""Meta objects that configure the types of Trelliscope variables.
+
+A Meta contains configuration for a single variable in Trelliscope, which
+can be a number, datetime, graph, or one of many other types.
+"""
 from __future__ import annotations
 
 import json
@@ -11,8 +16,7 @@ from trelliscope.panels import Panel
 
 
 class Meta:
-    """
-    The base class for all Meta variants.
+    """The base class for all Meta variants.
 
     The Meta objects describe each variable in the Trelliscope widget and controls
     their filtering, sorting, tags, rounding, etc.
@@ -38,7 +42,7 @@ class Meta:
         label: str = None,
         tags: list = None,
     ):
-        """
+        """Create the Meta object.
 
         Args:
             type: Type of the variable, should match one of the class TYPE_* attributes.
@@ -66,22 +70,30 @@ class Meta:
             raise ValueError("Tags is an unrecognized type.")
 
     def _get_error_message(self, error_text: str) -> str:
-        """Returns a generic error message string using the provided text,
-        combined with the Meta type and varname.
+        """Returns a generic error message string using the provided text.
+
+        Includes the Meta type and varname in the message.
 
         Args:
             error_text: The text of the message to include
         """
-        return f"While defining a `{self.type}` meta variable for the variable `{self.varname}`: `{error_text}`"
+        return (
+            f"While defining a `{self.type}` meta variable for the variable "
+            f"`{self.varname}`: `{error_text}`"
+        )
 
     def _get_data_error_message(self, error_text: str) -> str:
-        """Returns a data specific error message string using the provided text,
-        combined with the varname.
+        """Returns a data specific error message string using the provided text.
+
+        Includes the Meta type and varname in the message.
 
         Args:
-            error_text: str - the text of the message to include
+            error_text: The text of the message to include
         """
-        return f"While checking meta variable definition for variable `{self.varname}` against the data: `{error_text}`"
+        return (
+            f"While checking meta variable definition for variable `{self.varname}` "
+            f"against the data: `{error_text}`"
+        )
 
     def to_dict(self) -> dict[str, Any]:
         """Gets a dictionary containing the attributes of the meta.
@@ -102,8 +114,9 @@ class Meta:
         return result
 
     def to_json(self, pretty: bool = True) -> str:
-        """Gets a JSON string containing all the attributes of a meta. This
-        is used when serializing.
+        """Gets a JSON string containing all the attributes of a meta.
+
+        This is used when serializing.
 
         Args:
             pretty: Boolean whether to dump JSON with indent=2.
@@ -119,11 +132,7 @@ class Meta:
         return json.dumps(self.to_dict(), indent=indent_value)
 
     def check_varname(self, df: pd.DataFrame) -> None:
-        """Assert that the varname exists as a column in the provided
-        pandas DataFrame.
-
-        Args:
-            df: The dataframe that should contain the column.
+        """Check that the variable column exists.
 
         Raises:
             ValueError: If the varname is not found.
@@ -131,27 +140,28 @@ class Meta:
         utils.check_has_variable(df, self.varname, self._get_error_message)
 
     def check_variable(self, df: pd.DataFrame) -> None:
-        """Overridden in sub-classes to contain any variable checks specific
-        to that type.
+        """Overridden in subclasses to contain more specific checks.
 
         If the check fails, this should raise an error.
 
         Params:
-            df: he dataframe that to check.
+            df: The dataframe to check.
+
         Raises:
             ValueError: If the check fails.
         """
         pass
 
     def check_with_data(self, df: pd.DataFrame) -> None:
-        """Runs checks of this meta on the ``df``.
+        """Runs checks of this meta on the dataframe.
 
         Calls methods to check that the variable exists in the dataframe and any
-        additional checks for specific sub classes. If these checks fail,
+        additional checks for specific subclasses. If these checks fail,
         this will raise an error.
 
         Params:
             df: The dataframe to check.
+
         Raises:
             ValueError: If any of the checks fail.
         """
@@ -173,7 +183,7 @@ class NumberMeta(Meta):
         digits: int = None,
         locale: bool = True,
     ):
-        """
+        """Create Meta for numeric data.
 
         Args:
             varname: Name of variable.
@@ -206,10 +216,7 @@ class NumberMeta(Meta):
         self.locale = locale
 
     def check_variable(self, df: pd.DataFrame):
-        """Verifies that the column in the data frame specified by the varname is numeric.
-
-        Args:
-            df: Dataframe that should contain a column matching ``self.varname``.
+        """Check that the variable column is a numeric type.
 
         Raises:
             ValueError: if ``self.varname`` column in the data frame is not numeric.
@@ -220,7 +227,17 @@ class NumberMeta(Meta):
 class CurrencyMeta(Meta):
     """A Meta for currency data."""
 
-    def __init__(self, varname, label: str = None, tags: list = None, code="USD"):
+    def __init__(
+        self, varname, label: str = None, tags: list[str] = None, code: str = "USD"
+    ):
+        """Create Meta for currencies.
+
+        Args:
+            varname: Name of the variable.
+            label: Displayed label of the variable.
+            tags: list of string tags.
+            code: Currency code, default 'USD'.
+        """
         super().__init__(
             type=Meta.TYPE_CURRENCY,
             varname=varname,
@@ -239,9 +256,10 @@ class CurrencyMeta(Meta):
         self.code = code
 
     def check_variable(self, df: pd.DataFrame):
-        """
-        Verifies that the column in the data frame specified by
-        the varname is numeric.
+        """Check that the variable column is a numeric type.
+
+        Raises:
+            ValueError: if ``self.varname`` column in the data frame is not numeric.
         """
         utils.check_numeric(df, self.varname, self._get_data_error_message)
 
@@ -249,7 +267,14 @@ class CurrencyMeta(Meta):
 class StringMeta(Meta):
     """A Meta for string data."""
 
-    def __init__(self, varname: str, label: str = None, tags: list = None):
+    def __init__(self, varname: str, label: str = None, tags: list[str] = None):
+        """Create a Meta for string data.
+
+        Args:
+            varname: Name of the variable.
+            label: Displayed label for the variable.
+            tags: List of string tags.
+        """
         super().__init__(
             type=Meta.TYPE_STRING,
             varname=varname,
@@ -260,10 +285,14 @@ class StringMeta(Meta):
         )
 
     def check_variable(self, df: pd.DataFrame):
-        """
+        """Check that variable column is a vector of atomic types.
+
         Verifies that the column in the data frame is an atomic vector
         (not a nested type). It does not have to be a string, rather
         anything that can easily be coerced to it.
+
+        Raises:
+            ValueError: if varname column in data frame is not an atomic vector.
         """
         # This would check that hte datatype is actually a string:
         # utils.check_string_datatype(df, self.varname, self._get_data_error_message)
@@ -271,22 +300,29 @@ class StringMeta(Meta):
         utils.check_atomic_vector(df, self.varname, self._get_data_error_message)
 
     def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Converts the `self.varname` column in the data frame to be a string type.
-        This will change the original data frame.
-        Params:
-            df: Pandas DataFrame
+        """Converts the variable column in the data frame to be a string type.
+
         Returns:
             The updated Pandas DataFrame
         """
-        df[self.varname] = df[self.varname].astype(str)
+        df = df.astype({self.varname: str})
         return df
 
 
 class PanelMeta(Meta):
     """A Meta for Panels."""
 
-    def __init__(self, panel: Panel, label: str = None, tags: list = None):
+    def __init__(self, panel: Panel, label: str = None, tags: list[str] = None):
+        """Create Meta for Panel objects.
+
+        Args:
+            panel: Panel value.
+            label: Label to display for the panel.
+            tags: List of string tags.
+
+        Raises:
+            ValueError: if Panel is invalid.
+        """
         super().__init__(
             type=Meta.TYPE_PANEL,
             varname=panel.varname,
@@ -313,6 +349,20 @@ class PanelMeta(Meta):
         self.panel_type = panel.panel_type_str
 
     def to_dict(self) -> dict:
+        """Returns a dictionary representation.
+
+        Different than parent class method since there are
+        additional panel properties renamed in the output.
+        The output dictionary contains the keys as expected by
+        the Trelliscope JavaScript.
+
+        The output includes `aspect`, `source` and `paneltype`. The
+        output excludes `panel_source` and `panel_type`.
+
+        Returns:
+            Dictionary representation as expected by the
+            trelliscope javascript.
+        """
         result = super().to_dict()
 
         result["aspect"] = self.aspect
@@ -331,9 +381,7 @@ class PanelMeta(Meta):
         return result
 
     def check_variable(self, df: pd.DataFrame):
-        """
-        Checks that the variable is an appropriate type for panels.
-        """
+        """Checks that the variable is an appropriate type for panels."""
         # TODO: Fill this in
         pass
 
@@ -344,6 +392,14 @@ class FactorMeta(Meta):
     def __init__(
         self, varname: str, label: str = None, tags: list = None, levels: list = None
     ):
+        """Create Meta for categorical factor types.
+
+        Args:
+            varname: Name of the variable.
+            label: Displayed label of the variable.
+            tags: List of string tags.
+            levels: Factor levels, inferred if not given.
+        """
         super().__init__(
             type=Meta.TYPE_FACTOR,
             varname=varname,
@@ -359,10 +415,18 @@ class FactorMeta(Meta):
         self.levels = levels
 
     def infer_levels(self, df: pd.DataFrame):
-        """
-        Infers the factor levels from the dataframe. If the column is
-        a category, the category levels will be used directly. If the column
+        """Infers the factor levels from the dataframe.
+
+        If the column is a category, the category levels will be used directly. If the column
         is not, it will be cast as a category to pull the levels.
+
+
+        Args:
+            df: Dataframe to infer factor levels from.
+
+        Returns:
+            None. Changes this Meta object in-place.
+
         """
         if df[self.varname].dtype != "category":
             df[self.varname] = df[self.varname].astype("category")
@@ -375,9 +439,7 @@ class FactorMeta(Meta):
         #     self.levels = df[self.varname].astype("category").cat.categories.to_list()
 
     def check_variable(self, df: pd.DataFrame):
-        """
-        Infers the levels for this factor and verifies that the dataframe matches.
-        """
+        """Infers the levels for this factor and verifies that the dataframe matches."""
         # Infer levels if not provided
         if self.levels is None:
             # TODO: Verify that this is the behavior we want.
@@ -391,25 +453,39 @@ class FactorMeta(Meta):
         )
 
     def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Converts the `self.varname` column in the data frame to be a string type.
+        """Converts the `self.varname` column in the data frame a categorical type.
+
         This will change the original data frame.
-        Params:
-            df: Pandas DataFrame
+
+        Args:
+            df: Dataframe that contains the variable to be converted.
+
         Returns:
-            The updated Pandas DataFrame
+            Updated dataframe with varname column as categorical.
+
+        Raises:
+            NotImplementedError: Work in progress.
         """
         # TODO: This seems we should cast it to a categorical variable
         # rather than just a string. And it seems like this would be a
         # better place to actual infer the levels than the "check_variable"
         # function above.
         raise NotImplementedError()
-        df[self.varname] = df[self.varname].astype(str)
-        return df
+        # df[self.varname] = df[self.varname].astype(str)
+        # return df
 
 
 class DateMeta(Meta):
-    def __init__(self, varname: str, label: str = None, tags: list = None):
+    """Meta for date types."""
+
+    def __init__(self, varname: str, label: str = None, tags: list[str] = None):
+        """Create Meta object for date types.
+
+        Args:
+            varname: Name of the variable.
+            label: Displayed label of the variable.
+            tags: List of string tags.
+        """
         super().__init__(
             type=Meta.TYPE_DATE,
             varname=varname,
@@ -420,13 +496,28 @@ class DateMeta(Meta):
         )
 
     def check_variable(self, df: pd.DataFrame):
+        """Check that variable column is a datetime type."""
         utils.check_datetime(df, self.varname, self._get_data_error_message)
 
 
 class DatetimeMeta(Meta):
+    """Meta for datetime types."""
+
     def __init__(
-        self, varname: str, label: str = None, tags: list = None, timezone="UTC"
+        self,
+        varname: str,
+        label: str = None,
+        tags: list[str] = None,
+        timezone: str = "UTC",
     ):
+        """Create Meta object for a datetime variable.
+
+        Args:
+            varname: Name of the variable.
+            label: Displayed label of the variable.
+            tags: List of string tags.
+            timezone: Timezone of the datetime values, defaults to "UTC"..
+        """
         super().__init__(
             type=Meta.TYPE_DATETIME,
             varname=varname,
@@ -437,10 +528,10 @@ class DatetimeMeta(Meta):
         )
 
         # TODO: Consider validating timezone
-
         self.timezone = timezone
 
     def check_variable(self, df: pd.DataFrame):
+        """Check that variable column is a datetime type."""
         utils.check_datetime(df, self.varname, self._get_data_error_message)
 
     def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -448,8 +539,6 @@ class DatetimeMeta(Meta):
 
         This will change the original data frame.
 
-        Params:
-            df: Pandas DataFrame
         Returns:
             The updated Pandas DataFrame
         """
@@ -466,14 +555,25 @@ class DatetimeMeta(Meta):
 
 
 class GraphMeta(Meta):
+    """Meta for Graph types."""
+
     def __init__(
         self,
         varname: str,
         label: str = None,
-        tags: list = None,
+        tags: list[str] = None,
         idvarname: str = None,
         direction: str = "none",
     ):
+        """Create Meta object for Graph variable.
+
+        Args:
+            varname: Name of the variable.
+            label: Displayed label of the variable.
+            tags: List of string tags.
+            idvarname: TODO: Add description
+            direction: One of ["none", "to", "from"]. # TODO: add description
+        """
         super().__init__(
             type=Meta.TYPE_GRAPH,
             varname=varname,
@@ -489,6 +589,11 @@ class GraphMeta(Meta):
         self.idvarname = idvarname
 
     def check_variable(self, df: pd.DataFrame):
+        """Check that the variable column is a Graph type.
+
+        Raises:
+            NotImplementedError: Check is not yet implemented.
+        """
         utils.check_has_variable(df, self.idvarname, self._get_data_error_message)
         utils.check_graph_var(
             df, self.varname, self.idvarname, self._get_data_error_message
@@ -496,14 +601,25 @@ class GraphMeta(Meta):
 
 
 class GeoMeta(Meta):
+    """Meta for Geo types."""
+
     def __init__(
         self,
         varname: str,
         latvar: str,
         longvar: str,
         label: str = None,
-        tags: list = None,
+        tags: list[str] = None,
     ):
+        """Create Meta object for Geo variable type.
+
+        Args:
+            varname: Name of the variable.
+            latvar: Name of the Latitude variable.
+            longvar: Name of the Longitude variable.
+            label: Displayed label of the variable.
+            tags: List of string tags.
+        """
         super().__init__(
             type=Meta.TYPE_GEO,
             varname=varname,
@@ -517,27 +633,36 @@ class GeoMeta(Meta):
         self.longvar = longvar
 
     def check_varname(self, df: pd.DataFrame):
+        """Check that dataframe has latitude and longitude variable columns."""
         utils.check_has_variable(df, self.latvar, self._get_data_error_message)
         utils.check_has_variable(df, self.longvar, self._get_data_error_message)
 
     def check_variable(self, df: pd.DataFrame):
+        """Check data types of the latitude and longitude variables in the dataframe."""
         utils.check_latitude_variable(df, self.latvar, self._get_data_error_message)
         utils.check_longitude_variable(df, self.longvar, self._get_data_error_message)
 
     # TODO: add a cast variable function that converts lat and long into a single var name
 
     def to_dict(self) -> dict:
-        # Overriding to make it so latvar and longvar are not serialized
+        """Dictionary representation of the object, excluding `latvar` and `longvar`."""
         result = self.__dict__.copy()
-
         result.pop("latvar", None)
         result.pop("longvar", None)
-
         return result
 
 
 class HrefMeta(Meta):
+    """Meta for Href variables."""
+
     def __init__(self, varname: str, label: str = None, tags: list = None):
+        """Create Meta object for Href variable.
+
+        Args:
+            varname: Name of the variable.
+            label: Displayed label of the variable.
+            tags: List of string tags.
+        """
         super().__init__(
             type=Meta.TYPE_HREF,
             varname=varname,
@@ -548,7 +673,6 @@ class HrefMeta(Meta):
         )
 
     def check_variable(self, df: pd.DataFrame):
+        """Check variable column is a string type."""
         if not utils.is_string_column(df[self.varname]):
             raise ValueError(self._get_data_error_message("Data type is not a string"))
-
-    # TODO: Add cast variable?

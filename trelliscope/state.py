@@ -1,8 +1,14 @@
+"""State definitions for Trelliscope.
+
+The State of a Trelliscope includes a Layout, the Labels displayed underneath panels, Sorting options and
+applied Filters. The State controls the initial state the Trelliscope display opens in.
+"""
 import copy
 import json
 import logging
 from collections import OrderedDict
 from datetime import date, datetime
+from typing import Literal
 
 import pandas as pd
 
@@ -11,9 +17,7 @@ from trelliscope.metas import Meta
 
 
 class State:
-    """
-    Base class for the various state classes.
-    """
+    """Base class for the various state classes."""
 
     TYPE_LAYOUT = "layout"
     TYPE_LABELS = "labels"
@@ -21,6 +25,11 @@ class State:
     TYPE_FILTER = "filter"
 
     def __init__(self, type: str):
+        """Create a new State for a given type.
+
+        Args:
+           type: Type of the State, one of ['layout', 'labels', 'sort', 'filter'].
+        """
         self.type = type
 
         # Waiting to check the type until after setting
@@ -33,9 +42,7 @@ class State:
         )
 
     def to_dict(self) -> dict:
-        """
-        Returns a dictionary that can be serialized to json.
-        """
+        """Returns a dictionary that can be serialized to json."""
         result = self.__dict__.copy()
 
         # Remove any unwanted items
@@ -44,9 +51,7 @@ class State:
         return result
 
     def to_json(self, pretty: bool = True):
-        """
-        Returns a json version of this object that can be saved to output.
-        """
+        """Returns a json version of this object that can be saved to output."""
         indent_value = None
 
         if pretty:
@@ -57,8 +62,7 @@ class State:
         )
 
     def check_with_data(self, df: pd.DataFrame):
-        """
-        Ensure that the state is consistent with this dataset.
+        """Ensure that the state is consistent with this dataset.
 
         This function should be overridden by subclasses to do any
         state specific checks that need to be done.
@@ -77,13 +81,16 @@ class State:
 
 
 class LayoutState(State):
+    """State definition for Layout of trelliscope display."""
+
     VIEWTYPE_GRID = "grid"
 
     def __init__(self, ncol: int = 1, page: int = 1):
-        """
-        Params:
-            ncol: int - Number of cols
-            page: int - Number of pages
+        """Create Layout state.
+
+        Args:
+            ncol: Number of columns in a single page to show.
+            page: Initial page number to open on.
         """
         super().__init__(State.TYPE_LAYOUT)
 
@@ -94,7 +101,15 @@ class LayoutState(State):
         self.page = page
         self.viewtype = LayoutState.VIEWTYPE_GRID
 
-    def check_with_data(self, df: pd.DataFrame):
+    def check_with_data(self, df: pd.DataFrame) -> bool:
+        """Check if layout data is valid given the data.
+
+        Args:
+            df: Dataframe to check for this layout.
+
+        Returns:
+            Boolean indicating if data is valid. Currently, always `True`.
+        """
         # This comment is in the R version:
         # TODO: could check to see if "page" makes sense after applying filters
         # and accounting for nrow and ncol
@@ -102,17 +117,31 @@ class LayoutState(State):
 
 
 class LabelState(State):
+    """State of shown panel labels."""
+
     def __init__(self, varnames: list = []):
-        """
-        Params:
-            varnames: list - The list of variable names to filter
+        """Create Label state.
+
+        Args:
+            varnames: List of variables to display as labels.
         """
         super().__init__(State.TYPE_LABELS)
 
         utils.check_is_list(varnames, self._get_data_error_message)
         self.varnames = varnames
 
-    def check_with_data(self, df: pd.DataFrame):
+    def check_with_data(self, df: pd.DataFrame) -> bool:
+        """Check if `varnames` are all columns of the provided data.
+
+        Args:
+            df: Dataframe that should contain columns matching `varnames`.
+
+        Returns:
+            True if all `varnames` are columns in the dataframe.
+
+        Raises:
+            ValueError: if any of the `varnames` are not a column in the dataframe.
+        """
         extra_columns = set(self.varnames) - set(df.columns)
         if len(extra_columns) > 0:
             raise ValueError(
@@ -125,14 +154,27 @@ class LabelState(State):
 
 
 class SortState(State):
+    """State of panel sorting."""
+
     DIR_ASCENDING = "asc"
     DIR_DESCENDING = "desc"
 
-    def __init__(self, varname: str, dir: str = DIR_ASCENDING, meta_type: str = None):
-        """
-        Params:
+    def __init__(
+        self,
+        varname: str,
+        dir: Literal["asc", "desc"] = DIR_ASCENDING,
+        meta_type: str = None,
+    ):
+        """Create Sort state.
+
+        Args:
             varname: str - The variable name
             dir: str ("asc" or "desc") - The direction of the sort
+
+        Args:
+            varname: The variable name to sort by.
+            dir: The direction to sort, one of ['asc', 'desc'].
+            meta_type: Optional meta type. (TODO: Should this be a `Meta` type or indeed a string?).
         """
         super().__init__(State.TYPE_SORT)
 
@@ -146,7 +188,8 @@ class SortState(State):
         self.dir = dir
         self.metatype = meta_type
 
-    def check_with_data(self, df: pd.DataFrame):
+    def check_with_data(self, df: pd.DataFrame) -> bool:
+        """Check if `varname` exists as a column in the dataframe. Raise an error otherwise."""
         super().check_with_data(df)
         if self.varname not in df.columns:
             raise ValueError(
@@ -158,6 +201,7 @@ class SortState(State):
         return True
 
     def check_with_meta(self, meta: Meta):
+        """Check if the passed Meta is sortable."""
         if not meta.sortable:
             raise ValueError(
                 self._get_error_message(f"'{self.varname}' is not sortable")
@@ -167,6 +211,8 @@ class SortState(State):
 
 
 class FilterState(State):
+    """State of filters applied to panels and their attributes."""
+
     FILTERTYPE_CATEGORY = "category"
     FILTERTYPE_NUMBER_RANGE = "numberrange"
     FILTERTYPE_DATE_RANGE = "daterange"
@@ -175,15 +221,17 @@ class FilterState(State):
     def __init__(
         self,
         varname: str,
-        filtertype: str,
-        applies_to: list = None,
+        filtertype: Literal["category", "numberrange", "daterange", "datetimerange"],
+        applies_to: list[Meta] = None,
         meta_type: str = None,
     ):
-        """
-        Params:
-            varname: str - Variable Name
-            filtertype: str - Type of Filter (see available constants)
-            applies_to: list - List of meta types. None indicates this applies to all meta definitions.
+        """Create Filter state.
+
+        Args:
+            varname: Variable name to filter.
+            filtertype: Type of filter, one of .
+            applies_to: List of Meta types this filter state applies to.
+            meta_type: Meta type. (TODO: explain.)
         """
         super().__init__(State.TYPE_FILTER)
 
@@ -205,7 +253,15 @@ class FilterState(State):
         self.applies_to = applies_to
         self.metatype = meta_type
 
-    def check_with_data(self, df: pd.DataFrame):
+    def check_with_data(self, df: pd.DataFrame) -> bool:
+        """Check if `varname` is a column in the dataframe.
+
+        Args:
+            df: Data that should contain the column matching `varname`.
+
+        Raises:
+            ValueError: If dataframe does not contain the expected `varname` column.
+        """
         super().check_with_data(df)
         if self.varname not in df.columns:
             raise ValueError(
@@ -216,7 +272,15 @@ class FilterState(State):
 
         return True
 
-    def check_with_meta(self, meta: Meta):
+    def check_with_meta(self, meta: Meta) -> bool:
+        """Check if the provided Meta is valid for this filter state.
+
+        Args:
+            meta: The Meta object to check.
+
+        Raises:
+            ValueError: If the provided Meta is not in the list of metas in `applies_to`.
+        """
         if meta.type not in self.applies_to:
             raise ValueError(
                 self._get_error_message(
@@ -228,10 +292,15 @@ class FilterState(State):
 
 
 class CategoryFilterState(FilterState):
-    def __init__(self, varname: str, regexp: str = None, values: list = None):
-        """
-        Params:
-            varname: The variable name
+    """State for filtering category/factor data types."""
+
+    def __init__(
+        self, varname: str, regexp: str = None, values: str | list[str] = None
+    ):
+        """Create filter state for a category/factor variable.
+
+        Args:
+            varname: The variable this filter applies to.
             regexp: Regular expression to apply
             values: Either a string for the value or a list of possible values
         """
@@ -251,6 +320,15 @@ class CategoryFilterState(FilterState):
             self.values = values
 
     def check_with_data(self, df: pd.DataFrame):
+        """Check if the filter is valid for the provided dataframe.
+
+        Args:
+            df: The dataframe to check.
+
+        Raises:
+            ValueError: if any of the filter `values` are not in the
+                dataframe column matching `varname`.
+        """
         super().check_with_data(df)
 
         diff = set(self.values) - set(df[self.varname].unique())
@@ -263,19 +341,27 @@ class CategoryFilterState(FilterState):
 
 
 class RangeFilterState(FilterState):
-    def __init__(
-        self, varname: str, filtertype: str, applies_to: list, min=None, max=None
-    ):
-        """
-        This base class init function should likely only be called by
-        sub class init functions.
+    """Base filter state for a range filter."""
 
-        Params:
-            varname: str - The variable name
-            filtertype: str - The filter type
-            applies_to: list - List of meta types. None indicates this applies to all meta definitions.
-            min: (int or date) - The minimum value for the range
-            max: (int or date) - The maximum value for the range
+    def __init__(
+        self,
+        varname: str,
+        filtertype: str,
+        applies_to: list,
+        min: int | datetime = None,
+        max: int | datetime = None,
+    ):
+        """Create base filter state that filters on a variable in a min/max range.
+
+        This base class init function should likely only be called by
+        subclass init functions.
+
+        Args:
+            varname: The variable name
+            filtertype: The filter type
+            applies_to: List of meta types. None indicates this applies to all meta definitions.
+            min: The minimum value for the range
+            max: The maximum value for the range
         """
         super().__init__(varname=varname, filtertype=filtertype, applies_to=applies_to)
 
@@ -284,12 +370,15 @@ class RangeFilterState(FilterState):
 
 
 class NumberRangeFilterState(RangeFilterState):
+    """Range filter state for numeric variable."""
+
     def __init__(self, varname: str, min: int = None, max: int = None):
-        """
-        Params:
-            varname: The variable name
-            min: Minimum value for the range
-            max: Maximum value for the range
+        """Create filter state for a range filter applied to a numeric variable.
+
+        Args:
+            varname: The variable name to apply filter to.
+            min: Minimum value for the range.
+            max: Maximum value for the range.
         """
         super().__init__(
             varname=varname,
@@ -303,12 +392,15 @@ class NumberRangeFilterState(RangeFilterState):
 
 
 class DateRangeFilterState(RangeFilterState):
+    """Range filter state for date-type variables."""
+
     def __init__(self, varname: str, min: date = None, max: date = None):
-        """
-        Params:
-            varname: The variable name
-            min: Minimum date
-            max: Maximum date
+        """Create a range filter state applies to a date-type variable.
+
+        Args:
+            varname: The variable name to apply filter to,
+            min: Minimum date.
+            max: Maximum date.
         """
         super().__init__(
             varname=varname,
@@ -322,12 +414,15 @@ class DateRangeFilterState(RangeFilterState):
 
 
 class DatetimeRangeFilterState(RangeFilterState):
+    """Range filter state for datetime-type variables."""
+
     def __init__(self, varname: str, min: datetime = None, max: datetime = None):
-        """
-        Params:
-            varname: The variable name
-            min: Minimum datetime
-            max: Maximum datetime
+        """Create a range filter state applies to a datetime-type variable.
+
+        Args:
+            varname: The variable name to apply filter to,
+            min: Minimum datetime.
+            max: Maximum datetime.
         """
         super().__init__(
             varname=varname,
@@ -341,11 +436,13 @@ class DatetimeRangeFilterState(RangeFilterState):
 
 
 class DisplayState:
-    """
-    Contains the collection of all states necessary to define a display.
-    """
+    """Contains the collection of all states necessary to define a display."""
 
     def __init__(self):
+        """Create default display state.
+
+        Display state is further customized using the :meth:`set` method.
+        """
         self.layout = None
         self.labels = None
         self.sort = OrderedDict()
@@ -354,12 +451,16 @@ class DisplayState:
         # TODO: Verify that serialization of the sort/filter states matches expected
         # output. It may want a list rather than a dict.
 
-    def set(self, state: State, add: bool = False):
-        """
-        Sets the provided state. Overwriting the existing one of that type unless
-        add=True, then it appends it.
-        """
+    def set(self, state: State, add: bool = False) -> None:
+        """Sets the provided state, either overwriting or adding to the current state.
 
+        Updates the object in-place and does not return a value.
+
+        Args:
+            state: New state to set.
+            add: Whether to add the provided State, or to overwrite the State if
+                a State of the same type already exists.
+        """
         # TODO: Decide if we want this convenience method or if we want to force
         # users to simply set the specific type directly
 
@@ -409,9 +510,7 @@ class DisplayState:
                 self.filter[varname] = state
 
     def to_dict(self) -> dict:
-        """
-        Returns a dictionary that can be serialized to json.
-        """
+        """Returns a dictionary that can be serialized to json."""
         result = {}
 
         layout_dict = None
@@ -436,9 +535,7 @@ class DisplayState:
         return result
 
     def to_json(self, pretty: bool = True) -> str:
-        """
-        Returns a json version of this object that can be saved to output.
-        """
+        """Returns a json version of this object that can be saved to output."""
         indent_value = None
 
         if pretty:

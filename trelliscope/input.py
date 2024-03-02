@@ -1,3 +1,6 @@
+"""Input objects for Trelliscope."""
+
+
 class Input:
     """Input object passed to trelliscope.
 
@@ -5,10 +8,12 @@ class Input:
     """
 
     def __init__(self):
+        """Initialize with default name=""."""
         self._name = ""
 
     @property
     def name(self):
+        """Name of Input."""
         return self._name
 
     @name.setter

@@ -1,7 +1,4 @@
-"""
-Contains utility functions that facilitate the html, JavaScript,
-and other widgets needed for Trelliscope viewing.
-"""
+"""Contains utility functions that facilitate the html, JavaScript, and other widgets needed for Trelliscope viewing."""
 import json
 import os
 import shutil
@@ -17,8 +14,7 @@ JAVASCRIPT_SOURCE_PACKAGE = "trelliscope.resources.javascript"
 
 
 def write_javascript_lib(output_path: str) -> None:
-    """
-    Writes the JavaScript lib code to the directory specified.
+    """Writes the JavaScript lib code to the directory specified.
 
     Args:
         output_path: The path to the parent directory to write to, (not including "lib").

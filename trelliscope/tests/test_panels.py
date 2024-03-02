@@ -168,9 +168,7 @@ def test_panel_options_init_invalid_format():
 
 
 def test_set_panel_options_dict(iris_df_no_duplicates: pd.DataFrame):
-    """
-    Just ensure that the dictionary is set at this point.
-    """
+    """Just ensure that the dictionary is set at this point."""
     panel_options1 = PanelOptions()
     panel_options2 = PanelOptions(
         width=500,

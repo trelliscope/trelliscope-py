@@ -24,7 +24,7 @@ class PanelOptions:
         type: str = None,
         aspect: float = None,
     ) -> None:
-        """
+        """Create PanelOptions objects.
 
         Args:
             width: Strictly positive integer representing the panel width in pixels.
@@ -77,6 +77,16 @@ class Panel:
         is_image: bool = True,
         writeable: bool = False,
     ) -> None:
+        """Create Panel object.
+
+        Args:
+            varname: Variable name.
+            panel_type_str: Panel type, one of ['img', 'iframe'].
+            source: PanelSource object, defining where the load the panel content from.
+            aspect_ratio: Aspect ratio of the displayed panel.
+            is_image: Boolean flag whether panel is an image.
+            writeable: Boolean flag whether panel is writable.
+        """
         self.varname = varname
         self.aspect_ratio = aspect_ratio
         self.is_image = is_image
@@ -89,13 +99,20 @@ class Panel:
         self.figure_varname = None
 
     def to_dict(self):
+        """Return a dictionary of this Panel's attributes.."""
         # Default serialization behavior is sufficient
         return self.__dict__.copy()
 
     def get_extension(self) -> str:
+        """Get the extension of this Panel.
+
+        Raise:
+            NotImplementedError: if not overwritten in subclasses.
+        """
         raise NotImplementedError("This type of panel does not provide for extensions.")
 
     def check_valid(self, df: pd.DataFrame):
+        """Check that the dataframe contains the panel variable as a column."""
         # Check that varname exists
         utils.check_has_variable(df, self.varname)
 
@@ -107,17 +124,25 @@ class Panel:
         is_known_figure_col: bool = False,
         is_known_image_col: bool = False,
     ):
-        """
-        A factory method to create a new panel object. This method
-        infers the type and other parameters based on the data found in the
+        """A factory method to create a new panel object by inferring the type of the panel.
+
+        This method infers the type and other parameters based on the data found in the
         `panel_col` column in the data frame.
 
         Params:
-            df:pd.DataFrame - The Pandas DataFrame
-            panel_column:str - The name of the panel column
-            panel_options:PanelOptions - (optional) If the user pre-specified panel options, use them here.
-            is_known_figure_col:bool - Do we already know this is a figure column?
-            is_known_image_col:bool - Do we already know this is an image column?
+            df: The pandas DataFrame to create the panel from.
+            panel_column: The name of the panel column.
+            panel_options: Optionally pass explicit panel options, otherwise defaults are used.
+            is_known_figure_col: Boolean flag to use if type of panel is a figure, inferred if `False`.
+            is_known_image_col: Boolean flag to use if type of panel is an image, inferred if `False`.
+
+        Returns:
+            Either a :class:`trelliscope.panels.FigurePanel` or a :class:`trelliscope.panels.ImagePanel`.
+
+        Raise:
+            NotImplementedError: If panel options are passed but `panel_options.prerender=False`.
+            ValueError: If `is_known_image_col` and `is_known_image_col` are False and panel type
+                cannot be inferred otherwise.
         """
         # Note: In R, much of this logic is found in: infer_meta_variable
 
@@ -178,13 +203,23 @@ class Panel:
 
 
 class ImagePanel(Panel):
+    """Panel for displaying images directly."""
+
     def __init__(
         self,
         varname: str,
         source: PanelSource,
         aspect_ratio: float = 1.5,
-        should_copy_to_output=True,
+        should_copy_to_output: bool = True,
     ) -> None:
+        """Create Panel object to display image.
+
+        Args:
+            varname: Variable name.
+            source: Panel source object to define where image comes from.
+            aspect_ratio: Aspect ratio to display.
+            should_copy_to_output: Boolean whether image files should be copied to output directory.
+        """
         super().__init__(
             varname=varname,
             panel_type_str=Panel._PANEL_TYPE_IMAGE,
@@ -202,9 +237,18 @@ class ImagePanel(Panel):
 
 
 class IFramePanel(Panel):
+    """Create Panel object to embed iframes."""
+
     def __init__(
         self, varname: str, source: PanelSource, aspect_ratio: float = 1.5
     ) -> None:
+        """Create Panel object to embed iframes.
+
+        Args:
+            varname: Variable name.
+            source: Panel source object to define where html source to iframe comes from.
+            aspect_ratio: Aspect ratio to display.
+        """
         super().__init__(
             varname=varname,
             panel_type_str=Panel._PANEL_TYPE_IFRAME,
@@ -216,6 +260,11 @@ class IFramePanel(Panel):
 
 
 class FigurePanel(Panel):
+    """Create Panel object from plotly Figures directly.
+
+    Effectively creates an Image panel by saving the Figure to a static file.
+    """
+
     def __init__(
         self,
         varname: str,
@@ -223,6 +272,14 @@ class FigurePanel(Panel):
         extension: str = "png",
         aspect_ratio: float = 1.5,
     ) -> None:
+        """Create Panel object to display png image from a plotly Figure.
+
+        Args:
+            varname: Variable name.
+            source: Panel source to define where figure file is loaded from.
+            extension: Extension of figure file, defaults to 'png'.
+            aspect_ratio: Aspect ratio to display.
+        """
         super().__init__(
             varname=varname,
             panel_type_str=Panel._PANEL_TYPE_IMAGE,
@@ -236,6 +293,7 @@ class FigurePanel(Panel):
         self.figure_varname = self.varname + Panel._FIGURE_SUFFIX
 
     def get_extension(self) -> str:
+        """Get expected extension of the figure file."""
         return self.extension
 
     # def get_panel_source(self) -> dict:

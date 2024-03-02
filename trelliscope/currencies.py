@@ -1,3 +1,4 @@
+"""List of valid currencies to check attribute types for Trelliscope display."""
 from __future__ import annotations
 
 import pkgutil
