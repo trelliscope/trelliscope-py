@@ -86,8 +86,7 @@ def test_write_javascript(mars_df: pd.DataFrame):
 
 
 def test_get_thumbnail_url(mars_df: pd.DataFrame):
-    """
-    Tests the case where the thumbnail url is simply the first row
+    """Tests the case where the thumbnail url is simply the first row
     of the panel column.
     """
     tr = Trelliscope(mars_df, "mars_rover")

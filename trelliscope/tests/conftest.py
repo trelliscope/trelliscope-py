@@ -20,9 +20,7 @@ MARS_DF_FILENAME = "mars_rover.csv"
 
 @pytest.fixture(scope="session")
 def loaded_iris_df() -> pd.DataFrame:
-    """
-    Loads the iris dataset from a file in the test-data directory.
-    """
+    """Loads the iris dataset from a file in the test-data directory."""
     iris_path = os.path.join(DATA_DIR, IRIS_DF_FILENAME)
 
     data = pkgutil.get_data(__name__, iris_path)
@@ -33,27 +31,21 @@ def loaded_iris_df() -> pd.DataFrame:
 
 @pytest.fixture
 def iris_df(loaded_iris_df: pd.DataFrame):
-    """
-    Returns a copy of the iris dataset.
-    """
+    """Returns a copy of the iris dataset."""
     df_copy = loaded_iris_df.copy(deep=True)
     return df_copy
 
 
 @pytest.fixture
 def iris_df_no_duplicates(iris_df: pd.DataFrame):
-    """
-    Returns a copy of the iris dataset with no duplicates
-    """
+    """Returns a copy of the iris dataset with no duplicates"""
     df = iris_df.drop_duplicates().copy(deep=True)
     return df
 
 
 @pytest.fixture
 def iris_plus_df(iris_df: pd.DataFrame):
-    """
-    Returns a copy of the iris dataset with extra columns for id and dates.
-    """
+    """Returns a copy of the iris dataset with extra columns for id and dates."""
     iris_df.insert(0, "id", range(len(iris_df)))
     # iris_df["id"] = iris_df.apply(lambda row: str(int(row.index) + 1))
     iris_df["date"] = iris_df.apply(
@@ -82,9 +74,7 @@ def iris_tr(iris_df_no_duplicates: pd.DataFrame):
 
 @pytest.fixture(scope="session")
 def loaded_mars_df() -> pd.DataFrame:
-    """
-    Loads the mars rover dataset from a file in the test-data directory.
-    """
+    """Loads the mars rover dataset from a file in the test-data directory."""
     mars_path = os.path.join(DATA_DIR, MARS_DF_FILENAME)
 
     data = pkgutil.get_data(__name__, mars_path)
@@ -95,8 +85,6 @@ def loaded_mars_df() -> pd.DataFrame:
 
 @pytest.fixture
 def mars_df(loaded_mars_df: pd.DataFrame):
-    """
-    Returns a copy of the mars rover dataset.
-    """
+    """Returns a copy of the mars rover dataset."""
     df_copy = loaded_mars_df.copy(deep=True)
     return df_copy

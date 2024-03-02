@@ -1,11 +1,11 @@
-"""
-Used for helper functions that are shared across tests.
+"""Used for helper functions that are shared across tests.
 """
 import json
 
 
 def compare_json(actual_json: str, expected_json: str):
-    """
+    """Compare if two json strings are equal.
+
     Converts the json strings to dictionaries and compares them
     to ignore differences in order or whitespace.
     """
