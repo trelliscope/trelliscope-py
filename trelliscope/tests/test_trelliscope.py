@@ -72,17 +72,91 @@ def test_standard_setup(iris_df_no_duplicates: pd.DataFrame):
         )
         tr.write_display()
 
-        # Clean up
+        id_file = os.path.join(tr.get_output_path(), "id")
+
+        with open(id_file) as input_file:
+            id_from_file = input_file.read()
+
+            assert id_from_file.strip() == tr.id
 
 
-def test_write_javascript(mars_df: pd.DataFrame):
+def test_standard_setup_explicit_javascript_version(
+    iris_df_no_duplicates: pd.DataFrame,
+):
+    version = "1.2.3.4"
+
+    iris_df = iris_df_no_duplicates
+
     with tempfile.TemporaryDirectory() as output_dir:
-        tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
-        tr._create_output_dirs()
-        tr._write_javascript_lib()
+        # this is test code that just sets all images to this test_image.png string
+        # it is not a proper use of the images, but gives us something to use in testing.
+        iris_df["img_panel"] = "test_image.png"
 
-        expected_lib_dir = os.path.join(tr.get_output_path(), "lib")
-        assert os.path.isdir(expected_lib_dir)
+        tr = Trelliscope(iris_df, "Iris", path=output_dir, javascript_version=version)
+        tr = tr.add_panel(
+            ImagePanel(
+                "img_panel", source=FilePanelSource(True), should_copy_to_output=False
+            )
+        )
+        tr.write_display()
+
+        # verify that the index.html file has the correct JavaScript version in it
+        index_html_file = os.path.join(tr.get_output_path(), "index.html")
+
+        with open(index_html_file) as input_file:
+            html = input_file.read()
+
+            assert (
+                f'<script src="https://unpkg.com/trelliscopejs-lib@{version}/dist/assets/index.js"></script>'
+                in html
+            )
+            assert (
+                f'<link href="https://unpkg.com/trelliscopejs-lib@{version}/dist/assets/index.css" rel="stylesheet" />'
+                in html
+            )
+
+            assert (
+                f"<body onload=\"trelliscopeApp('{tr.id}', 'config.jsonp')\">" in html
+            )
+            assert f'<div id="{tr.id}" class="trelliscope-spa">' in html
+
+
+def test_standard_setup_default_javascript_version(iris_df_no_duplicates: pd.DataFrame):
+    iris_df = iris_df_no_duplicates
+
+    with tempfile.TemporaryDirectory() as output_dir:
+        # this is test code that just sets all images to this test_image.png string
+        # it is not a proper use of the images, but gives us something to use in testing.
+        iris_df["img_panel"] = "test_image.png"
+
+        tr = Trelliscope(iris_df, "Iris", path=output_dir)
+        tr = tr.add_panel(
+            ImagePanel(
+                "img_panel", source=FilePanelSource(True), should_copy_to_output=False
+            )
+        )
+        tr.write_display()
+
+        # verify that the index.html file has the correct JavaScript version in it
+        expected_version = "0.7.5"
+        index_html_file = os.path.join(tr.get_output_path(), "index.html")
+
+        with open(index_html_file) as input_file:
+            html = input_file.read()
+
+            assert (
+                f'<script src="https://unpkg.com/trelliscopejs-lib@{expected_version}/dist/assets/index.js"></script>'
+                in html
+            )
+            assert (
+                f'<link href="https://unpkg.com/trelliscopejs-lib@{expected_version}/dist/assets/index.css" rel="stylesheet" />'
+                in html
+            )
+
+            assert (
+                f"<body onload=\"trelliscopeApp('{tr.id}', 'config.jsonp')\">" in html
+            )
+            assert f'<div id="{tr.id}" class="trelliscope-spa">' in html
 
 
 def test_get_thumbnail_url(mars_df: pd.DataFrame):

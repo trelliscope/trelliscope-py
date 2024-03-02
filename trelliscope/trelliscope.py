@@ -57,7 +57,7 @@ class Trelliscope:
 
     def __init__(
         self,
-        dataFrame: pd.DataFrame,
+        data_frame: pd.DataFrame,
         name: str,
         description: str = None,
         key_cols=None,
@@ -68,12 +68,13 @@ class Trelliscope:
         pretty_meta_data: bool = False,
         keysig: str = None,
         server: str = None,
+        javascript_version: str = None,
         show_progress_bar: bool = True,
     ):
         """Instantiate a Trelliscope display object.
 
         Args:
-            dataFrame: A data frame that contains the metadata of the display as well as
+            data_frame: A data frame that contains the metadata of the display as well as
                 a column that indicates the panels to be displayed.
             name: Name of the trelliscope display.
             description: Description of the trelliscope display. If none is provided, the
@@ -86,10 +87,15 @@ class Trelliscope:
                 using [`write_display()`].
             force_plot: Should the panels be forced to be plotted, even if they have
                 already been plotted and have not changed since the previous plotting?
+            javascript_version = None: If a specific version of the Trelliscope JavaScript
+                from the CDN is desired it can be specified here. If the default value of
+                `None` is provided, the JavaScript version compatible with this version
+                of the Python Package will be used.
+            show_progress_bar: Flag to show progress bar when creating Trelliscope app files.
         """
         # TODO: Add lots of checks here to ensure the data types match etc
 
-        self.data_frame: pd.DataFrame = dataFrame
+        self.data_frame: pd.DataFrame = data_frame
         self.name: str = name
         self.description: str = description
         self.tags: list = tags
@@ -100,9 +106,10 @@ class Trelliscope:
         self.keysig: str = keysig
         self.server: str = server
         self.thumbnail_url: str = None
+        self.javascript_version = javascript_version
         self.show_progress_bar = show_progress_bar
 
-        self.facet_cols: list = None
+        self.facet_cols: list[str] = None
 
         self.panel_options = {}  # stores PanelOptions objects used to pre-specify panel data
         self.panels = {}  # stores the actual Panel objects
@@ -115,7 +122,7 @@ class Trelliscope:
 
         # In R, the id is only 8 digits, but it should not hurt to use a proper uuid
         # self.id = uuid.uuid4().hex[:8] # This would only use 8 digits as in the R version
-        self.id = uuid.uuid4().hex[:8]  # This uses a proper uuid
+        self.id = uuid.uuid4().hex  # This uses a proper uuid
 
         if self.description is None:
             self.description = self.name
@@ -497,8 +504,7 @@ class Trelliscope:
         # name (ie. the output path)
         tr._update_display_list(tr.get_output_path(), jsonp, config["id"])
 
-        tr._write_javascript_lib()
-        tr._write_widget()
+        tr._write_index_and_id_files()
 
         logging.info(f"Trelliscope written to `{tr.get_output_path()}`")
 
@@ -1125,20 +1131,16 @@ class Trelliscope:
             content=meta_data_json,
         )
 
-    def _write_javascript_lib(self) -> None:
-        """Writes the JavaScript libraries to the output directory."""
+    def _write_index_and_id_files(self) -> None:
+        """Writes the main index.html file and the id file for the Trelliscope."""
         output_path = self.get_output_path()
-        html_utils.write_javascript_lib(output_path)
+        html_utils.write_index_html(
+            output_path=output_path,
+            trelliscope_id=self.id,
+            javascript_version=self.javascript_version,
+        )
 
-    def _write_widget(self) -> None:
-        output_path = self.get_output_path()
-        config_path = self._get_existing_config_filename()
-        config_file = os.path.basename(config_path)
-
-        id = self.id
-        is_spa = True
-
-        html_utils.write_widget(output_path, id, config_file, is_spa)
+        html_utils.write_id_file(output_path=output_path, trelliscope_id=self.id)
 
     @staticmethod
     def __write_figure(
