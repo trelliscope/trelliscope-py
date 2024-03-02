@@ -60,8 +60,8 @@ class Trelliscope:
         data_frame: pd.DataFrame,
         name: str,
         description: str = None,
-        key_cols=None,
-        tags=None,
+        key_cols: list[str] = None,
+        tags: list[str] = None,
         path: str = None,
         force_plot: bool = False,
         primary_panel: str = None,
@@ -87,7 +87,7 @@ class Trelliscope:
                 using [`write_display()`].
             force_plot: Should the panels be forced to be plotted, even if they have
                 already been plotted and have not changed since the previous plotting?
-            javascript_version = None: If a specific version of the Trelliscope JavaScript
+            javascript_version: If a specific version of the Trelliscope JavaScript
                 from the CDN is desired it can be specified here. If the default value of
                 `None` is provided, the JavaScript version compatible with this version
                 of the Python Package will be used.
