@@ -305,7 +305,8 @@ class StringMeta(Meta):
         Returns:
             The updated Pandas DataFrame
         """
-        df = df.astype({self.varname: str})
+        # TODO: Don't update in-place.
+        df[self.varname] = df[self.varname].astype(str)
         return df
 
 
