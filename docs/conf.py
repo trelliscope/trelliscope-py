@@ -65,11 +65,16 @@ html_static_path = ["_static"]
 
 # html_favicon = 'favicon.svg'
 html_title = project + " version " + release
-html_theme = "sphinx_rtd_theme"
-html_theme_options = {}
+# html_theme = "sphinx_rtd_theme"
+html_theme = "sphinx_book_theme"
+html_theme_options = {
+    "show_toc_level": 3  # depth of right-sidebar toc
+}
+
 # pygments_style, pygments_dark_style = "sphinx", "monokai"
 
-nbsphinx_execute = "always"
+nbsphinx_execute = "always"  # set this to 'never' or 'auto' for local development.
+# nbsphinx_execute = "never"  # set this to 'never' or 'auto' for local development.
 nbsphinx_kernel_name = "python3"
 
 intersphinx_mapping = {
