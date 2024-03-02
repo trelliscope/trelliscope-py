@@ -40,6 +40,7 @@ docs = [
     "ipython~=8.21",
     "ipykernel~=6.29",
     "sphinx-copybutton~=0.5",
+    "sphinx-book-theme~=1.1"
 ]
 dev = [
     "trelliscope[test,docs]",
