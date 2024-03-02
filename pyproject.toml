@@ -27,14 +27,25 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-dev = [
-    "trelliscope[test]",
-    "ruff~=0.1",
-    "pre-commit"
-]
 test = [
     "pytest~=7.4",
     "pytest-cov~=2.5"
+]
+docs = [
+    "sphinx~=7.2",
+    "nbsphinx~=0.9",
+    "sphinx-rtd-theme~=2.0",
+    "sphinx-autodoc-typehints~=2.0",
+    "myst_parser~=2.0",
+    "ipython~=8.21",
+    "ipykernel~=6.29",
+    "sphinx-copybutton~=0.5",
+    "sphinx-book-theme~=1.1"
+]
+dev = [
+    "trelliscope[test,docs]",
+    "ruff~=0.2",
+    "pre-commit~=3.6"
 ]
 
 [tool.pytest.ini_options]
@@ -61,6 +72,9 @@ filterwarnings = ["ignore::DeprecationWarning:.*pytest_cov.*:"]
 [tool.ruff]
 line-length = 88
 show-fixes = true
+
+
+[tool.ruff.lint]
 select = [
     "F",   # Pyflakes
     "W",   # pycodestyle
@@ -70,19 +84,23 @@ select = [
     "PL",  # Pylint
     "T201", # Print Statement
     "S", # flake8-bandit
+    "D", # pydocstyle
 ]
-ignore = ["E501", "PLR0913"]  # allow too-long lines if they cannot be fixed safely, and dont check N function arguments.
+ignore = ["E501", "PLR0913", "D417"]  # allow too-long lines if they cannot be fixed safely, and dont check N function arguments.
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["trelliscope"]
 
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
-[tool.ruff.flake8-tidy-imports]
+[tool.ruff.lint.flake8-tidy-imports]
 # Disallow all relative imports.
 ban-relative-imports = "all"
 
-[tool.ruff.per-file-ignores]
-"{*/__init__.py}" = ["F401"]  # allow unused imports in __init__ files
+[tool.ruff.lint.per-file-ignores]
+"{*/__init__.py}" = ["F401","D104"]  # allow unused imports in __init__ files and dont require docstrings
+"{trelliscope/tests/*,docs/*}" = ["D"]  # Dont check docstrings in tests
 "{trelliscope/tests/*}" = ["S101"]  # Allow 'assert' in tests
 "{trelliscope/examples/*,trelliscope/progress_bar.py}" = ["T201"]  # Allow 'print' statements in examples and progress_bar
 [tool.mypy]
