@@ -3,6 +3,8 @@
 The State of a Trelliscope includes a Layout, the Labels displayed underneath panels, Sorting options and
 applied Filters. The State controls the initial state the Trelliscope display opens in.
 """
+from __future__ import annotations
+
 import copy
 import json
 import logging
