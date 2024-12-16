@@ -160,8 +160,7 @@ def test_standard_setup_default_javascript_version(iris_df_no_duplicates: pd.Dat
 
 
 def test_get_thumbnail_url(mars_df: pd.DataFrame):
-    """
-    Tests the case where the thumbnail url is simply the first row
+    """Tests the case where the thumbnail url is simply the first row
     of the panel column.
     """
     tr = Trelliscope(mars_df, "mars_rover")
