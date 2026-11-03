@@ -34,8 +34,8 @@ class ProgressBar:
             print()
 
     def record_progress(self):
-        self.print_progress_bar_at_iteration(self.current_iteration)
         self.current_iteration += 1
+        self.print_progress_bar_at_iteration(self.current_iteration)
 
     def record_finish(self):
         print()
