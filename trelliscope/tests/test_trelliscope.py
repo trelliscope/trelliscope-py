@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from trelliscope import Trelliscope
+from trelliscope.metas import NumberMeta
 from trelliscope.panel_source import FilePanelSource
 from trelliscope.panels import ImagePanel, Panel
 from trelliscope.state import SortState
@@ -455,3 +456,14 @@ def test_add_input(mars_df: pd.DataFrame):
 @pytest.mark.skip("Test these when inputs are functioning")
 def test_add_inputs(mars_df: pd.DataFrame):
     raise NotImplementedError
+
+
+def test_set_metas(iris_df_no_duplicates: pd.DataFrame):
+    tr = Trelliscope(iris_df_no_duplicates, "iris")
+    metas = [NumberMeta("Sepal.Length", digits=1), NumberMeta("Sepal.Width", digits=2)]
+
+    tr2 = tr.set_metas(metas)
+
+    # set_meta deep-copies the display, so compare values, not identities.
+    assert {k: m.digits for k, m in tr2.metas.items()} == {m.varname: m.digits for m in metas}
+    assert tr.metas == {}
