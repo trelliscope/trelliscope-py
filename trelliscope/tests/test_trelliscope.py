@@ -462,14 +462,18 @@ def test_add_inputs(mars_df: pd.DataFrame):
 def test_write_display_with_missing_category_value(iris_df_no_duplicates: pd.DataFrame):
     df = iris_df_no_duplicates.copy()
     df["img_panel"] = "test_image.png"
-    df["size"] = pd.Categorical(["small", None] * (len(df) // 2) + ["small"] * (len(df) % 2))
+    df["size"] = pd.Categorical(
+        ["small", None] * (len(df) // 2) + ["small"] * (len(df) % 2)
+    )
 
     with tempfile.TemporaryDirectory() as output_dir:
         tr = (
             Trelliscope(df, "Iris", path=output_dir)
             .add_panel(
                 ImagePanel(
-                    "img_panel", source=FilePanelSource(True), should_copy_to_output=False
+                    "img_panel",
+                    source=FilePanelSource(True),
+                    should_copy_to_output=False,
                 )
             )
             .write_display()
@@ -491,5 +495,7 @@ def test_set_metas(iris_df_no_duplicates: pd.DataFrame):
     tr2 = tr.set_metas(metas)
 
     # set_meta deep-copies the display, so compare values, not identities.
-    assert {k: m.digits for k, m in tr2.metas.items()} == {m.varname: m.digits for m in metas}
+    assert {k: m.digits for k, m in tr2.metas.items()} == {
+        m.varname: m.digits for m in metas
+    }
     assert tr.metas == {}

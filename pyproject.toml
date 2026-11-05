@@ -13,7 +13,6 @@ dependencies = [
     "pandas >= 1.5.2",
     "kaleido == 0.1.*",
     "plotly >= 5.18.0",
-    "importlib_resources;python_version<'3.9'"
 ]
 version = "0.0.0-alpha1"
 authors = [
@@ -21,7 +20,7 @@ authors = [
 ]
 description = "A python interface to the Trelliscope data science library."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 classifiers = [
 ]
 
@@ -70,7 +69,7 @@ select = [
     "T201", # Print Statement
     "S", # flake8-bandit
 ]
-ignore = ["E501", "PLR0913"]  # allow too-long lines if they cannot be fixed safely, and dont check N function arguments.
+ignore = ["E501", "PLR0913", "UP038"]  # allow too-long lines if they cannot be fixed safely, dont check N function arguments, and keep tuple isinstance checks.
 
 [tool.ruff.isort]
 known-first-party = ["trelliscope"]
