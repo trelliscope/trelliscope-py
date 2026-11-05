@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import tempfile
@@ -456,6 +457,31 @@ def test_add_input(mars_df: pd.DataFrame):
 @pytest.mark.skip("Test these when inputs are functioning")
 def test_add_inputs(mars_df: pd.DataFrame):
     raise NotImplementedError
+
+
+def test_write_display_with_missing_category_value(iris_df_no_duplicates: pd.DataFrame):
+    df = iris_df_no_duplicates.copy()
+    df["img_panel"] = "test_image.png"
+    df["size"] = pd.Categorical(["small", None] * (len(df) // 2) + ["small"] * (len(df) % 2))
+
+    with tempfile.TemporaryDirectory() as output_dir:
+        tr = (
+            Trelliscope(df, "Iris", path=output_dir)
+            .add_panel(
+                ImagePanel(
+                    "img_panel", source=FilePanelSource(True), should_copy_to_output=False
+                )
+            )
+            .write_display()
+        )
+
+        meta_data_file = os.path.join(tr.get_dataset_display_path(), "metaData.js")
+        with open(meta_data_file) as f:
+            text = f.read()
+        rows = json.loads(text[text.index("=") + 1 :])
+
+        # Level codes start at 1; the viewer reads 0 as a missing value.
+        assert {row["size"] for row in rows} == {0, 1}
 
 
 def test_set_metas(iris_df_no_duplicates: pd.DataFrame):

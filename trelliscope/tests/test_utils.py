@@ -107,6 +107,15 @@ def test_check_has_variable(iris_df):
         utils.check_has_variable(iris_df, "stuff", get_error_message)
 
 
+def test_check_exhaustive_levels_ignores_missing_values():
+    df = pd.DataFrame({"kind": pd.Categorical(["a", None, "b"])})
+
+    utils.check_exhaustive_levels(df, ["a", "b"], "kind", get_error_message)
+
+    with pytest.raises(ValueError, match="not specified in levels"):
+        utils.check_exhaustive_levels(df, ["a"], "kind", get_error_message)
+
+
 def test_check_numeric(iris_df):
     utils.check_numeric(iris_df, "Sepal.Length", get_error_message)
 
