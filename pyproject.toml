@@ -13,7 +13,6 @@ dependencies = [
     "pandas >= 1.5.2",
     "kaleido == 0.1.*",
     "plotly >= 5.18.0",
-    "plotly-express >= 0.4.1",
     "importlib_resources;python_version<'3.9'"
 ]
 version = "0.0.0-alpha1"

@@ -223,7 +223,7 @@ class Trelliscope:
         Returns a copy of the Trelliscope object with the metas added. The original
         Trelliscope object is not modified.
         """
-        tr = self._copy()
+        tr = self.__copy()
 
         for meta in meta_list:
             tr = tr.set_meta(meta)
