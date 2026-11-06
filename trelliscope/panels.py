@@ -108,7 +108,7 @@ class Panel:
         if not (is_known_image_col or is_known_figure_col):
             # Check for a lazy panel (column filled with callables)
             if utils.is_callable_column(df, panel_column):
-                fn = df[panel_column][0]
+                fn = df[panel_column].iloc[0]
                 return LazyPanel(panel_column, fn=fn)
             if utils.is_image_column(df, panel_column):
                 is_known_image_col = True

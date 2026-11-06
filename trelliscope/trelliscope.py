@@ -638,7 +638,7 @@ class Trelliscope:
 
         # TODO: Clean this up using polymorphism and better checks...
         if isinstance(primary_panel, (FigurePanel, ImagePanel)):
-            thumbnail_url = self.data_frame[primary_panel_col][0]
+            thumbnail_url = self.data_frame[primary_panel_col].iloc[0]
 
             # key = self.data_frame[self.panel.varname][0]
 
@@ -1021,7 +1021,7 @@ class Trelliscope:
             ]
             for column in obj_cols:
                 if utils.is_callable_column(tr.data_frame, column):
-                    fn = tr.data_frame[column][0]
+                    fn = tr.data_frame[column].iloc[0]
                     panel = LazyPanel(column, fn=fn)
                     tr = tr.add_panel(panel)
 

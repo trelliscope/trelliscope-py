@@ -845,3 +845,25 @@ def test_serve_port_used_by_another_program(iris_df_no_duplicates):
         tr = _write_image_display(iris_df_no_duplicates, "test", output_dir)
         with pytest.raises(ValueError, match="already in use"):
             tr.serve(port=busy_port)
+
+
+def test_write_display_with_index_not_starting_at_zero(tmp_path):
+    matplotlib = pytest.importorskip("matplotlib")
+    matplotlib.use("Agg")
+    plt = pytest.importorskip("matplotlib.pyplot")
+
+    figures = []
+    for _ in range(2):
+        fig, _ax = plt.subplots()
+        plt.close(fig)
+        figures.append(fig)
+    index = [10, 11]
+
+    lazy_df = pd.DataFrame({"id": ["a", "b"]}, index=index)
+    lazy_df["panel"] = [lambda row: _FakeFigure(b"x")] * 2
+    mpl_df = pd.DataFrame({"id": ["a", "b"], "panel": figures}, index=index)
+
+    for name, df in (("lazy", lazy_df), ("mpl", mpl_df)):
+        tr = Trelliscope(df, name, path=str(tmp_path)).write_display()
+        first_panel = tr.data_frame["panel"].iloc[0]
+        assert os.path.isfile(os.path.join(tr.get_dataset_display_path(), first_panel))

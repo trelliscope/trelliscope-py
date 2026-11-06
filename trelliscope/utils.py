@@ -450,7 +450,7 @@ def is_figure_column(df: pd.DataFrame, col: str):
         col:str - The column to check
     """
     is_figure = False
-    first = df[col][0]
+    first = df[col].iloc[0]
 
     if isinstance(first, plotly.graph_objs.Figure):
         if df[col].apply(lambda x: isinstance(x, plotly.graph_objs.Figure)).all():
@@ -497,7 +497,7 @@ def is_image_column(df: pd.DataFrame, col: str) -> bool:
     is_image = False
 
     # Get extension of the first item
-    ext = get_extension(df[col][0])
+    ext = get_extension(df[col].iloc[0])
 
     if ext in valid_image_extensions:
         # The first row had a valid image extension, now check if
@@ -678,7 +678,7 @@ def is_string_column(column: pd.Series):
         # This is a "string dtype" but that could include other types of
         # objects such as a plotly `Figure`, so verify that the first value
         # is actually a string.
-        if isinstance(column[0], str):
+        if isinstance(column.iloc[0], str):
             is_string = True
 
     return is_string
@@ -701,7 +701,7 @@ def is_matplotlib_figure_column(df: pd.DataFrame, col: str) -> bool:
     try:
         import matplotlib.figure
 
-        first = df[col][0]
+        first = df[col].iloc[0]
         if not isinstance(first, matplotlib.figure.Figure):
             return False
         return df[col].apply(lambda x: isinstance(x, matplotlib.figure.Figure)).all()
@@ -713,7 +713,7 @@ def is_callable_column(df: pd.DataFrame, col: str) -> bool:
     """Returns True if the column contains only callable objects (for lazy panels)."""
     if not is_object_dtype(df[col]):
         return False
-    first = df[col][0]
+    first = df[col].iloc[0]
     if not callable(first):
         return False
     return df[col].dropna().apply(callable).all()
