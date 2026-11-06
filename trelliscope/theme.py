@@ -106,5 +106,7 @@ class Theme:
         return json.dumps(self.to_dict(), indent=2 if pretty else None)
 
     def __repr__(self) -> str:
-        custom = {k: v for k, v in self._ATTR_TO_KEY.items() if getattr(self, k) is not None}
+        custom = {
+            k: v for k, v in self._ATTR_TO_KEY.items() if getattr(self, k) is not None
+        }
         return f"Theme(is_custom={self.is_custom}, params={list(custom.keys())})"

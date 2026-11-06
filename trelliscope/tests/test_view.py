@@ -1,11 +1,9 @@
 import json
 
-import pytest
-
 from trelliscope import Trelliscope
 from trelliscope.panel_source import FilePanelSource
 from trelliscope.panels import ImagePanel
-from trelliscope.state import CategoryFilterState, LayoutState, LabelState, SortState
+from trelliscope.state import CategoryFilterState, LabelState, LayoutState, SortState
 from trelliscope.view import View
 
 # Note, when using json results, we are converting the json to dictionaries
@@ -81,7 +79,11 @@ def test_trelliscope_add_view(iris_df_no_duplicates):
     df = iris_df_no_duplicates.copy()
     df["img"] = "test.png"
     pnl = ImagePanel("img", source=FilePanelSource(False), should_copy_to_output=False)
-    tr = Trelliscope(df, "test").add_panel(pnl).add_view(View("sorted_view", sort_state=SortState("Sepal.Length")))
+    tr = (
+        Trelliscope(df, "test")
+        .add_panel(pnl)
+        .add_view(View("sorted_view", sort_state=SortState("Sepal.Length")))
+    )
     assert "sorted_view" in tr.views
 
 

@@ -12,7 +12,6 @@ from trelliscope.input import (
     TextInput,
 )
 
-
 # ---------------------------------------------------------------------------
 # TextInput
 # ---------------------------------------------------------------------------
@@ -37,7 +36,13 @@ def test_text_input_custom():
 def test_text_input_to_dict():
     inp = TextInput("notes", label="Notes", width=80, height=4)
     d = inp.to_dict()
-    assert d == {"name": "notes", "label": "Notes", "type": "text", "width": 80, "height": 4}
+    assert d == {
+        "name": "notes",
+        "label": "Notes",
+        "type": "text",
+        "width": 80,
+        "height": 4,
+    }
 
 
 def test_text_input_to_json():

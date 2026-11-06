@@ -1,9 +1,7 @@
-import tempfile
-
 import pandas as pd
 import pytest
 
-from trelliscope import LazyPanel, Trelliscope
+from trelliscope import Trelliscope
 from trelliscope.metas import (
     FactorMeta,
     HrefMeta,
@@ -12,8 +10,7 @@ from trelliscope.metas import (
     StringMeta,
 )
 from trelliscope.panel_source import FilePanelSource
-from trelliscope.panels import FigurePanel, ImagePanel, Panel
-
+from trelliscope.panels import ImagePanel, Panel
 
 # ---------------------------------------------------------------------------
 # Key-column inference
@@ -100,7 +97,9 @@ def test_infer_skips_non_meta_columns(iris_df_no_duplicates):
 def test_panel_column_becomes_panel_meta(iris_df_no_duplicates):
     df = iris_df_no_duplicates.copy()
     df["img_panel"] = "test_image.png"
-    pnl = ImagePanel("img_panel", source=FilePanelSource(is_local=False), should_copy_to_output=False)
+    pnl = ImagePanel(
+        "img_panel", source=FilePanelSource(is_local=False), should_copy_to_output=False
+    )
     tr = Trelliscope(df, "test").add_panel(pnl)
     tr = tr.infer()
     assert "img_panel" in tr.metas
@@ -110,7 +109,9 @@ def test_panel_column_becomes_panel_meta(iris_df_no_duplicates):
 def test_panel_column_not_inferred_as_string_meta(iris_df_no_duplicates):
     df = iris_df_no_duplicates.copy()
     df["img_panel"] = "test_image.png"
-    pnl = ImagePanel("img_panel", source=FilePanelSource(is_local=False), should_copy_to_output=False)
+    pnl = ImagePanel(
+        "img_panel", source=FilePanelSource(is_local=False), should_copy_to_output=False
+    )
     tr = Trelliscope(df, "test").add_panel(pnl)
     tr = tr.infer()
     assert isinstance(tr.metas["img_panel"], PanelMeta)
@@ -126,7 +127,9 @@ def test_figure_backup_column_excluded_from_metas(iris_df_no_duplicates):
     """The __FIGURE backup column should never appear in metas."""
     df = iris_df_no_duplicates.copy()
     df["img_panel"] = "test_image.png"
-    pnl = ImagePanel("img_panel", source=FilePanelSource(is_local=False), should_copy_to_output=False)
+    pnl = ImagePanel(
+        "img_panel", source=FilePanelSource(is_local=False), should_copy_to_output=False
+    )
     tr = Trelliscope(df, "test").add_panel(pnl)
     tr = tr.infer()
     backup_col = "img_panel" + Panel._FIGURE_SUFFIX
@@ -141,7 +144,9 @@ def test_figure_backup_column_excluded_from_metas(iris_df_no_duplicates):
 def test_infer_panels_from_image_column(iris_df_no_duplicates):
     df = iris_df_no_duplicates.copy()
     df["img_panel"] = "test_image.png"
-    pnl = ImagePanel("img_panel", source=FilePanelSource(is_local=False), should_copy_to_output=False)
+    pnl = ImagePanel(
+        "img_panel", source=FilePanelSource(is_local=False), should_copy_to_output=False
+    )
     tr = Trelliscope(df, "test").add_panel(pnl)
     tr = tr.infer_panels()
     assert "img_panel" in tr._get_panel_columns()
@@ -214,7 +219,9 @@ def test_infer_default_layout_state(iris_df_no_duplicates):
     """When no layout is set, infer() should supply a default LayoutState."""
     df = iris_df_no_duplicates.copy()
     df["img_panel"] = "test_image.png"
-    pnl = ImagePanel("img_panel", source=FilePanelSource(is_local=False), should_copy_to_output=False)
+    pnl = ImagePanel(
+        "img_panel", source=FilePanelSource(is_local=False), should_copy_to_output=False
+    )
     tr = Trelliscope(df, "test").add_panel(pnl)
     tr = tr.infer()
     assert tr.state.layout is not None
@@ -225,7 +232,9 @@ def test_infer_default_label_state(iris_df_no_duplicates):
     """When no labels are set, infer() should supply labels defaulting to key_cols."""
     df = iris_df_no_duplicates.copy()
     df["img_panel"] = "test_image.png"
-    pnl = ImagePanel("img_panel", source=FilePanelSource(is_local=False), should_copy_to_output=False)
+    pnl = ImagePanel(
+        "img_panel", source=FilePanelSource(is_local=False), should_copy_to_output=False
+    )
     tr = Trelliscope(df, "test").add_panel(pnl)
     tr = tr.infer()
     assert tr.state.labels is not None

@@ -56,7 +56,9 @@ def test_layout_state_init():
 
 
 def test_layout_state_sidebar_and_visible_filters(iris_df):
-    state = LayoutState(ncol=2, sidebar=False, visible_filters=["Sepal.Length", "Species"])
+    state = LayoutState(
+        ncol=2, sidebar=False, visible_filters=["Sepal.Length", "Species"]
+    )
     assert state.sidebar is False
     assert state.visible_filters == ["Sepal.Length", "Species"]
     state.check_with_data(iris_df)

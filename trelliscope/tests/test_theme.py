@@ -1,12 +1,9 @@
 import json
-import os
-import tempfile
 
 import pytest
 
-from trelliscope import Theme, Trelliscope
+from trelliscope import Theme
 from trelliscope.theme import Theme
-
 
 # ---------------------------------------------------------------------------
 # Theme construction

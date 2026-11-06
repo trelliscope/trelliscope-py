@@ -219,7 +219,11 @@ def test_factor_meta_cast_variable(iris_df):
     df2 = meta.cast_variable(df)
 
     assert df2["Species"].dtype.name == "category"
-    assert set(df2["Species"].cat.categories.tolist()) == {"setosa", "versicolor", "virginica"}
+    assert set(df2["Species"].cat.categories.tolist()) == {
+        "setosa",
+        "versicolor",
+        "virginica",
+    }
 
 
 def test_factor_meta_cast_variable_with_explicit_levels(iris_df):

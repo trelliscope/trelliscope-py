@@ -5,7 +5,7 @@ import pytest
 
 from trelliscope import Trelliscope
 from trelliscope.panel_source import FilePanelSource
-from trelliscope.panels import IFramePanel, ImagePanel, Panel, PanelOptions
+from trelliscope.panels import ImagePanel, Panel, PanelOptions
 
 
 def test_panels_setup_no_uniquely_identifying_columns(iris_df: pd.DataFrame):
@@ -56,11 +56,7 @@ def test_panels_setup_options(iris_df_no_duplicates: pd.DataFrame):
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # add_panel then write_display (basic chain)
-        tr = (
-            Trelliscope(df, "Iris", path=temp_dir)
-            .add_panel(pnl)
-            .write_display()
-        )
+        tr = Trelliscope(df, "Iris", path=temp_dir).add_panel(pnl).write_display()
         assert "img_panel" in tr._get_panel_columns()
 
         # add_panel with a fresh Trelliscope (non-chained)

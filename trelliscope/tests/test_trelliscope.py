@@ -1,6 +1,5 @@
 import json
 import os
-import shutil
 import tempfile
 import urllib.request
 
@@ -320,7 +319,9 @@ def test_copy_images_to_build_directory():
 
             tr = Trelliscope(df, "test", path=output_dir)
             tr = tr.add_panel(
-                ImagePanel("img_panel", FilePanelSource(True), should_copy_to_output=True)
+                ImagePanel(
+                    "img_panel", FilePanelSource(True), should_copy_to_output=True
+                )
             )
 
             # Before write: paths point into img_dir
@@ -409,6 +410,7 @@ def test_set_default_sort(mars_df: pd.DataFrame):
 
 def test_infer_state(iris_df_no_duplicates):
     import pandas as pd
+
     from trelliscope.state import CategoryFilterState, DisplayState, LayoutState
 
     df = iris_df_no_duplicates.copy()
@@ -508,7 +510,9 @@ def test_add_inputs_serialized(iris_tr):
 
 
 def test_set_var_labels(iris_tr):
-    tr = iris_tr.set_var_labels(Species="Species Name", **{"Sepal.Length": "Sepal Length (cm)"})
+    tr = iris_tr.set_var_labels(
+        Species="Species Name", **{"Sepal.Length": "Sepal Length (cm)"}
+    )
 
     assert tr.var_labels["Species"] == "Species Name"
     assert tr.var_labels["Sepal.Length"] == "Sepal Length (cm)"
@@ -556,8 +560,6 @@ def test_set_default_layout_visible_filters(iris_df_no_duplicates):
 
 
 def test_set_default_layout_visible_filters_unknown_col(iris_df_no_duplicates):
-    from trelliscope.state import LayoutState
-
     tr = Trelliscope(iris_df_no_duplicates, name="iris")
     with pytest.raises(ValueError, match="references columns not in the data"):
         tr.set_default_layout(visible_filters=["no_such_col"])
@@ -578,9 +580,7 @@ def test_set_default_layout_serialized(iris_df_no_duplicates):
 
 
 def test_set_info_html(iris_tr):
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".html", delete=False
-    ) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".html", delete=False) as f:
         f.write("<h1>Hello Trelliscope</h1>")
         html_path = f.name
 
@@ -665,7 +665,9 @@ def test_serve_responds_to_http(iris_df_no_duplicates):
         tr = Trelliscope(df, "test", path=output_dir).add_panel(pnl).write_display()
         tr.serve(port=19878)
         time.sleep(0.3)  # let the daemon thread bind its socket
-        response = urllib.request.urlopen("http://localhost:19878/index.html", timeout=3)
+        response = urllib.request.urlopen(
+            "http://localhost:19878/index.html", timeout=3
+        )
         assert response.getcode() == 200
 
 
@@ -706,12 +708,9 @@ def test_write_display_in_jupyter_event_loop(iris_df_no_duplicates, tmp_path):
     async def run():
         from trelliscope.panel_source import FilePanelSource
         from trelliscope.panels import FigurePanel
+
         pnl = FigurePanel("panel", source=FilePanelSource(False))
-        tr = (
-            Trelliscope(df, "test", path=str(tmp_path))
-            .add_panel(pnl)
-            .write_display()
-        )
+        tr = Trelliscope(df, "test", path=str(tmp_path)).add_panel(pnl).write_display()
         return tr
 
     tr = asyncio.run(run())

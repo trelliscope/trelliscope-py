@@ -26,7 +26,6 @@ from trelliscope.metas import (
 )
 from trelliscope.panels import FigurePanel, ImagePanel, LazyPanel, Panel, PanelOptions
 from trelliscope.progress_bar import ProgressBar
-from trelliscope.theme import Theme
 from trelliscope.state import (
     CategoryFilterState,
     DisplayState,
@@ -35,6 +34,7 @@ from trelliscope.state import (
     LayoutState,
     SortState,
 )
+from trelliscope.theme import Theme
 
 from .view import View
 
@@ -1221,7 +1221,9 @@ class Trelliscope:
         html_utils.write_id_file(output_path=output_path, trelliscope_id=self.id)
 
     @staticmethod
-    def _get_panel_filename(row, key_cols: list, output_dir: str, extension: str) -> str:
+    def _get_panel_filename(
+        row, key_cols: list, output_dir: str, extension: str
+    ) -> str:
         """Compute the output file path for a single panel image row."""
         if len(key_cols) > 0:
             key_col_values = [str(row[key_col]) for key_col in key_cols]
@@ -1290,7 +1292,9 @@ class Trelliscope:
 
     def _compute_panel_keysig(self) -> str:
         """Compute an MD5 hash of key column values to detect data changes between runs."""
-        key_values = self.data_frame[self.key_cols].astype(str).values.flatten().tolist()
+        key_values = (
+            self.data_frame[self.key_cols].astype(str).values.flatten().tolist()
+        )
         content = "|".join(key_values)
         return hashlib.md5(content.encode()).hexdigest()
 
@@ -1399,10 +1403,13 @@ class Trelliscope:
                     # can create and reuse one event loop across every figure.
                     import asyncio
                     import concurrent.futures
+
                     try:
                         asyncio.get_running_loop()
                         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
-                            tr.data_frame[panel_col] = ex.submit(_apply_write_figures).result()
+                            tr.data_frame[panel_col] = ex.submit(
+                                _apply_write_figures
+                            ).result()
                     except RuntimeError:
                         tr.data_frame[panel_col] = _apply_write_figures()
 
@@ -1776,7 +1783,9 @@ class Trelliscope:
         from http.server import HTTPServer, SimpleHTTPRequestHandler
 
         output_path = self.get_output_path()
-        if output_path is None or not os.path.exists(os.path.join(output_path, "index.html")):
+        if output_path is None or not os.path.exists(
+            os.path.join(output_path, "index.html")
+        ):
             raise ValueError(
                 "No display output found. Call write_display() before serve()."
             )
@@ -1800,14 +1809,16 @@ class Trelliscope:
 
         # Embed an IFrame only in plain Jupyter (not SageMaker — the proxy URL
         # requires browser-level auth, so the IFrame would be blocked).
-        in_sagemaker = os.path.exists("/opt/ml/metadata/resource-metadata.json") or \
-            os.path.isdir("/home/ec2-user/SageMaker")
+        in_sagemaker = os.path.exists(
+            "/opt/ml/metadata/resource-metadata.json"
+        ) or os.path.isdir("/home/ec2-user/SageMaker")
         if not in_sagemaker:
             try:
                 ip = get_ipython()  # type: ignore[name-defined]
                 if ip is not None:
                     from IPython.display import IFrame
                     from IPython.display import display as ipy_display
+
                     ipy_display(IFrame(url, width="100%", height=650))
             except NameError:
                 pass
@@ -1836,6 +1847,7 @@ class Trelliscope:
                 if domain_id:
                     try:
                         import boto3
+
                         region = boto3.session.Session().region_name or "us-east-1"
                     except Exception:
                         region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
@@ -1843,7 +1855,7 @@ class Trelliscope:
                         f"https://{domain_id}.studio.{region}.sagemaker.aws"
                         f"/jupyter/default/proxy/{port}/"
                     )
-                    print(f"SageMaker Studio detected.")
+                    print("SageMaker Studio detected.")
                     print(f"Open this URL in your browser:\n  {url}")
                     print(_PROXY_TIP)
                     return url
@@ -1868,6 +1880,7 @@ class Trelliscope:
                             pass
             try:
                 import boto3
+
                 region = boto3.session.Session().region_name or "us-east-1"
             except Exception:
                 region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
