@@ -867,3 +867,15 @@ def test_write_display_with_index_not_starting_at_zero(tmp_path):
         tr = Trelliscope(df, name, path=str(tmp_path)).write_display()
         first_panel = tr.data_frame["panel"].iloc[0]
         assert os.path.isfile(os.path.join(tr.get_dataset_display_path(), first_panel))
+
+
+def test_lazy_panel_display_has_thumbnail(tmp_path):
+    df = pd.DataFrame({"id": ["a", "b"]})
+    tr = (
+        Trelliscope(df, "test", path=str(tmp_path))
+        .add_panel(LazyPanel("panel", fn=lambda row: _FakeFigure(b"x")))
+        .write_display()
+    )
+
+    # Lazy panels are written as files, so the first one is the thumbnail.
+    assert tr.thumbnail_url == tr.data_frame["panel"].iloc[0]

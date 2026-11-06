@@ -637,7 +637,7 @@ class Trelliscope:
         primary_panel = self._get_panel(primary_panel_col)
 
         # TODO: Clean this up using polymorphism and better checks...
-        if isinstance(primary_panel, (FigurePanel, ImagePanel)):
+        if isinstance(primary_panel, (FigurePanel, ImagePanel, LazyPanel)):
             thumbnail_url = self.data_frame[primary_panel_col].iloc[0]
 
             # key = self.data_frame[self.panel.varname][0]
