@@ -11,8 +11,8 @@ exclude = ["trelliscope/tests"]
 name = "trelliscope"
 dependencies = [
     "pandas >= 1.5.2",
-    "kaleido == 0.1.*",
-    "plotly >= 5.18.0",
+    "kaleido",
+    "plotly >= 5.19.0",
 ]
 version = "0.0.0-alpha1"
 authors = [

@@ -62,6 +62,7 @@ class Panel:
         self.aspect_ratio = aspect_ratio
         self.is_image = is_image
         self.is_writeable = writeable
+        self.is_lazy = False
         self.should_copy = False
         self.source = source
         self.panel_type_str = panel_type_str
@@ -105,6 +106,10 @@ class Panel:
         # It is not already determined to be an image or figure column
         # Check to see if it is one of these before proceeding
         if not (is_known_image_col or is_known_figure_col):
+            # Check for a lazy panel (column filled with callables)
+            if utils.is_callable_column(df, panel_column):
+                fn = df[panel_column].iloc[0]
+                return LazyPanel(panel_column, fn=fn)
             if utils.is_image_column(df, panel_column):
                 is_known_image_col = True
             elif utils.is_figure_column(df, panel_column):
@@ -219,5 +224,42 @@ class FigurePanel(Panel):
     def get_extension(self) -> str:
         return self.extension
 
-    # def get_panel_source(self) -> dict:
-    #     return {"type": "file"}
+
+class LazyPanel(Panel):
+    """
+    A panel generated lazily at write time by calling a user-supplied function
+    for each row of the data frame.
+
+    The function receives a DataFrame row (pd.Series) and must return a figure
+    object (Plotly or matplotlib).
+    """
+
+    def __init__(
+        self,
+        varname: str,
+        fn,
+        extension: str = "png",
+        aspect_ratio: float = 1.5,
+    ) -> None:
+        if not callable(fn):
+            raise ValueError(
+                "'fn' must be a callable that accepts a DataFrame row and returns a figure."
+            )
+        super().__init__(
+            varname=varname,
+            panel_type_str=Panel._PANEL_TYPE_IMAGE,
+            source=FilePanelSource(is_local=True),
+            aspect_ratio=aspect_ratio,
+            is_image=False,
+            writeable=True,
+        )
+        self.fn = fn
+        self.is_lazy = True
+        self.extension = extension
+        self.figure_varname = self.varname + Panel._FIGURE_SUFFIX
+
+    def get_extension(self) -> str:
+        return self.extension
+
+    def check_valid(self, df: pd.DataFrame):
+        pass  # lazy panels don't require a pre-existing column

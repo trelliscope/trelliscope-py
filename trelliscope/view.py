@@ -5,9 +5,6 @@ from .state import DisplayState, FilterState, LabelState, LayoutState, SortState
 
 
 class View:
-    # TODO: Verify desirable API around passing in states
-    # Should they be a list? Should it just be the display obj?
-    # Should we keep an option for both single sort and multiple sort?
     def __init__(
         self,
         name: str,
@@ -59,5 +56,4 @@ class View:
         return json.dumps(self.to_dict(), indent=indent_value)
 
     def _copy(self):
-        # TODO: Shallow or deep copy??
         return copy.deepcopy(self)

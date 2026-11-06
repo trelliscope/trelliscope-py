@@ -1,8 +1,8 @@
 import json
 import os
-import shutil
 import tempfile
 import urllib.request
+from http import HTTPStatus
 
 import pandas as pd
 import pytest
@@ -10,7 +10,7 @@ import pytest
 from trelliscope import Trelliscope
 from trelliscope.metas import NumberMeta
 from trelliscope.panel_source import FilePanelSource
-from trelliscope.panels import ImagePanel, Panel
+from trelliscope.panels import ImagePanel, LazyPanel, Panel
 from trelliscope.state import SortState
 
 
@@ -29,7 +29,7 @@ def test_to_dict(iris_tr: Trelliscope):
     assert "name" in dict
     assert "description" in dict
     assert "tags" in dict
-    assert "key_cols" in dict
+    assert "keycols" in dict
     assert "metas" in dict
     assert "state" in dict
     assert "views" in dict
@@ -298,50 +298,45 @@ def test_infer_primary_panel(mars_df: pd.DataFrame):
     assert tr.primary_panel in ("img_src", "img2")
 
 
-@pytest.mark.skip(
-    "Need to find a new set of images to download, because nasa.gov is taking a long time."
-)
-def test_copy_images_to_build_directory(mars_df: pd.DataFrame):
-    mars_df = mars_df[:3]  # reduce to two rows
+def test_copy_images_to_build_directory():
+    """Local image files should be copied into the output directory on write_display()."""
+    import base64
+
+    # Minimal valid 1×1 white PNG — no external download needed
+    TINY_PNG = base64.b64decode(
+        b"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk"
+        b"+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    )
 
     with tempfile.TemporaryDirectory() as output_dir:
-        with tempfile.TemporaryDirectory() as temp_dir2:
-            # download the images to a temp directory and update the data frame
-            for i in range(len(mars_df)):
-                original_file = mars_df["img_src"][i]
-                file_name = os.path.basename(original_file)
-                temp_dir_file = os.path.join(temp_dir2, file_name)
+        with tempfile.TemporaryDirectory() as img_dir:
+            rows = []
+            for i in range(3):
+                img_path = os.path.join(img_dir, f"row_{i}.png")
+                with open(img_path, "wb") as f:
+                    f.write(TINY_PNG)
+                rows.append({"id": str(i), "value": float(i), "img_panel": img_path})
+            df = pd.DataFrame(rows)
 
-                # security check to disallow urls starting with file: or custom schemas.
-                if not original_file.startswith(("http:", "https:")):
-                    raise ValueError("URL must start with 'http:' or 'https:'")
-                else:
-                    with urllib.urlopen(original_file, timeout=1) as response, open(
-                        temp_dir_file, "wb"
-                    ) as out_file:
-                        shutil.copyfileobj(response, out_file)
-
-                mars_df["img_src"][i] = temp_dir_file
-
-            tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
+            tr = Trelliscope(df, "test", path=output_dir)
             tr = tr.add_panel(
-                ImagePanel("img_src", FilePanelSource(True), should_copy_to_output=True)
+                ImagePanel(
+                    "img_panel", FilePanelSource(True), should_copy_to_output=True
+                )
             )
 
-            # At first, the image should be in the temp dir that we put it in
-            original_image = tr.data_frame["img_src"][0]
-            assert temp_dir2 in original_image
+            # Before write: paths point into img_dir
+            assert img_dir in tr.data_frame["img_panel"].iloc[0]
 
             tr = tr.write_display()
 
-            # Now the image should not be in the temp dir
-            new_image = tr.data_frame["img_src"][0]
-            new_image_full_path = os.path.join(tr.get_dataset_display_path(), new_image)
-            assert temp_dir2 not in new_image_full_path
+            # After write: paths must no longer point into the original img_dir
+            new_img = tr.data_frame["img_panel"].iloc[0]
+            full_path = os.path.join(tr.get_dataset_display_path(), new_img)
+            assert img_dir not in full_path
 
-            # But the image should exist in the output dir
-            assert output_dir in new_image_full_path
-            assert os.path.exists(new_image_full_path)
+            # And the copied file must actually exist in the output directory
+            assert os.path.exists(full_path)
 
 
 def test_set_default_sort(mars_df: pd.DataFrame):
@@ -414,14 +409,40 @@ def test_set_default_sort(mars_df: pd.DataFrame):
         tr.set_default_sort(["a", "b", "c"], ["asc", "desc"])
 
 
-@pytest.mark.skip("Need to better understand the rules of inferring states")
-def test_infer_state(mars_df: pd.DataFrame):
-    with tempfile.TemporaryDirectory() as output_dir:
-        tr = Trelliscope(mars_df, "mars_rover", path=output_dir)
-        tr._infer_state(tr.state)
+def test_infer_state(iris_df_no_duplicates):
+    import pandas as pd
 
-    raise NotImplementedError()
-    # TODO: Make sure to test the intersection of CategoryFilter levels and Factor meta levels.
+    from trelliscope.state import CategoryFilterState, DisplayState, LayoutState
+
+    df = iris_df_no_duplicates.copy()
+    df["Species"] = pd.Categorical(df["Species"])
+    df["img"] = "test.png"
+    pnl = ImagePanel("img", source=FilePanelSource(False), should_copy_to_output=False)
+    tr = Trelliscope(df, "test").add_panel(pnl).infer()
+
+    # Empty state → default LayoutState(ncol=3) and LabelState(key_cols)
+    default_ncol = 3
+    inferred = tr._infer_state(DisplayState())
+    assert inferred.layout is not None
+    assert inferred.layout.ncol == default_ncol
+    assert inferred.labels is not None
+    for key in tr.key_cols:
+        assert key in inferred.labels.varnames
+
+    # Existing layout is preserved, not overwritten
+    state_with_layout = DisplayState()
+    preset_ncol = 5
+    state_with_layout.set(LayoutState(ncol=preset_ncol))
+    inferred2 = tr._infer_state(state_with_layout)
+    assert inferred2.layout.ncol == preset_ncol
+
+    # CategoryFilterState values are intersected with FactorMeta levels
+    state_with_filter = DisplayState()
+    cf = CategoryFilterState("Species", values=["setosa", "no_such_species"])
+    state_with_filter.set(cf)
+    inferred3 = tr._infer_state(state_with_filter)
+    assert "setosa" in inferred3.filter["Species"].values
+    assert "no_such_species" not in inferred3.filter["Species"].values
 
 
 def test_set_primary_panel(mars_df: pd.DataFrame):
@@ -449,14 +470,280 @@ def test_infer_panels(mars_df: pd.DataFrame):
         assert tr.primary_panel == "img_src"
 
 
-@pytest.mark.skip("Test these when inputs are functioning")
-def test_add_input(mars_df: pd.DataFrame):
-    raise NotImplementedError
+def test_add_input(iris_tr):
+    from trelliscope.input import TextInput
+
+    inp = TextInput("notes", label="Notes", width=60, height=4)
+    tr = iris_tr.add_input(inp)
+
+    assert "notes" in tr.inputs
+    assert tr.inputs["notes"].label == "Notes"
 
 
-@pytest.mark.skip("Test these when inputs are functioning")
-def test_add_inputs(mars_df: pd.DataFrame):
-    raise NotImplementedError
+def test_add_inputs(iris_tr):
+    from trelliscope.input import NumberInput, RadioInput, TextInput
+
+    inputs = [
+        TextInput("comments", label="Comments"),
+        RadioInput("quality", label="Quality", options=["good", "bad"]),
+        NumberInput("score", label="Score", min=0, max=10),
+    ]
+    tr = iris_tr.add_inputs(inputs, email="test@example.com", vars=["Species"])
+
+    assert len(tr.inputs) == len(inputs)
+    assert tr.input_email == "test@example.com"
+    assert tr.input_vars == ["Species"]
+
+
+def test_add_inputs_serialized(iris_tr):
+    from trelliscope.input import RadioInput, TextInput
+
+    inputs = [
+        TextInput("notes"),
+        RadioInput("flag", options=["yes", "no"]),
+    ]
+    tr = iris_tr.add_inputs(inputs, email="user@test.com", vars=["Species"])
+    d = tr.to_dict()
+
+    # The shape the viewer reads, matching the R package's Inputs class.
+    assert set(d["inputs"]) == {"inputs", "storageInterface", "feedbackInterface"}
+    assert {i["type"] for i in d["inputs"]["inputs"]} == {"text", "radio"}
+    assert d["inputs"]["storageInterface"] == {"type": "localStorage"}
+    assert d["inputs"]["feedbackInterface"] == {
+        "feedbackEmail": "user@test.com",
+        "includeMetaVars": ["Species"],
+    }
+
+
+def test_no_inputs_serialized_as_null(iris_tr):
+    assert iris_tr.to_dict()["inputs"] is None
+
+
+def test_set_var_labels(iris_tr):
+    tr = iris_tr.set_var_labels(
+        Species="Species Name", **{"Sepal.Length": "Sepal Length (cm)"}
+    )
+
+    assert tr.var_labels["Species"] == "Species Name"
+    assert tr.var_labels["Sepal.Length"] == "Sepal Length (cm)"
+
+
+def test_set_var_labels_applied_to_existing_meta(iris_df_no_duplicates):
+    from trelliscope.metas import StringMeta
+
+    tr = Trelliscope(iris_df_no_duplicates, name="iris")
+    tr = tr.set_meta(StringMeta("Species"))
+    tr = tr.set_var_labels(Species="Species Name")
+
+    assert tr.metas["Species"].label == "Species Name"
+
+
+def test_set_var_labels_applied_during_infer(iris_df_no_duplicates):
+    tr = Trelliscope(iris_df_no_duplicates, name="iris")
+    tr = tr.set_var_labels(**{"Sepal.Length": "Sepal Length (cm)"})
+    tr = tr._infer_metas()
+
+    assert tr.metas["Sepal.Length"].label == "Sepal Length (cm)"
+
+
+def test_set_var_labels_invalid_type(iris_tr):
+    with pytest.raises(ValueError, match="string"):
+        iris_tr.set_var_labels(Species=123)
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: set_default_layout (sidebar + visible_filters)
+# ---------------------------------------------------------------------------
+
+
+def test_set_default_layout_sidebar(iris_df_no_duplicates):
+    tr = Trelliscope(iris_df_no_duplicates, name="iris")
+    ncol = 2
+    tr = tr.set_default_layout(ncol=ncol, sidebar=False)
+    assert tr.state.layout.sidebar is False
+    assert tr.state.layout.ncol == ncol
+
+
+def test_set_default_layout_visible_filters(iris_df_no_duplicates):
+    tr = Trelliscope(iris_df_no_duplicates, name="iris")
+    tr = tr.set_default_layout(ncol=3, visible_filters=["Species", "Sepal.Length"])
+    assert tr.state.layout.visible_filters == ["Species", "Sepal.Length"]
+
+
+def test_set_default_layout_visible_filters_unknown_col(iris_df_no_duplicates):
+    tr = Trelliscope(iris_df_no_duplicates, name="iris")
+    with pytest.raises(ValueError, match="references columns not in the data"):
+        tr.set_default_layout(visible_filters=["no_such_col"])
+
+
+def test_set_default_layout_serialized(iris_df_no_duplicates):
+    tr = Trelliscope(iris_df_no_duplicates, name="iris")
+    ncol = 4
+    tr = tr.set_default_layout(ncol=ncol, sidebar=False, visible_filters=["Species"])
+    d = tr.state.layout.to_dict()
+    assert d["sidebarActive"] is False
+    assert "visible_filters" not in d
+    assert d["ncol"] == ncol
+
+
+def test_visible_filters_written_as_filter_view(iris_df_no_duplicates):
+    tr = Trelliscope(iris_df_no_duplicates, name="iris")
+    tr = tr.set_default_layout(visible_filters=["Species", "Sepal.Length"])
+    state = tr.infer().state.to_dict()
+
+    # Filterable metas only, in meta order, as the R package writes them.
+    expected = [
+        name for name in tr.infer().metas if name in ("Species", "Sepal.Length")
+    ]
+    assert state["filterView"] == expected
+    assert set(expected) == {"Species", "Sepal.Length"}
+
+
+def test_filter_view_empty_by_default(iris_tr):
+    assert iris_tr.infer().state.to_dict()["filterView"] == []
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: set_info_html and set_show_info_on_load
+# ---------------------------------------------------------------------------
+
+
+def test_set_info_html(iris_tr):
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".html", delete=False) as f:
+        f.write("<h1>Hello Trelliscope</h1>")
+        html_path = f.name
+
+    try:
+        tr = iris_tr.set_info_html(html_path)
+        assert tr.info_html == "<h1>Hello Trelliscope</h1>"
+        assert tr.to_dict()["hasCustomInfo"] is True
+    finally:
+        os.unlink(html_path)
+
+
+def test_set_info_html_missing_file(iris_tr):
+    with pytest.raises(ValueError, match="not found"):
+        iris_tr.set_info_html("/nonexistent/path/info.html")
+
+
+def test_set_info_html_does_not_mutate_original(iris_tr):
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".html", delete=False) as f:
+        f.write("<p>test</p>")
+        html_path = f.name
+
+    try:
+        tr2 = iris_tr.set_info_html(html_path)
+        assert iris_tr.info_html is None
+        assert tr2.info_html is not None
+    finally:
+        os.unlink(html_path)
+
+
+def test_set_show_info_on_load(iris_tr):
+    tr = iris_tr.set_show_info_on_load(True)
+    assert tr.show_info_on_load is True
+    assert tr.to_dict()["infoOnLoad"] is True
+
+
+def test_set_show_info_on_load_default_false(iris_tr):
+    assert iris_tr.show_info_on_load is False
+    assert iris_tr.to_dict()["infoOnLoad"] is False
+
+
+def test_set_show_info_on_load_invalid_type(iris_tr):
+    with pytest.raises(TypeError, match="must be a boolean"):
+        iris_tr.set_show_info_on_load("yes")
+
+
+def test_has_info_false_by_default(iris_tr):
+    assert iris_tr.to_dict()["hasCustomInfo"] is False
+
+
+# ---------------------------------------------------------------------------
+# serve()
+# ---------------------------------------------------------------------------
+
+
+def test_serve_raises_before_write(iris_df_no_duplicates):
+    df = iris_df_no_duplicates.copy()
+    df["img"] = "test.png"
+    pnl = ImagePanel("img", source=FilePanelSource(False), should_copy_to_output=False)
+    tr = Trelliscope(df, "test").add_panel(pnl)
+    with pytest.raises(ValueError, match="write_display"):
+        tr.serve(port=19876)
+
+
+def test_serve_returns_self(iris_df_no_duplicates):
+    df = iris_df_no_duplicates.copy()
+    df["img"] = "test.png"
+    pnl = ImagePanel("img", source=FilePanelSource(False), should_copy_to_output=False)
+    with tempfile.TemporaryDirectory() as output_dir:
+        tr = Trelliscope(df, "test", path=output_dir).add_panel(pnl).write_display()
+        result = tr.serve(port=19877)
+        assert result is tr
+
+
+def test_serve_responds_to_http(iris_df_no_duplicates):
+    """The background server should return HTTP 200 for index.html."""
+    import time
+
+    df = iris_df_no_duplicates.copy()
+    df["img"] = "test.png"
+    pnl = ImagePanel("img", source=FilePanelSource(False), should_copy_to_output=False)
+    with tempfile.TemporaryDirectory() as output_dir:
+        tr = Trelliscope(df, "test", path=output_dir).add_panel(pnl).write_display()
+        tr.serve(port=19878)
+        time.sleep(0.3)  # let the daemon thread bind its socket
+        response = urllib.request.urlopen(
+            "http://localhost:19878/index.html", timeout=3
+        )
+        assert response.getcode() == HTTPStatus.OK
+
+
+def test_save_figure_calls_write_image(tmp_path):
+    """_save_figure delegates to fig.write_image for Plotly figures."""
+    from unittest.mock import MagicMock
+
+    captured = {}
+
+    def fake_write_image(path):
+        captured["path"] = path
+        open(path, "wb").close()
+
+    mock_fig = MagicMock()
+    mock_fig.write_image.side_effect = fake_write_image
+
+    out = tmp_path / "out.png"
+    Trelliscope._save_figure(mock_fig, str(out))
+
+    assert captured["path"] == str(out)
+    assert mock_fig.write_image.call_count == 1
+
+
+def test_write_display_in_jupyter_event_loop(iris_df_no_duplicates, tmp_path):
+    """write_display() works when called from inside a running event loop (Jupyter)."""
+    import asyncio
+    from unittest.mock import MagicMock
+
+    df = iris_df_no_duplicates.copy()
+
+    def make_mock_fig():
+        fig = MagicMock()
+        fig.write_image.side_effect = lambda path: open(path, "wb").close()
+        return fig
+
+    df["panel"] = [make_mock_fig() for _ in range(len(df))]
+
+    async def run():
+        from trelliscope.panel_source import FilePanelSource
+        from trelliscope.panels import FigurePanel
+
+        pnl = FigurePanel("panel", source=FilePanelSource(False))
+        tr = Trelliscope(df, "test", path=str(tmp_path)).add_panel(pnl).write_display()
+        return tr
+
+    tr = asyncio.run(run())
+    assert tr is not None
 
 
 def test_write_display_with_missing_category_value(iris_df_no_duplicates: pd.DataFrame):
@@ -499,3 +786,107 @@ def test_set_metas(iris_df_no_duplicates: pd.DataFrame):
         m.varname: m.digits for m in metas
     }
     assert tr.metas == {}
+
+
+class _FakeFigure:
+    """Writes fixed bytes, standing in for a Plotly figure."""
+
+    def __init__(self, content: bytes):
+        self.content = content
+
+    def write_image(self, path):
+        with open(path, "wb") as f:
+            f.write(self.content)
+
+
+def test_rewrite_uses_new_panels_when_plot_code_changes(tmp_path):
+    df = pd.DataFrame({"id": ["a", "b"]})
+
+    def write(content):
+        tr = (
+            Trelliscope(df, "test", path=str(tmp_path))
+            .add_panel(LazyPanel("panel", fn=lambda row: _FakeFigure(content)))
+            .write_display()
+        )
+        panel_file = os.path.join(
+            tr.get_dataset_display_path(), tr.data_frame["panel"][0]
+        )
+        with open(panel_file, "rb") as f:
+            return f.read()
+
+    # Same keys, different plotting code: the second write must not reuse the first.
+    assert write(b"first") == b"first"
+    assert write(b"second") == b"second"
+
+
+def _write_image_display(df, name, output_dir):
+    df = df.copy()
+    df["img"] = "test.png"
+    pnl = ImagePanel("img", source=FilePanelSource(False), should_copy_to_output=False)
+    return Trelliscope(df, name, path=output_dir).add_panel(pnl).write_display()
+
+
+def test_serve_second_display_on_same_port(iris_df_no_duplicates):
+    """A second display served on the same port must replace the first."""
+    port = 19879
+    with tempfile.TemporaryDirectory() as dir1, tempfile.TemporaryDirectory() as dir2:
+        tr1 = _write_image_display(iris_df_no_duplicates, "first", dir1)
+        tr2 = _write_image_display(iris_df_no_duplicates, "second", dir2)
+
+        tr1.serve(port=port)
+        tr2.serve(port=port)
+        with urllib.request.urlopen("http://localhost:19879/id", timeout=3) as r:
+            assert r.read().decode().strip() == tr2.id
+
+
+def test_serve_port_used_by_another_program(iris_df_no_duplicates):
+    import socket
+
+    with socket.socket() as other, tempfile.TemporaryDirectory() as output_dir:
+        other.bind(("", 0))
+        other.listen()
+        busy_port = other.getsockname()[1]
+
+        tr = _write_image_display(iris_df_no_duplicates, "test", output_dir)
+        with pytest.raises(ValueError, match="already in use"):
+            tr.serve(port=busy_port)
+
+
+def test_write_display_with_index_not_starting_at_zero(tmp_path):
+    matplotlib = pytest.importorskip("matplotlib")
+    matplotlib.use("Agg")
+    plt = pytest.importorskip("matplotlib.pyplot")
+
+    figures = []
+    for _ in range(2):
+        fig, _ax = plt.subplots()
+        plt.close(fig)
+        figures.append(fig)
+    index = [10, 11]
+
+    lazy_df = pd.DataFrame({"id": ["a", "b"]}, index=index)
+    lazy_df["panel"] = [lambda row: _FakeFigure(b"x")] * 2
+    mpl_df = pd.DataFrame({"id": ["a", "b"], "panel": figures}, index=index)
+
+    for name, df in (("lazy", lazy_df), ("mpl", mpl_df)):
+        tr = Trelliscope(df, name, path=str(tmp_path)).write_display()
+        first_panel = tr.data_frame["panel"].iloc[0]
+        assert os.path.isfile(os.path.join(tr.get_dataset_display_path(), first_panel))
+
+
+def test_lazy_panel_display_has_thumbnail(tmp_path):
+    df = pd.DataFrame({"id": ["a", "b"]})
+    tr = (
+        Trelliscope(df, "test", path=str(tmp_path))
+        .add_panel(LazyPanel("panel", fn=lambda row: _FakeFigure(b"x")))
+        .write_display()
+    )
+
+    # Lazy panels are written as files, so the first one is the thumbnail.
+    assert tr.thumbnail_url == tr.data_frame["panel"].iloc[0]
+
+
+def test_metas_inferred_in_column_order(iris_tr):
+    columns = list(iris_tr.data_frame.columns)
+    metas = list(iris_tr.infer().metas)
+    assert metas == [c for c in columns if c in metas]

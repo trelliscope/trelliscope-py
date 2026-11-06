@@ -343,11 +343,46 @@ def check_exhaustive_levels(
 def check_graph_var(
     df: pd.DataFrame, varname: str, id_varname: str, get_error_message_function
 ):
-    """ """
-    # TODO: After we have determined how to handle the graph data in Pandas,
-    # implement this method to verify it.
+    """
+    Verify that a graph variable column contains valid graph data. Each cell
+    must be None/NaN or a list of dicts where every dict contains id_varname.
+    Params:
+        df: Pandas DataFrame
+        varname: The graph column to validate
+        id_varname: The key that must be present in every link dict
+        get_error_message_function: The function to call to get the error message template
+    Raises:
+        ValueError - If the check fails.
+    """
+    col = df[varname]
 
-    raise NotImplementedError()
+    for i, value in enumerate(col):
+        if value is None:
+            continue
+        if isinstance(value, float) and pd.isna(value):
+            continue
+        if not isinstance(value, list):
+            raise ValueError(
+                get_error_message_function(
+                    f"Graph column '{varname}' row {i} must be a list of dicts, "
+                    f"got {type(value).__name__}."
+                )
+            )
+        for j, item in enumerate(value):
+            if not isinstance(item, dict):
+                raise ValueError(
+                    get_error_message_function(
+                        f"Graph column '{varname}' row {i}, item {j} must be a dict, "
+                        f"got {type(item).__name__}."
+                    )
+                )
+            if id_varname not in item:
+                raise ValueError(
+                    get_error_message_function(
+                        f"Graph column '{varname}' row {i}, item {j} is missing "
+                        f"required key '{id_varname}'."
+                    )
+                )
 
 
 valid_image_extensions = {
@@ -408,17 +443,20 @@ def find_figure_columns(df: pd.DataFrame):
 
 def is_figure_column(df: pd.DataFrame, col: str):
     """
-    Determine if the column is explicitly filled with `Figure` objects.
+    Determine if the column is filled with figure objects (Plotly or matplotlib).
 
     Params:
         df:pd.DataFrame - The dataframe
         col:str - The column to check
     """
     is_figure = False
+    first = df[col].iloc[0]
 
-    if isinstance(df[col][0], plotly.graph_objs.Figure):
-        # The first row is a Figure, check all now
+    if isinstance(first, plotly.graph_objs.Figure):
         if df[col].apply(lambda x: isinstance(x, plotly.graph_objs.Figure)).all():
+            is_figure = True
+    elif is_matplotlib_figure(first):
+        if df[col].apply(lambda x: is_matplotlib_figure(x)).all():
             is_figure = True
 
     return is_figure
@@ -459,7 +497,7 @@ def is_image_column(df: pd.DataFrame, col: str) -> bool:
     is_image = False
 
     # Get extension of the first item
-    ext = get_extension(df[col][0])
+    ext = get_extension(df[col].iloc[0])
 
     if ext in valid_image_extensions:
         # The first row had a valid image extension, now check if
@@ -640,10 +678,45 @@ def is_string_column(column: pd.Series):
         # This is a "string dtype" but that could include other types of
         # objects such as a plotly `Figure`, so verify that the first value
         # is actually a string.
-        if isinstance(column[0], str):
+        if isinstance(column.iloc[0], str):
             is_string = True
 
     return is_string
+
+
+def is_matplotlib_figure(obj) -> bool:
+    """Returns True if obj is a matplotlib Figure; False if matplotlib is not installed."""
+    try:
+        import matplotlib.figure
+
+        return isinstance(obj, matplotlib.figure.Figure)
+    except ImportError:
+        return False
+
+
+def is_matplotlib_figure_column(df: pd.DataFrame, col: str) -> bool:
+    """Returns True if the column is entirely filled with matplotlib Figure objects."""
+    if not is_object_dtype(df[col]):
+        return False
+    try:
+        import matplotlib.figure
+
+        first = df[col].iloc[0]
+        if not isinstance(first, matplotlib.figure.Figure):
+            return False
+        return df[col].apply(lambda x: isinstance(x, matplotlib.figure.Figure)).all()
+    except ImportError:
+        return False
+
+
+def is_callable_column(df: pd.DataFrame, col: str) -> bool:
+    """Returns True if the column contains only callable objects (for lazy panels)."""
+    if not is_object_dtype(df[col]):
+        return False
+    first = df[col].iloc[0]
+    if not callable(first):
+        return False
+    return df[col].dropna().apply(callable).all()
 
 
 def is_datetime_column(column: pd.Series, must_be_datetime_objects: bool):

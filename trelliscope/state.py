@@ -80,26 +80,54 @@ class State:
 class LayoutState(State):
     VIEWTYPE_GRID = "grid"
 
-    def __init__(self, ncol: int = 1, page: int = 1):
+    def __init__(
+        self,
+        ncol: int = 1,
+        page: int = 1,
+        sidebar: bool = False,
+        visible_filters: list = None,
+    ):
         """
         Params:
-            ncol: int - Number of cols
-            page: int - Number of pages
+            ncol: int - Number of columns in the panel grid.
+            page: int - Initial page number.
+            sidebar: bool - Whether the filter sidebar is open by default.
+            visible_filters: list - Variable names whose filter controls are
+                expanded in the sidebar by default. None means all are collapsed.
         """
         super().__init__(State.TYPE_LAYOUT)
 
         utils.check_int(ncol, "ncol")
         utils.check_int(page, "page")
+        utils.check_bool(sidebar, "sidebar")
+
+        if visible_filters is not None:
+            utils.check_is_list(visible_filters, self._get_error_message)
 
         self.ncol = ncol
         self.page = page
+        self.sidebar = sidebar
+        self.visible_filters = visible_filters
         self.viewtype = LayoutState.VIEWTYPE_GRID
 
     def check_with_data(self, df: pd.DataFrame):
-        # This comment is in the R version:
-        # TODO: could check to see if "page" makes sense after applying filters
-        # and accounting for nrow and ncol
+        if self.visible_filters is not None:
+            extra = set(self.visible_filters) - set(df.columns)
+            if extra:
+                raise ValueError(
+                    self._get_data_error_message(
+                        f"visible_filters references columns not in the data: {extra}"
+                    )
+                )
         return True
+
+    def to_dict(self) -> dict:
+        result = super().to_dict()
+        # The viewer reads sidebarActive. Visible filters are written as the
+        # display state's filterView instead (see Trelliscope._infer_state).
+        result["sidebarActive"] = result.pop("sidebar")
+        result.pop("visible_filters")
+        return result
 
 
 class LabelState(State):
@@ -349,6 +377,7 @@ class DisplayState:
     def __init__(self):
         self.layout = None
         self.labels = None
+        self.filter_view = []
         self.sort = OrderedDict()
         self.filter = OrderedDict()
 
@@ -433,6 +462,7 @@ class DisplayState:
         result["labels"] = label_dict
         result["sort"] = sort_list
         result["filter"] = filter_list
+        result["filterView"] = self.filter_view
 
         return result
 

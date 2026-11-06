@@ -1,0 +1,99 @@
+__loadDisplayInfo__395a018e({
+  "name": "ref",
+  "description": "ref",
+  "tags": [],
+  "keycols": ["species"],
+  "metas": [
+    {
+      "maxnchar": 10,
+      "sortable": true,
+      "filterable": true,
+      "tags": [],
+      "label": "species",
+      "type": "string",
+      "varname": "species"
+    },
+    {
+      "log": false,
+      "locale": true,
+      "digits": 0,
+      "maxnchar": 2,
+      "sortable": true,
+      "filterable": true,
+      "tags": [],
+      "label": "n",
+      "type": "number",
+      "varname": "n"
+    },
+    {
+      "source": {
+        "isLocal": false,
+        "type": "file"
+      },
+      "aspect": 1,
+      "paneltype": "img",
+      "maxnchar": 0,
+      "sortable": false,
+      "filterable": false,
+      "tags": [],
+      "label": "panel",
+      "type": "panel",
+      "varname": "panel"
+    }
+  ],
+  "state": {
+    "layout": {
+      "viewtype": "grid",
+      "sidebarActive": true,
+      "page": 1,
+      "ncol": 2,
+      "type": "layout"
+    },
+    "labels": {
+      "varnames": ["species"],
+      "type": "labels"
+    },
+    "sort": [],
+    "filter": [],
+    "filterView": ["species", "n"]
+  },
+  "views": [],
+  "inputs": {
+    "inputs": [
+      {
+        "height": 3,
+        "type": "text",
+        "active": true,
+        "label": "Notes",
+        "name": "notes"
+      },
+      {
+        "options": ["yes", "no"],
+        "type": "radio",
+        "active": true,
+        "label": "flag",
+        "name": "flag"
+      },
+      {
+        "max": 10,
+        "min": 0,
+        "type": "number",
+        "active": true,
+        "label": "score",
+        "name": "score"
+      }
+    ],
+    "storageInterface": {
+      "type": "localStorage"
+    },
+    "feedbackInterface": {
+      "feedbackEmail": "someone@example.com",
+      "includeMetaVars": ["species"]
+    }
+  },
+  "primarypanel": "panel",
+  "thumbnailurl": "https://example.com/a.png",
+  "infoOnLoad": false,
+  "hasCustomInfo": true,
+  "order": 0
+})

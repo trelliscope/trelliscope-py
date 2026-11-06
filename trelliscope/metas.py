@@ -288,11 +288,13 @@ class PanelMeta(Meta):
         return result
 
     def check_variable(self, df: pd.DataFrame):
-        """
-        Checks that the variable is an appropriate type for panels.
-        """
-        # TODO: Fill this in
-        pass
+        """Checks that the panel column exists in the dataframe."""
+        if self.varname not in df.columns:
+            raise ValueError(
+                self._get_data_error_message(
+                    f"Panel column '{self.varname}' is not present in the data frame."
+                )
+            )
 
 
 class FactorMeta(Meta):
@@ -349,19 +351,22 @@ class FactorMeta(Meta):
 
     def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Converts the `self.varname` column in the data frame to be a string type.
-        This will change the original data frame.
+        Converts the `self.varname` column to a pandas Categorical with the
+        factor levels. Levels are inferred from the data if not already set.
         Params:
             df: Pandas DataFrame
         Returns:
             The updated Pandas DataFrame
+        Raises:
+            ValueError - If the column has a value that is not one of the levels.
         """
-        # TODO: This seems we should cast it to a categorical variable
-        # rather than just a string. And it seems like this would be a
-        # better place to actual infer the levels than the "check_variable"
-        # function above.
-        raise NotImplementedError()
-        df[self.varname] = df[self.varname].astype(str)
+        if self.levels is None:
+            self.infer_levels(df)
+        # pd.Categorical would silently turn a value outside the levels into NaN.
+        utils.check_exhaustive_levels(
+            df, self.levels, self.varname, self._get_data_error_message
+        )
+        df[self.varname] = pd.Categorical(df[self.varname], categories=self.levels)
         return df
 
 
@@ -393,7 +398,13 @@ class DatetimeMeta(Meta):
             sortable=True,
         )
 
-        # TODO: Consider validating timezone
+        if not isinstance(timezone, str):
+            raise TypeError(
+                f"timezone must be a string (e.g. 'UTC', 'America/New_York'), "
+                f"got {type(timezone).__name__}."
+            )
+        if not timezone.strip():
+            raise ValueError("timezone must not be an empty string.")
 
         self.timezone = timezone
 
@@ -451,6 +462,11 @@ class GraphMeta(Meta):
             df, self.varname, self.idvarname, self._get_data_error_message
         )
 
+    def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Validates graph column structure. Returns the dataframe unchanged."""
+        self.check_variable(df)
+        return df
+
 
 class GeoMeta(Meta):
     def __init__(
@@ -481,7 +497,17 @@ class GeoMeta(Meta):
         utils.check_latitude_variable(df, self.latvar, self._get_data_error_message)
         utils.check_longitude_variable(df, self.longvar, self._get_data_error_message)
 
-    # TODO: add a cast variable function that converts lat and long into a single var name
+    def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Validates that latvar and longvar columns are numeric and in the correct
+        geographic ranges. Returns the dataframe unchanged.
+        Params:
+            df: Pandas DataFrame
+        Returns:
+            The Pandas DataFrame (unchanged)
+        """
+        self.check_variable(df)
+        return df
 
     def to_dict(self) -> dict:
         # Overriding to make it so latvar and longvar are not serialized

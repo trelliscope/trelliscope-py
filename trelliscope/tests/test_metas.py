@@ -208,6 +208,52 @@ def test_factor_meta(iris_df):
         FactorMeta("Species", levels="this is a string")
 
 
+def test_factor_meta_cast_variable(iris_df):
+    # Use a fresh DataFrame where Species is plain string (not yet Categorical)
+    import pandas as pd
+
+    df = pd.DataFrame({"Species": ["setosa", "versicolor", "virginica", "setosa"]})
+    assert df["Species"].dtype.name != "category"
+
+    meta = FactorMeta("Species")
+    df2 = meta.cast_variable(df)
+
+    assert df2["Species"].dtype.name == "category"
+    assert set(df2["Species"].cat.categories.tolist()) == {
+        "setosa",
+        "versicolor",
+        "virginica",
+    }
+
+
+def test_factor_meta_cast_variable_with_explicit_levels(iris_df):
+    levels = ["setosa", "virginica", "versicolor", "extra"]
+    meta = FactorMeta("Species", levels=levels)
+
+    df2 = meta.cast_variable(iris_df)
+
+    assert df2["Species"].dtype.name == "category"
+    # All declared levels should be present as categories (even unused ones)
+    assert set(levels).issubset(set(df2["Species"].cat.categories.tolist()))
+
+
+def test_factor_meta_cast_variable_rejects_value_outside_levels():
+    df = pd.DataFrame({"Species": ["setosa", "versicolor", "virginica"]})
+    meta = FactorMeta("Species", levels=["setosa", "versicolor"])
+
+    with pytest.raises(ValueError, match="not specified in levels"):
+        meta.cast_variable(df)
+
+
+def test_factor_meta_cast_variable_keeps_missing_values():
+    df = pd.DataFrame({"Species": ["setosa", None]})
+    meta = FactorMeta("Species", levels=["setosa"])
+
+    df2 = meta.cast_variable(df)
+
+    assert df2["Species"].isna().tolist() == [False, True]
+
+
 def test_date_meta(iris_plus_df: pd.DataFrame):
     meta = DateMeta("date")
     meta.check_with_data(iris_plus_df)
@@ -236,12 +282,65 @@ def test_geo_meta(iris_plus_df):
     meta.check_with_data(iris_plus_df)
 
 
-@pytest.mark.skip("Feature is not implemented yet")
-def test_graph_meta(iris_plus_df):
-    # TODO: The iris_plus_df will need to have extra columns added for this
+def test_geo_meta_to_dict_keeps_latvar_longvar_private(iris_plus_df):
+    meta = GeoMeta("coords", latvar="lat", longvar="long", label="Location")
+    d = meta.to_dict()
+    # As in the R package, the viewer does not read these.
+    assert "latvar" not in d
+    assert "longvar" not in d
+    assert d["varname"] == "coords"
+    assert d["label"] == "Location"
+    assert d["type"] == "geo"
 
-    meta = GraphMeta("lst", "id", "to")
-    meta.check_with_data(iris_plus_df)
+
+def test_geo_meta_cast_variable(iris_plus_df):
+    meta = GeoMeta("coords", latvar="lat", longvar="long")
+    df2 = meta.cast_variable(iris_plus_df)
+    # cast_variable validates and returns dataframe unchanged
+    assert "lat" in df2.columns
+    assert "long" in df2.columns
+
+
+def test_graph_meta(iris_plus_df):
+    # Build a dataframe with a valid graph column
+    import pandas as pd
+
+    df = pd.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "links": [
+                [{"id": 2}, {"id": 3}],
+                [{"id": 1}],
+                [],
+            ],
+        }
+    )
+
+    meta = GraphMeta("links", idvarname="id", direction="to")
+    meta.check_with_data(df)
+
+
+def test_graph_meta_invalid_non_list(iris_plus_df):
+    import pandas as pd
+
+    df = pd.DataFrame({"id": [1, 2], "links": ["not-a-list", "also-not"]})
+    meta = GraphMeta("links", idvarname="id")
+    with pytest.raises(ValueError, match="list of dicts"):
+        meta.check_with_data(df)
+
+
+def test_graph_meta_missing_id_key():
+    import pandas as pd
+
+    df = pd.DataFrame(
+        {
+            "id": [1],
+            "links": [[{"wrong_key": 2}]],
+        }
+    )
+    meta = GraphMeta("links", idvarname="id")
+    with pytest.raises(ValueError, match="missing required key"):
+        meta.check_with_data(df)
 
 
 def test_href_meta(iris_plus_df):

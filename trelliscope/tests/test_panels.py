@@ -5,7 +5,7 @@ import pytest
 
 from trelliscope import Trelliscope
 from trelliscope.panel_source import FilePanelSource
-from trelliscope.panels import IFramePanel, ImagePanel, Panel, PanelOptions
+from trelliscope.panels import ImagePanel, Panel, PanelOptions
 
 
 def test_panels_setup_no_uniquely_identifying_columns(iris_df: pd.DataFrame):
@@ -45,53 +45,40 @@ def test_panels_setup(iris_df_no_duplicates: pd.DataFrame):
         )
 
 
-@pytest.mark.skip("Still considering various options for this")
-def test_panels_setup_options(iris_df: pd.DataFrame):
-    with tempfile.TemporaryDirectory() as temp_dir_name:
-        tr = Trelliscope(iris_df, "Iris", path=temp_dir_name)
+def test_panels_setup_options(iris_df_no_duplicates: pd.DataFrame):
+    df = iris_df_no_duplicates.copy()
+    df["img_panel"] = "test_image.png"
+    pnl = ImagePanel(
+        "img_panel",
+        source=FilePanelSource(is_local=False),
+        should_copy_to_output=False,
+    )
 
-        # This will infer the panels if they have not been set
-        tr.write_display()
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # add_panel then write_display (basic chain)
+        tr = Trelliscope(df, "Iris", path=temp_dir).add_panel(pnl).write_display()
+        assert "img_panel" in tr._get_panel_columns()
 
-        # this is test code that just sets all images to this test_image.png string
-        # it is not a proper use of the images, but gives us something to use in testing.
-        iris_df["img_panel"] = "test_image.png"
+        # add_panel with a fresh Trelliscope (non-chained)
+        tr2 = Trelliscope(df, "Iris", path=temp_dir)
+        tr2 = tr2.add_panel(pnl)
+        tr2 = tr2.write_display()
+        assert "img_panel" in tr2._get_panel_columns()
 
-        # use panel in init
-        pnl = Panel("img_panel", aspect_ratio=1.5)
-        tr = Trelliscope(iris_df, "Iris", panel=pnl, path=temp_dir_name)
-        tr.write_display()
+        # infer_panels finds the already-added panel (no duplication)
+        tr3 = Trelliscope(df, "Iris", path=temp_dir).add_panel(pnl).infer_panels()
+        assert tr3._get_panel_columns().count("img_panel") == 1
 
-        # set panel after init
-        tr = Trelliscope(iris_df, "Iris", path=temp_dir_name)
-        tr.set_panel(Panel("img_panel", aspect_ratio=1.5))
-
-        tr.write_display()
-
-        # set derived class panel
-        tr = Trelliscope(iris_df, "Iris", path=temp_dir_name)
-        tr.set_panel(ImagePanel("img_panel", aspect_ratio=1.5))
-        tr.write_display()
-
-        # set derived class panel
-        tr = Trelliscope(iris_df, "Iris", path=temp_dir_name)
-        tr.set_panel(IFramePanel("img_panel", aspect_ratio=1.5, is_local=True))
-        tr.write_display()
-
-        # chain panel methods
-        tr = (
-            Trelliscope(iris_df, "Iris", path=temp_dir_name)
-            .set_panel(Panel("img_panel", aspect_ratio=1.5))
-            .write_display()
+        # PanelOptions are stored and retrievable
+        width = 800
+        opts = PanelOptions(width=width, height=600)
+        tr4 = (
+            Trelliscope(df, "Iris", path=temp_dir)
+            .set_panel_options({"img_panel": opts})
+            .add_panel(pnl)
         )
-
-        # infer panels explicitly (chained)
-        # tr = (Trelliscope(iris_df, "Iris", path=temp_dir_name)
-        #     .infer_panels()
-        #     .write_display())
-
-        # infer panels implicitly
-        Trelliscope(iris_df, "Iris", path=temp_dir_name).write_display()
+        assert tr4._get_panel_options("img_panel").width == width
+        assert tr4._get_panel_options("unknown") is None
 
 
 def test_panel_options_init_default():

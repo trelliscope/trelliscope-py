@@ -7,8 +7,10 @@ import logging
 import os
 import shutil
 import tempfile
+import threading
 import uuid
 import webbrowser
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 from typing import Any
 
 import pandas as pd
@@ -23,7 +25,7 @@ from trelliscope.metas import (
     PanelMeta,
     StringMeta,
 )
-from trelliscope.panels import FigurePanel, ImagePanel, Panel, PanelOptions
+from trelliscope.panels import FigurePanel, ImagePanel, LazyPanel, Panel, PanelOptions
 from trelliscope.progress_bar import ProgressBar
 from trelliscope.state import (
     CategoryFilterState,
@@ -33,10 +35,24 @@ from trelliscope.state import (
     LayoutState,
     SortState,
 )
+from trelliscope.theme import Theme
 
 from .view import View
 
 logging.basicConfig(level=logging.INFO)
+
+# Servers started by Trelliscope.serve(), by port.
+_DISPLAY_SERVERS: dict[int, HTTPServer] = {}
+
+
+class _DisplayRequestHandler(SimpleHTTPRequestHandler):
+    """Serves files from the directory of the display last served on this port."""
+
+    def __init__(self, request, client_address, server):
+        super().__init__(request, client_address, server, directory=server.serve_dir)
+
+    def log_message(self, *args):
+        pass
 
 
 class Trelliscope:
@@ -136,6 +152,12 @@ class Trelliscope:
 
         self.views = {}
         self.inputs = {}
+        self.input_email: str = None
+        self.input_vars: list = None
+        self.var_labels: dict = {}
+        self.theme: Theme = None
+        self.info_html: str = None
+        self.show_info_on_load: bool = False
 
     def _infer_primary_panel(self) -> None:
         """
@@ -287,9 +309,15 @@ class Trelliscope:
 
         return tr
 
-    def add_inputs(self, inputs: list):
+    def add_inputs(self, inputs: list, email: str = None, vars: list = None):
         """
-        Convenience method to add muliple inputs.
+        Convenience method to add multiple inputs, with optional email export settings.
+
+        Params:
+            inputs: list of Input objects to add.
+            email: Optional email address used to export annotations as CSV.
+            vars: Optional list of variable names to include in the CSV export alongside
+                the input annotations.
 
         Returns a copy of the Trelliscope object. The original is not modified.
         """
@@ -297,6 +325,16 @@ class Trelliscope:
 
         for input_obj in inputs:
             tr = tr.add_input(input_obj)
+
+        if email is not None:
+            if not isinstance(email, str):
+                raise ValueError("'email' must be a string.")
+            tr.input_email = email
+
+        if vars is not None:
+            if not isinstance(vars, list):
+                raise ValueError("'vars' must be a list of variable names.")
+            tr.input_vars = vars
 
         return tr
 
@@ -310,6 +348,8 @@ class Trelliscope:
         """
         Returns the output path where the Trelliscope is saved.
         """
+        if self.path is None:
+            return None
         return os.path.join(self.path, self._get_name_dir())
 
     def get_displays_path(self) -> str:
@@ -354,19 +394,30 @@ class Trelliscope:
         result["name"] = self.name
         result["description"] = self.description
         result["tags"] = self.tags
-        result["key_cols"] = self.key_cols
+        result["keycols"] = self.key_cols
         result["keysig"] = self.keysig
         result["metas"] = [meta.to_dict() for meta in self.metas.values()]
         result["state"] = self.state.to_dict()
         result["views"] = [view.to_dict() for view in self.views.values()]
 
-        if self.inputs.values is None or len(self.inputs.values()) == 0:
+        if len(self.inputs) == 0:
             result["inputs"] = None
         else:
-            result["inputs"] = [input.to_dict() for input in self.inputs.values()]
+            # The viewer reads this shape (see Inputs in the R package's
+            # R/input_classes.R); inputs are stored in the browser's localStorage.
+            result["inputs"] = {
+                "inputs": [inp.to_dict() for inp in self.inputs.values()],
+                "storageInterface": {"type": "localStorage"},
+                "feedbackInterface": {
+                    "feedbackEmail": self.input_email,
+                    "includeMetaVars": self.input_vars or [],
+                },
+            }
 
         result["thumbnailurl"] = self.thumbnail_url
         result["primarypanel"] = self.primary_panel
+        result["hasCustomInfo"] = self.info_html is not None
+        result["infoOnLoad"] = self.show_info_on_load
 
         return result
 
@@ -503,6 +554,7 @@ class Trelliscope:
 
         tr = tr._check_panels()
         tr = tr._infer_thumbnail_url()
+        tr._write_info_html()
 
         tr._write_display_info(jsonp, config["id"])
         tr._write_meta_data(config["id"])
@@ -520,19 +572,43 @@ class Trelliscope:
 
     def _check_panels(self):
         """
-        Checks the files in the panels directory, then compares them against the
-        key columns in the dataframe. If there are key columns that do not have
-        corresponding files, it will throw an error specifying the extra key columns
-        that were discovered.
+        Validates panel columns against the dataframe and internal state.
+
+        Checks:
+        - Every declared panel column exists in the dataframe.
+        - No panel column contains all-null values.
+        - The primary_panel (if set) refers to a declared panel.
 
         Throws:
             ValueError
         """
         tr = self.__copy()
 
-        os.path.join(tr.get_displays_path(), "panels")
+        panel_cols = tr._get_panel_columns()
 
-        # TODO: Fill this in
+        for panel_col in panel_cols:
+            panel = tr._get_panel(panel_col)
+            if panel.is_lazy and panel_col not in tr.data_frame.columns:
+                # Lazy panels are written at write time; column may not exist beforehand.
+                continue
+            if panel_col not in tr.data_frame.columns:
+                raise ValueError(
+                    f"Panel column '{panel_col}' is not present in the data frame."
+                )
+            if tr.data_frame[panel_col].isna().all():
+                raise ValueError(
+                    f"Panel column '{panel_col}' contains only null values."
+                )
+            if tr.data_frame[panel_col].isna().any():
+                logging.warning(
+                    f"Panel column '{panel_col}' contains some null values."
+                )
+
+        if tr.primary_panel is not None and tr.primary_panel not in tr.panels:
+            raise ValueError(
+                f"Primary panel '{tr.primary_panel}' is not a declared panel. "
+                f"Available panels: {panel_cols}"
+            )
 
         return tr
 
@@ -561,8 +637,8 @@ class Trelliscope:
         primary_panel = self._get_panel(primary_panel_col)
 
         # TODO: Clean this up using polymorphism and better checks...
-        if isinstance(primary_panel, (FigurePanel, ImagePanel)):
-            thumbnail_url = self.data_frame[primary_panel_col][0]
+        if isinstance(primary_panel, (FigurePanel, ImagePanel, LazyPanel)):
+            thumbnail_url = self.data_frame[primary_panel_col].iloc[0]
 
             # key = self.data_frame[self.panel.varname][0]
 
@@ -668,11 +744,18 @@ class Trelliscope:
             # We might just want to get a random hash based on the current time
             config_dict["id"] = self.id
 
-            # Write out a new config file
-            function_name = f"__loadAppConfig__{config_dict['id']}"
-            content = json.dumps(config_dict, indent=2)
-            config_file = jsonp_config_file if jsonp else json_config_file
-            utils.write_json_file(config_file, jsonp, function_name, content)
+        # The viewer reads the theme from the app config, so the config is
+        # rewritten on every write, as the R package's check_app_config() does.
+        if self.theme is not None:
+            config_dict["theme"] = self.theme.to_dict()
+        else:
+            config_dict.pop("theme", None)
+
+        config_jsonp = config_dict["datatype"] == "jsonp"
+        function_name = f"__loadAppConfig__{config_dict['id']}"
+        content = json.dumps(config_dict, indent=2)
+        config_file = jsonp_config_file if config_jsonp else json_config_file
+        utils.write_json_file(config_file, config_jsonp, function_name, content)
 
         return config_dict
 
@@ -715,8 +798,10 @@ class Trelliscope:
         # compare to metas that are already defined
         existing_meta_names = tr.metas.keys()
 
-        # go through each column name that does not have a corresponding meta
-        metas_to_infer = set(column_names) - set(existing_meta_names)
+        # go through each column name that does not have a corresponding meta,
+        # in column order, so the written metas come out in the same order
+        # every run (a set's order changes with Python's hash seed)
+        metas_to_infer = [c for c in column_names if c not in existing_meta_names]
 
         # TODO: SB: Should we exclude any panel columns here? It seems like we should...
 
@@ -794,28 +879,20 @@ class Trelliscope:
 
     def _finalize_meta_labels(self):
         """
-        Fill in the labels for any metas that do not have a label. It will
-        use the varname by default.
+        Fill in the labels for any metas that do not have a label, using this priority:
+        1. user-supplied label from set_var_labels()
+        2. varname as fallback
 
         Returns a copy of the Trelliscope object. The original is not modified.
         """
-        # This is how this is inferred in the R code...
-        # Finalize labels if NULL with the following priority:
-        # 1. use from disp$meta_labels if defined
-        # 2. use from attr(disp$df[[varname]], "label") if defined
-        # 3. set it to varname
-
-        # TODO: See if there is a Pandas equivalent to a column label
-        # that is separate from the column name. It appears this R
-        # functionality is not present in Pandas
-
-        # TODO: if tr.__copy() doesn't make copies of metas, this needs
-        # to make copies of the metas here before changing the label
         tr = self.__copy()
 
-        for meta in self.metas.values():
+        for meta in tr.metas.values():
             if meta.label is None:
-                meta.label = meta.varname
+                if meta.varname in tr.var_labels:
+                    meta.label = tr.var_labels[meta.varname]
+                else:
+                    meta.label = meta.varname
 
         return tr
 
@@ -867,6 +944,15 @@ class Trelliscope:
             ):
                 if filter.values is not None and len(filter.values) > 0:
                     filter.values = list(set(meta.levels).intersection(filter.values))
+
+        # The viewer opens the filters named in filterView; like the R package,
+        # keep only filterable metas, in meta order.
+        visible = state2.layout.visible_filters or []
+        state2.filter_view = [
+            name
+            for name, meta in self.metas.items()
+            if meta.filterable and name in visible
+        ]
 
         return state2
 
@@ -928,6 +1014,21 @@ class Trelliscope:
 
         if len(panel_cols) == 0:
             # No panels exist yet
+
+            # Check for callable columns (lazy panels)
+            obj_cols = [
+                col
+                for col in tr.data_frame.columns
+                if utils.is_object_dtype(tr.data_frame[col])
+            ]
+            for column in obj_cols:
+                if utils.is_callable_column(tr.data_frame, column):
+                    fn = tr.data_frame[column].iloc[0]
+                    panel = LazyPanel(column, fn=fn)
+                    tr = tr.add_panel(panel)
+
+            # Refresh panel_cols after lazy panel detection
+            panel_cols = tr._get_panel_columns()
 
             # Check for a `Figure` col
             figure_columns = utils.find_figure_columns(tr.data_frame)
@@ -1037,7 +1138,11 @@ class Trelliscope:
         This used because when writing panels, the `varname` column will be updated to contain
         the filename, but the original figure is preserved in this "figure" column.
         """
-        figure_columns = [panel.figure_varname for panel in self.panels.values()]
+        figure_columns = [
+            panel.figure_varname
+            for panel in self.panels.values()
+            if panel.figure_varname is not None
+        ]
 
         return figure_columns
 
@@ -1154,6 +1259,45 @@ class Trelliscope:
         html_utils.write_id_file(output_path=output_path, trelliscope_id=self.id)
 
     @staticmethod
+    def _get_panel_filename(
+        row, key_cols: list, output_dir: str, extension: str
+    ) -> str:
+        """Compute the output file path for a single panel image row."""
+        if len(key_cols) > 0:
+            key_col_values = [str(row[key_col]) for key_col in key_cols]
+            filename_prefix = "_".join(key_col_values)
+        else:
+            filename_prefix = str(row.name)
+        filename_prefix = utils.sanitize(filename_prefix)
+        return os.path.join(output_dir, f"{filename_prefix}.{extension}")
+
+    @staticmethod
+    def _save_figure(fig, filepath: str) -> None:
+        """Save a figure to disk, dispatching on Plotly vs matplotlib."""
+        if hasattr(fig, "write_image"):
+            try:
+                fig.write_image(filepath)
+            except ValueError as e:
+                if "kaleido" in str(e).lower():
+                    raise ValueError(
+                        "Plotly could not export an image because kaleido is not "
+                        "installed or not working in this environment.\n\n"
+                        "Install kaleido:\n\n"
+                        "    pip install kaleido\n\n"
+                        "If Chrome is not installed, also run:\n\n"
+                        "    plotly_get_chrome\n\n"
+                        "Then restart your kernel/session."
+                    ) from None
+                raise
+        elif hasattr(fig, "savefig"):
+            fig.savefig(filepath, bbox_inches="tight")
+        else:
+            raise ValueError(
+                f"Unsupported figure type '{type(fig).__name__}'. "
+                "Expected a Plotly Figure or a matplotlib Figure."
+            )
+
+    @staticmethod
     def __write_figure(
         row,
         fig_column: str,
@@ -1164,58 +1308,36 @@ class Trelliscope:
         progress_bar: ProgressBar = None,
     ):
         """
-        Saves a figure object to an image file. This function is designed to be passed to
-        a DataFrame.apply() call to write out each figure.
-        Params:
-            row - The DataFrame row
-            fig_column:str - The name of the figure column to write out
-            output_dir_for_writing:str - Used for writing the image. It is most likely an
-                absolute path.
-            output_dir_for_dataframe:str - Used for the result in the dataframe. It is most likely a
-                relative path.
-            extension:str - The file name extension to write (for example, "png")
-            key_cols:str - The columns that are used as the key (ie, index, group by) for this figure
+        Saves a figure object to an image file. Designed to be passed to DataFrame.apply().
         """
         fig = row[fig_column]
 
-        filename_prefix = ""
-        if len(key_cols) > 0:
-            key_col_values = [str(row[key_col]) for key_col in key_cols]
-            filename_prefix = "_".join(key_col_values)
-        else:
-            filename_prefix = row.name
-
-        filename_prefix = utils.sanitize(filename_prefix)
-
-        filename_for_writing = os.path.join(
-            output_dir_for_writing, f"{filename_prefix}.{extension}"
+        filename_for_writing = Trelliscope._get_panel_filename(
+            row, key_cols, output_dir_for_writing, extension
         )
-        filename_for_dataframe = os.path.join(
-            output_dir_for_dataframe, f"{filename_prefix}.{extension}"
+        filename_for_dataframe = Trelliscope._get_panel_filename(
+            row, key_cols, output_dir_for_dataframe, extension
         )
 
-        # logging.debug(f"Saving image {filename_for_writing}")
-        fig.write_image(filename_for_writing)
+        Trelliscope._save_figure(fig, filename_for_writing)
 
         try:
             progress_bar.record_progress()
         except Exception as e:
-            # If the progress display has a problem, just ignore it.
             logging.debug(f"Error recording progress: {e}")
-            pass
 
         return filename_for_dataframe
 
     def write_or_copy_panels(self, panel_col: str):
         """
         Writes the panels to the output directory (or copies them if they are already files).
+
+        Params:
+            panel_col:str - The name of the panel column.
         """
         tr = self.__copy()
 
-        panel = self._get_panel(panel_col)
-
-        # if not (panel.is_writeable or panel.should_copy):
-        #     raise ValueError("Error: Attempting to write a panel that is not writable or should not be copied")
+        panel = tr._get_panel(panel_col)
 
         absolute_output_dir = tr._get_panel_output_path(panel_col, is_absolute=True)
         relative_output_dir = tr._get_panel_output_path(panel_col, is_absolute=False)
@@ -1223,44 +1345,67 @@ class Trelliscope:
         if not os.path.isdir(absolute_output_dir):
             os.makedirs(absolute_output_dir)
 
-        # TODO: check if the panel is an html widget, and if so, create it here (see R)
-
         if panel.should_copy:
             tr._copy_images_to_build_directory(
                 panel_col, absolute_output_dir, relative_output_dir
             )
         elif panel.is_writeable:
-            # panel_keys = tr._get_panel_paths_from_keys()
             extension = panel.get_extension()
 
-            # TODO: Follow the logic in the R version to match filenames, etc.
-            # tr.data_frame["__PANEL_KEY__"] = tr.data_frame.apply(lambda row: Trelliscope.__write_figure(row, panel_col, output_dir, extension, self.key_cols), axis=1)
+            if panel.is_lazy:
+                # Lazy panel: generate figures via fn(row) at write time
+                progress_bar = ProgressBar(len(tr.data_frame), "Generating Panels:")
+                results = []
+                for _, row in tr.data_frame.iterrows():
+                    filename_for_dataframe = Trelliscope._get_panel_filename(
+                        row, tr.key_cols, relative_output_dir, extension
+                    )
+                    filename_for_writing = Trelliscope._get_panel_filename(
+                        row, tr.key_cols, absolute_output_dir, extension
+                    )
+                    fig = panel.fn(row)
+                    Trelliscope._save_figure(fig, filename_for_writing)
+                    try:
+                        progress_bar.record_progress()
+                    except Exception as e:
+                        logging.debug(f"Error recording progress: {e}")
+                    results.append(filename_for_dataframe)
+                tr.data_frame[panel_col] = results
+            else:
+                # Regular figure panel: figures already live in df[panel_col]
+                tr.data_frame[panel.figure_varname] = tr.data_frame[panel_col]
 
-            # TODO: Do we want to overwrite the current panel column (which is full of figure objects)
-            # with the new one full of filenames? Or should we create a new one and just make sure that the old
-            # one is excluded from the metas list, etc.
+                progress_bar = ProgressBar(len(tr.data_frame), "Saving Images:")
 
-            # SB: For now, let's preserve the old with another column
-            tr.data_frame[panel.figure_varname] = tr.data_frame[panel_col]
+                def _apply_write_figures(_tr=tr, _pb=progress_bar):
+                    return _tr.data_frame.apply(
+                        lambda row: Trelliscope.__write_figure(
+                            row=row,
+                            fig_column=panel.figure_varname,
+                            output_dir_for_writing=absolute_output_dir,
+                            output_dir_for_dataframe=relative_output_dir,
+                            extension=extension,
+                            key_cols=_tr.key_cols,
+                            progress_bar=_pb,
+                        ),
+                        axis=1,
+                    )
 
-            progress_bar = ProgressBar(len(tr.data_frame), "Saving Images:")
+                # kaleido 1.x uses asyncio.run() internally, which fails
+                # when Jupyter's event loop is already running. All figures
+                # must be written in a single worker thread so that kaleido
+                # can create and reuse one event loop across every figure.
+                import asyncio
+                import concurrent.futures
 
-            tr.data_frame[panel_col] = tr.data_frame.apply(
-                lambda row: Trelliscope.__write_figure(
-                    row=row,
-                    fig_column=panel_col,
-                    output_dir_for_writing=absolute_output_dir,
-                    output_dir_for_dataframe=relative_output_dir,
-                    extension=extension,
-                    key_cols=self.key_cols,
-                    progress_bar=progress_bar,
-                ),
-                axis=1,
-            )
-
-            # TODO: Handle creating hash and key sig to avoid having to re-write panels
-            # that have already been generated here.
-            # One of the things that needs to happen here is to set the keysig to a hash of the columns
+                try:
+                    asyncio.get_running_loop()
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+                        tr.data_frame[panel_col] = ex.submit(
+                            _apply_write_figures
+                        ).result()
+                except RuntimeError:
+                    tr.data_frame[panel_col] = _apply_write_figures()
 
         panel.panels_written = True
 
@@ -1283,6 +1428,36 @@ class Trelliscope:
     # def add_meta_labels(self):
     #     return self.__copy()
 
+    def set_var_labels(self, **labels):
+        """
+        Set human-readable display labels for one or more meta variables.
+
+        Labels are applied immediately to any already-defined metas and are
+        also stored so they are applied to metas inferred later during
+        `write_display()`.
+
+        Params:
+            **labels: Keyword arguments mapping varname to label string.
+                e.g. set_var_labels(country="Country Name", life_exp="Life Expectancy")
+
+        Returns a copy of the Trelliscope object. The original is not modified.
+        """
+        tr = self.__copy()
+
+        for varname, label in labels.items():
+            if not isinstance(label, str):
+                raise ValueError(
+                    f"Label for '{varname}' must be a string, got {type(label).__name__}."
+                )
+
+        tr.var_labels.update(labels)
+
+        for varname, label in labels.items():
+            if varname in tr.metas:
+                tr.metas[varname].label = label
+
+        return tr
+
     def set_default_labels(self, varnames: list):
         """
         Add a labels state specification to a trelliscope display.
@@ -1303,18 +1478,28 @@ class Trelliscope:
 
         return tr
 
-    def set_default_layout(self, ncol: int = 1, page: int = 1):
+    def set_default_layout(
+        self,
+        ncol: int = 1,
+        page: int = 1,
+        sidebar: bool = False,
+        visible_filters: list = None,
+    ):
         """
         Add a layout state specification to a trelliscope display.
+
         Params:
-            ncol:int - The number of columns.
-            page:int - The number of pages.
+            ncol:int - The number of panel columns in the grid.
+            page:int - The initial page number.
+            sidebar:bool - Whether the filter sidebar is open by default.
+            visible_filters:list - Variable names whose filter controls start
+                expanded in the sidebar. If None, all are collapsed.
 
         Returns a copy of the Trelliscope object. The original is not modified.
         """
         tr = self.__copy()
 
-        layout_state = LayoutState(ncol, page)
+        layout_state = LayoutState(ncol, page, sidebar, visible_filters)
         layout_state.check_with_data(tr.data_frame)
 
         state2 = tr.state._copy()
@@ -1322,6 +1507,115 @@ class Trelliscope:
 
         tr = tr.set_state(state2)
         return tr
+
+    def set_theme(
+        self,
+        primary: str = None,
+        primary2: str = None,
+        primary3: str = None,
+        background: str = None,
+        background2: str = None,
+        background3: str = None,
+        bars: str = None,
+        text: str = None,
+        text2: str = None,
+        button_text: str = None,
+        text_disabled: str = None,
+        error: str = None,
+        font_family: str = None,
+        logo: str = None,
+    ):
+        """
+        Set visual theme colors and fonts for this display.
+
+        All color parameters accept CSS color strings (e.g. "#4C72B0",
+        "rgb(76,114,176)", "steelblue"). Unspecified parameters take the
+        viewer's built-in defaults.
+
+        Params:
+            primary: Main brand / accent color.
+            primary2: Secondary accent color.
+            primary3: Tertiary accent color.
+            background: Main background color.
+            background2: Secondary background color.
+            background3: Tertiary background color.
+            bars: Color for bars / progress indicators.
+            text: Primary text color.
+            text2: Secondary text color.
+            button_text: Button label color.
+            text_disabled: Disabled text color.
+            error: Error / warning highlight color.
+            font_family: CSS font-family string.
+            logo: URL or base64 data URI for a logo image.
+
+        Returns a copy of the Trelliscope object. The original is not modified.
+        """
+        tr = self.__copy()
+        tr.theme = Theme(
+            primary=primary,
+            primary2=primary2,
+            primary3=primary3,
+            background=background,
+            background2=background2,
+            background3=background3,
+            bars=bars,
+            text=text,
+            text2=text2,
+            button_text=button_text,
+            text_disabled=text_disabled,
+            error=error,
+            font_family=font_family,
+            logo=logo,
+        )
+        return tr
+
+    def set_info_html(self, file: str):
+        """
+        Set custom HTML content for the info panel of this display.
+
+        The file's content is read and stored. When write_display() is called,
+        it is written as info.html in the display directory, and displayInfo
+        will indicate hasCustomInfo=True so the viewer can load it.
+
+        Params:
+            file:str - Path to an HTML file to use as the info panel.
+
+        Returns a copy of the Trelliscope object. The original is not modified.
+        """
+        tr = self.__copy()
+
+        if not os.path.isfile(file):
+            raise ValueError(f"Info HTML file not found: '{file}'")
+
+        with open(file) as f:
+            tr.info_html = f.read()
+
+        return tr
+
+    def set_show_info_on_load(self, show: bool = True):
+        """
+        Control whether the info panel opens automatically when the display loads.
+
+        Params:
+            show:bool - True to auto-open the info panel; False (default) to keep it closed.
+
+        Returns a copy of the Trelliscope object. The original is not modified.
+        """
+        tr = self.__copy()
+        utils.check_bool(show, "show")
+        tr.show_info_on_load = show
+        return tr
+
+    def _write_info_html(self) -> None:
+        """
+        Writes info.html to the dataset display directory if info_html content has been set.
+        """
+        if self.info_html is None:
+            return
+
+        info_html_path = os.path.join(self.get_dataset_display_path(), "info.html")
+        with open(info_html_path, "w") as f:
+            f.write(self.info_html)
 
     def set_default_sort(
         self, varnames: list, sort_directions: list = None, add: bool = False
@@ -1457,6 +1751,59 @@ class Trelliscope:
 
         return panel_options
 
+    def serve(self, port: int = 8765):
+        """
+        Start a local HTTP server for this display. In Jupyter, the display is
+        also embedded in the cell output.
+
+        The server runs in a background daemon thread and shuts down when the
+        Python process exits.  Call ``write_display()`` before ``serve()``.
+
+        Params:
+            port:int - Port to listen on (default 8765).
+
+        Returns self so it can be chained after ``write_display()``.
+        """
+        output_path = self.get_output_path()
+        if output_path is None or not os.path.exists(
+            os.path.join(output_path, "index.html")
+        ):
+            raise ValueError(
+                "No display output found. Call write_display() before serve()."
+            )
+
+        httpd = _DISPLAY_SERVERS.get(port)
+        if httpd is None:
+            try:
+                httpd = HTTPServer(("", port), _DisplayRequestHandler)
+            except OSError as e:
+                raise ValueError(
+                    f"Port {port} is already in use by another program. "
+                    "Pass a different port to serve()."
+                ) from e
+            httpd.serve_dir = output_path
+            threading.Thread(target=httpd.serve_forever, daemon=True).start()
+            _DISPLAY_SERVERS[port] = httpd
+
+        # Point the port at this display, so serving a second display on the
+        # same port shows that display rather than the first one.
+        httpd.serve_dir = output_path
+
+        url = f"http://localhost:{port}/"
+        logging.info(f"Trelliscope server running at {url}")
+
+        try:
+            ip = get_ipython()  # type: ignore[name-defined]
+            if ip is not None:
+                from IPython.display import IFrame
+                from IPython.display import display as ipy_display
+
+                ipy_display(IFrame(url, width="100%", height=650))
+        except NameError:
+            pass
+
+        return self
+
     def view_trelliscope(self):
         """
         Attempts to open the current Trelliscope in a browser.
@@ -1470,6 +1817,15 @@ class Trelliscope:
                 "No files exist for this Trelliscope exist. Before viewing the Trelliscope, "
                 + "ensure that the `write_display` method has been called."
             )
+
+        # In Jupyter: serve via HTTP and render an IFrame inline in the cell.
+        # webbrowser.open("file://...") cannot embed in a notebook output cell.
+        try:
+            ip = get_ipython()  # type: ignore[name-defined]
+            if ip is not None:
+                return self.serve()
+        except NameError:
+            pass
 
         full_path = "file://" + os.path.realpath(index_file)
 
