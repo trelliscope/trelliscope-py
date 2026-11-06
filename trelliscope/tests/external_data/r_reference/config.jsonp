@@ -1,0 +1,42 @@
+__loadAppConfig__395a018e({
+  "name": "Trelliscope App",
+  "datatype": "jsonp",
+  "id": "395a018e",
+  "theme": {
+    "palette": {
+      "primary": {
+        "main": "#c80000",
+        "light": "#4dabf5",
+        "dark": "#2e60b1",
+        "contrastText": "#757575"
+      },
+      "secondary": {
+        "main": "#FEFEFE",
+        "light": "#EBEBEB",
+        "dark": "#E0E0E0",
+        "contrastText": "#FFAE25"
+      },
+      "background": {
+        "default": "#FEFEFE"
+      },
+      "action": {
+        "active": "#757575"
+      },
+      "text": {
+        "primary": "#000",
+        "secondary": "#FFF",
+        "disabled": "#BCBCBC"
+      },
+      "error": {
+        "main": "#ff5252"
+      }
+    },
+    "typography": {
+      "fontFamily": "\"Poppins\", sans-serif",
+      "fontWeightLight": 200,
+      "fontWeightRegular": 300,
+      "fontWeightMedium": 400
+    },
+    "logo": null
+  }
+})
