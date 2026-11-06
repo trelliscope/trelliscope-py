@@ -282,11 +282,12 @@ def test_geo_meta(iris_plus_df):
     meta.check_with_data(iris_plus_df)
 
 
-def test_geo_meta_to_dict_includes_latvar_longvar(iris_plus_df):
+def test_geo_meta_to_dict_keeps_latvar_longvar_private(iris_plus_df):
     meta = GeoMeta("coords", latvar="lat", longvar="long", label="Location")
     d = meta.to_dict()
-    assert d["latvar"] == "lat"
-    assert d["longvar"] == "long"
+    # As in the R package, the viewer does not read these.
+    assert "latvar" not in d
+    assert "longvar" not in d
     assert d["varname"] == "coords"
     assert d["label"] == "Location"
     assert d["type"] == "geo"

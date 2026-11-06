@@ -500,8 +500,7 @@ class GeoMeta(Meta):
     def cast_variable(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Validates that latvar and longvar columns are numeric and in the correct
-        geographic ranges. Returns the dataframe unchanged (no coercion needed
-        since the viewer reads latvar/longvar columns directly).
+        geographic ranges. Returns the dataframe unchanged.
         Params:
             df: Pandas DataFrame
         Returns:
@@ -511,9 +510,12 @@ class GeoMeta(Meta):
         return df
 
     def to_dict(self) -> dict:
+        # Overriding to make it so latvar and longvar are not serialized
         result = self.__dict__.copy()
-        if self.label is None:
-            result["label"] = self.varname
+
+        result.pop("latvar", None)
+        result.pop("longvar", None)
+
         return result
 
 
