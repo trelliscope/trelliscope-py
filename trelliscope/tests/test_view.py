@@ -16,12 +16,14 @@ def test_create_view_with_no_state():
     # Look at just the state
     state = view.state
     actual_json = state.to_json()
-    expected_json = '{"layout":null,"labels":null,"sort":[],"filter":[]}'
+    expected_json = (
+        '{"layout":null,"labels":null,"sort":[],"filter":[],"filterView":[]}'
+    )
     assert json.loads(actual_json) == json.loads(expected_json)
 
     # look at the whole view
     actual_json = view.to_json(pretty=False)
-    expected_json = '{"name":"test view","state":{"layout":null,"labels":null,"sort":[],"filter":[]}}'
+    expected_json = '{"name":"test view","state":{"layout":null,"labels":null,"sort":[],"filter":[],"filterView":[]}}'
     assert json.loads(actual_json) == json.loads(expected_json)
 
 
@@ -33,7 +35,7 @@ def test_create_view_with_state_parameters():
     )
 
     actual_json = view.to_json(pretty=False)
-    expected_json = '{"name":"test view","state":{"layout":null,"labels":{"varnames":["manufacturer","class"],"type":"labels"},"sort":[{"metatype":null,"dir":"asc","varname":"manufacturer","type":"sort"}],"filter":[]}}'
+    expected_json = '{"name":"test view","state":{"layout":null,"labels":{"varnames":["manufacturer","class"],"type":"labels"},"sort":[{"metatype":null,"dir":"asc","varname":"manufacturer","type":"sort"}],"filter":[],"filterView":[]}}'
     assert json.loads(actual_json) == json.loads(expected_json)
 
 

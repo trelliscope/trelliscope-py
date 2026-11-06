@@ -32,7 +32,9 @@ def test_empty_display_state():
     display_state = DisplayState()
 
     actual_json = display_state.to_json(pretty=False)
-    expected_json = '{"layout":null,"labels":null,"sort":[],"filter":[]}'
+    expected_json = (
+        '{"layout":null,"labels":null,"sort":[],"filter":[],"filterView":[]}'
+    )
     assert json.loads(actual_json) == json.loads(expected_json)
 
 
@@ -51,7 +53,7 @@ def test_layout_state_init():
     assert state.type == State.TYPE_LAYOUT
     assert state.viewtype == LayoutState.VIEWTYPE_GRID
     # New Phase 2 defaults
-    assert state.sidebar is True
+    assert state.sidebar is False
     assert state.visible_filters is None
 
 
@@ -84,8 +86,10 @@ def test_layout_state_serializes_sidebar_and_visible_filters(iris_df):
     state = LayoutState(ncol=3, sidebar=False, visible_filters=["Sepal.Length"])
     state.check_with_data(iris_df)
     d = state.to_dict()
-    assert d["sidebar"] is False
-    assert d["visible_filters"] == ["Sepal.Length"]
+    # The viewer reads sidebarActive; visible filters are written as filterView.
+    assert d["sidebarActive"] is False
+    assert "sidebar" not in d
+    assert "visible_filters" not in d
 
 
 def test_layout_state(iris_df):

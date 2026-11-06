@@ -576,9 +576,26 @@ def test_set_default_layout_serialized(iris_df_no_duplicates):
     tr = Trelliscope(iris_df_no_duplicates, name="iris")
     tr = tr.set_default_layout(ncol=4, sidebar=False, visible_filters=["Species"])
     d = tr.state.layout.to_dict()
-    assert d["sidebar"] is False
-    assert d["visible_filters"] == ["Species"]
+    assert d["sidebarActive"] is False
+    assert "visible_filters" not in d
     assert d["ncol"] == 4
+
+
+def test_visible_filters_written_as_filter_view(iris_df_no_duplicates):
+    tr = Trelliscope(iris_df_no_duplicates, name="iris")
+    tr = tr.set_default_layout(visible_filters=["Species", "Sepal.Length"])
+    state = tr.infer().state.to_dict()
+
+    # Filterable metas only, in meta order, as the R package writes them.
+    expected = [
+        name for name in tr.infer().metas if name in ("Species", "Sepal.Length")
+    ]
+    assert state["filterView"] == expected
+    assert set(expected) == {"Species", "Sepal.Length"}
+
+
+def test_filter_view_empty_by_default(iris_tr):
+    assert iris_tr.infer().state.to_dict()["filterView"] == []
 
 
 # ---------------------------------------------------------------------------

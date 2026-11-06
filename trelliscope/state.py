@@ -84,7 +84,7 @@ class LayoutState(State):
         self,
         ncol: int = 1,
         page: int = 1,
-        sidebar: bool = True,
+        sidebar: bool = False,
         visible_filters: list = None,
     ):
         """
@@ -120,6 +120,14 @@ class LayoutState(State):
                     )
                 )
         return True
+
+    def to_dict(self) -> dict:
+        result = super().to_dict()
+        # The viewer reads sidebarActive. Visible filters are written as the
+        # display state's filterView instead (see Trelliscope._infer_state).
+        result["sidebarActive"] = result.pop("sidebar")
+        result.pop("visible_filters")
+        return result
 
 
 class LabelState(State):
@@ -369,6 +377,7 @@ class DisplayState:
     def __init__(self):
         self.layout = None
         self.labels = None
+        self.filter_view = []
         self.sort = OrderedDict()
         self.filter = OrderedDict()
 
@@ -453,6 +462,7 @@ class DisplayState:
         result["labels"] = label_dict
         result["sort"] = sort_list
         result["filter"] = filter_list
+        result["filterView"] = self.filter_view
 
         return result
 

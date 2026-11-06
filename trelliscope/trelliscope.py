@@ -929,6 +929,15 @@ class Trelliscope:
                 if filter.values is not None and len(filter.values) > 0:
                     filter.values = list(set(meta.levels).intersection(filter.values))
 
+        # The viewer opens the filters named in filterView; like the R package,
+        # keep only filterable metas, in meta order.
+        visible = state2.layout.visible_filters or []
+        state2.filter_view = [
+            name
+            for name, meta in self.metas.items()
+            if meta.filterable and name in visible
+        ]
+
         return state2
 
     # def _infer_panel_type(self):
@@ -1505,7 +1514,7 @@ class Trelliscope:
         self,
         ncol: int = 1,
         page: int = 1,
-        sidebar: bool = True,
+        sidebar: bool = False,
         visible_filters: list = None,
     ):
         """
