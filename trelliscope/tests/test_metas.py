@@ -237,6 +237,23 @@ def test_factor_meta_cast_variable_with_explicit_levels(iris_df):
     assert set(levels).issubset(set(df2["Species"].cat.categories.tolist()))
 
 
+def test_factor_meta_cast_variable_rejects_value_outside_levels():
+    df = pd.DataFrame({"Species": ["setosa", "versicolor", "virginica"]})
+    meta = FactorMeta("Species", levels=["setosa", "versicolor"])
+
+    with pytest.raises(ValueError, match="not specified in levels"):
+        meta.cast_variable(df)
+
+
+def test_factor_meta_cast_variable_keeps_missing_values():
+    df = pd.DataFrame({"Species": ["setosa", None]})
+    meta = FactorMeta("Species", levels=["setosa"])
+
+    df2 = meta.cast_variable(df)
+
+    assert df2["Species"].isna().tolist() == [False, True]
+
+
 def test_date_meta(iris_plus_df: pd.DataFrame):
     meta = DateMeta("date")
     meta.check_with_data(iris_plus_df)

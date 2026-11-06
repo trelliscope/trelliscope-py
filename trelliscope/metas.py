@@ -357,9 +357,15 @@ class FactorMeta(Meta):
             df: Pandas DataFrame
         Returns:
             The updated Pandas DataFrame
+        Raises:
+            ValueError - If the column has a value that is not one of the levels.
         """
         if self.levels is None:
             self.infer_levels(df)
+        # pd.Categorical would silently turn a value outside the levels into NaN.
+        utils.check_exhaustive_levels(
+            df, self.levels, self.varname, self._get_data_error_message
+        )
         df[self.varname] = pd.Categorical(df[self.varname], categories=self.levels)
         return df
 
