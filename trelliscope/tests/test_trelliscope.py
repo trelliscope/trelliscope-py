@@ -594,7 +594,7 @@ def test_set_info_html(iris_tr):
     try:
         tr = iris_tr.set_info_html(html_path)
         assert tr.info_html == "<h1>Hello Trelliscope</h1>"
-        assert tr.to_dict()["hasInfo"] is True
+        assert tr.to_dict()["hasCustomInfo"] is True
     finally:
         os.unlink(html_path)
 
@@ -634,7 +634,7 @@ def test_set_show_info_on_load_invalid_type(iris_tr):
 
 
 def test_has_info_false_by_default(iris_tr):
-    assert iris_tr.to_dict()["hasInfo"] is False
+    assert iris_tr.to_dict()["hasCustomInfo"] is False
 
 
 # ---------------------------------------------------------------------------

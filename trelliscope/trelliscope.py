@@ -403,7 +403,7 @@ class Trelliscope:
         result["thumbnailurl"] = self.thumbnail_url
         result["primarypanel"] = self.primary_panel
         result["theme"] = self.theme.to_dict() if self.theme is not None else None
-        result["hasInfo"] = self.info_html is not None
+        result["hasCustomInfo"] = self.info_html is not None
         result["infoOnLoad"] = self.show_info_on_load
 
         return result
@@ -1592,7 +1592,7 @@ class Trelliscope:
 
         The file's content is read and stored. When write_display() is called,
         it is written as info.html in the display directory, and displayInfo
-        will indicate hasInfo=True so the viewer can load it.
+        will indicate hasCustomInfo=True so the viewer can load it.
 
         Params:
             file:str - Path to an HTML file to use as the info panel.
