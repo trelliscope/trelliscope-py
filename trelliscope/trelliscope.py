@@ -380,7 +380,7 @@ class Trelliscope:
         result["name"] = self.name
         result["description"] = self.description
         result["tags"] = self.tags
-        result["key_cols"] = self.key_cols
+        result["keycols"] = self.key_cols
         result["keysig"] = self.keysig
         result["metas"] = [meta.to_dict() for meta in self.metas.values()]
         result["state"] = self.state.to_dict()

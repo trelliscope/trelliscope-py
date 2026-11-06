@@ -28,7 +28,7 @@ def test_to_dict(iris_tr: Trelliscope):
     assert "name" in dict
     assert "description" in dict
     assert "tags" in dict
-    assert "key_cols" in dict
+    assert "keycols" in dict
     assert "metas" in dict
     assert "state" in dict
     assert "views" in dict
