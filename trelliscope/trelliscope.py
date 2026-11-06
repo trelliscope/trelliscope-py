@@ -1267,7 +1267,7 @@ class Trelliscope:
                         "installed or not working in this environment.\n\n"
                         "Install kaleido:\n\n"
                         "    pip install kaleido\n\n"
-                        "If you are in SageMaker, also run:\n\n"
+                        "If Chrome is not installed, also run:\n\n"
                         "    plotly_get_chrome\n\n"
                         "Then restart your kernel/session."
                     ) from None
@@ -1736,13 +1736,8 @@ class Trelliscope:
 
     def serve(self, port: int = 8765):
         """
-        Start a local HTTP server for this display and print the URL to open.
-
-        Automatically detects the execution environment:
-        - SageMaker Studio   → prints the ``/proxy/<port>/`` URL for your domain.
-        - SageMaker Classic  → prints the notebook-instance proxy URL.
-        - Jupyter (local)    → prints ``http://localhost:<port>/`` and embeds an IFrame.
-        - CLI                → prints ``http://localhost:<port>/``.
+        Start a local HTTP server for this display. In Jupyter, the display is
+        also embedded in the cell output.
 
         The server runs in a background daemon thread and shuts down when the
         Python process exits.  Call ``write_display()`` before ``serve()``.
@@ -1778,111 +1773,20 @@ class Trelliscope:
         except OSError:
             pass  # port already bound from a previous call — server still running
 
-        url = Trelliscope._build_viewer_url(port)
-
-        # Embed an IFrame only in plain Jupyter (not SageMaker — the proxy URL
-        # requires browser-level auth, so the IFrame would be blocked).
-        in_sagemaker = os.path.exists(
-            "/opt/ml/metadata/resource-metadata.json"
-        ) or os.path.isdir("/home/ec2-user/SageMaker")
-        if not in_sagemaker:
-            try:
-                ip = get_ipython()  # type: ignore[name-defined]
-                if ip is not None:
-                    from IPython.display import IFrame
-                    from IPython.display import display as ipy_display
-
-                    ipy_display(IFrame(url, width="100%", height=650))
-            except NameError:
-                pass
-
-        return self
-
-    @staticmethod
-    def _build_viewer_url(port: int) -> str:
-        """
-        Detect the execution environment and return the correct viewer URL,
-        printing human-readable guidance to stdout.
-        """
-        _PROXY_TIP = (
-            "\nTip: if you see 403 Forbidden, your SageMaker domain may restrict\n"
-            "proxy access.  Download the output folder and open index.html locally,\n"
-            "or ask your AWS administrator to enable PresignedUrl / proxy access."
-        )
-
-        # ---- SageMaker Studio ------------------------------------------------
-        studio_meta = "/opt/ml/metadata/resource-metadata.json"
-        if os.path.exists(studio_meta):
-            try:
-                with open(studio_meta) as f:
-                    meta = json.load(f)
-                domain_id = meta.get("DomainId", "")
-                if domain_id:
-                    try:
-                        import boto3
-
-                        region = boto3.session.Session().region_name or "us-east-1"
-                    except Exception:
-                        region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
-                    url = (
-                        f"https://{domain_id}.studio.{region}.sagemaker.aws"
-                        f"/jupyter/default/proxy/{port}/"
-                    )
-                    print("SageMaker Studio detected.")
-                    print(f"Open this URL in your browser:\n  {url}")
-                    print(_PROXY_TIP)
-                    return url
-            except Exception:
-                pass
-
-        # ---- SageMaker Classic Notebook --------------------------------------
-        if os.path.isdir("/home/ec2-user/SageMaker"):
-            nb_name = os.environ.get("NOTEBOOK_NAME", "")
-            if not nb_name:
-                for path in (
-                    "/home/ec2-user/.sagemaker/metadata.json",
-                    "/opt/ml/metadata/resource-metadata.json",
-                ):
-                    if os.path.exists(path):
-                        try:
-                            with open(path) as f:
-                                nb_name = json.load(f).get("ResourceName", "")
-                            if nb_name:
-                                break
-                        except Exception:
-                            pass
-            try:
-                import boto3
-
-                region = boto3.session.Session().region_name or "us-east-1"
-            except Exception:
-                region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
-
-            if nb_name:
-                url = f"https://{nb_name}.notebook.{region}.sagemaker.aws/proxy/{port}/"
-                print("SageMaker Classic Notebook detected.")
-            else:
-                url = f"http://localhost:{port}/"
-                print(
-                    "SageMaker Classic Notebook detected but notebook name could not\n"
-                    "be determined automatically — using localhost URL as fallback."
-                )
-            print(f"Open this URL in your browser:\n  {url}")
-            print(_PROXY_TIP)
-            return url
-
-        # ---- Generic Jupyter or CLI ------------------------------------------
         url = f"http://localhost:{port}/"
+        logging.info(f"Trelliscope server running at {url}")
+
         try:
             ip = get_ipython()  # type: ignore[name-defined]
             if ip is not None:
-                print(f"Open this URL in your browser:\n  {url}")
-                return url
+                from IPython.display import IFrame
+                from IPython.display import display as ipy_display
+
+                ipy_display(IFrame(url, width="100%", height=650))
         except NameError:
             pass
 
-        print(f"Trelliscope server running at:\n  {url}")
-        return url
+        return self
 
     def view_trelliscope(self):
         """
