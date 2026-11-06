@@ -798,8 +798,10 @@ class Trelliscope:
         # compare to metas that are already defined
         existing_meta_names = tr.metas.keys()
 
-        # go through each column name that does not have a corresponding meta
-        metas_to_infer = set(column_names) - set(existing_meta_names)
+        # go through each column name that does not have a corresponding meta,
+        # in column order, so the written metas come out in the same order
+        # every run (a set's order changes with Python's hash seed)
+        metas_to_infer = [c for c in column_names if c not in existing_meta_names]
 
         # TODO: SB: Should we exclude any panel columns here? It seems like we should...
 

@@ -884,3 +884,9 @@ def test_lazy_panel_display_has_thumbnail(tmp_path):
 
     # Lazy panels are written as files, so the first one is the thumbnail.
     assert tr.thumbnail_url == tr.data_frame["panel"].iloc[0]
+
+
+def test_metas_inferred_in_column_order(iris_tr):
+    columns = list(iris_tr.data_frame.columns)
+    metas = list(iris_tr.infer().metas)
+    assert metas == [c for c in columns if c in metas]
