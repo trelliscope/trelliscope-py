@@ -70,13 +70,14 @@ def test_panels_setup_options(iris_df_no_duplicates: pd.DataFrame):
         assert tr3._get_panel_columns().count("img_panel") == 1
 
         # PanelOptions are stored and retrievable
-        opts = PanelOptions(width=800, height=600)
+        width = 800
+        opts = PanelOptions(width=width, height=600)
         tr4 = (
             Trelliscope(df, "Iris", path=temp_dir)
             .set_panel_options({"img_panel": opts})
             .add_panel(pnl)
         )
-        assert tr4._get_panel_options("img_panel").width == 800
+        assert tr4._get_panel_options("img_panel").width == width
         assert tr4._get_panel_options("unknown") is None
 
 

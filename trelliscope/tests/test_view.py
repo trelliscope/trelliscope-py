@@ -40,8 +40,9 @@ def test_create_view_with_state_parameters():
 
 
 def test_view_with_layout_state():
-    v = View("v", layout_state=LayoutState(ncol=4))
-    assert v.state.layout.ncol == 4
+    ncol = 4
+    v = View("v", layout_state=LayoutState(ncol=ncol))
+    assert v.state.layout.ncol == ncol
 
 
 def test_view_with_filter_states_list():
@@ -69,12 +70,13 @@ def test_view_to_json_pretty_vs_compact():
 
 
 def test_view_copy_is_independent():
-    v = View("original", layout_state=LayoutState(ncol=2))
+    ncol = 2
+    v = View("original", layout_state=LayoutState(ncol=ncol))
     v2 = v._copy()
     v2.name = "copy"
     v2.state.layout.ncol = 99
     assert v.name == "original"
-    assert v.state.layout.ncol == 2
+    assert v.state.layout.ncol == ncol
 
 
 def test_trelliscope_add_view(iris_df_no_duplicates):
@@ -90,6 +92,7 @@ def test_trelliscope_add_view(iris_df_no_duplicates):
 
 
 def test_trelliscope_add_view_replaces_existing(iris_df_no_duplicates):
+    replacement_ncol = 5
     df = iris_df_no_duplicates.copy()
     df["img"] = "test.png"
     pnl = ImagePanel("img", source=FilePanelSource(False), should_copy_to_output=False)
@@ -97,9 +100,9 @@ def test_trelliscope_add_view_replaces_existing(iris_df_no_duplicates):
         Trelliscope(df, "test")
         .add_panel(pnl)
         .add_view(View("v", layout_state=LayoutState(ncol=1)))
-        .add_view(View("v", layout_state=LayoutState(ncol=5)))
+        .add_view(View("v", layout_state=LayoutState(ncol=replacement_ncol)))
     )
-    assert tr.views["v"].state.layout.ncol == 5
+    assert tr.views["v"].state.layout.ncol == replacement_ncol
 
 
 def test_trelliscope_add_view_immutable(iris_df_no_duplicates):

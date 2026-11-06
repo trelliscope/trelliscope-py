@@ -18,19 +18,21 @@ from trelliscope.input import (
 
 
 def test_text_input_defaults():
+    default_width, default_height = 80, 3
     inp = TextInput("notes")
     assert inp.name == "notes"
     assert inp.label == "notes"
     assert inp.type == Input.TYPE_TEXT
-    assert inp.width == 80
-    assert inp.height == 3
+    assert inp.width == default_width
+    assert inp.height == default_height
 
 
 def test_text_input_custom():
-    inp = TextInput("comments", label="My Comments", width=60, height=5)
+    width, height = 60, 5
+    inp = TextInput("comments", label="My Comments", width=width, height=height)
     assert inp.label == "My Comments"
-    assert inp.width == 60
-    assert inp.height == 5
+    assert inp.width == width
+    assert inp.height == height
 
 
 def test_text_input_to_dict():
@@ -76,16 +78,18 @@ def test_number_input_defaults():
 
 
 def test_number_input_with_bounds():
-    inp = NumberInput("score", label="Quality Score", min=0, max=10)
+    max_score = 10
+    inp = NumberInput("score", label="Quality Score", min=0, max=max_score)
     assert inp.min == 0
-    assert inp.max == 10
+    assert inp.max == max_score
 
 
 def test_number_input_to_dict():
-    inp = NumberInput("score", min=1, max=5)
+    max_score = 5
+    inp = NumberInput("score", min=1, max=max_score)
     d = inp.to_dict()
     assert d["min"] == 1
-    assert d["max"] == 5
+    assert d["max"] == max_score
     assert d["type"] == "number"
 
 
@@ -140,9 +144,10 @@ def test_radio_input_none_options():
 
 
 def test_checkbox_input():
-    inp = CheckboxInput("tags", options=["a", "b", "c"])
+    options = ["a", "b", "c"]
+    inp = CheckboxInput("tags", options=options)
     assert inp.type == Input.TYPE_CHECKBOX
-    assert len(inp.options) == 3
+    assert inp.options == options
 
 
 def test_checkbox_input_to_dict():

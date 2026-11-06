@@ -224,8 +224,9 @@ def test_infer_default_layout_state(iris_df_no_duplicates):
     )
     tr = Trelliscope(df, "test").add_panel(pnl)
     tr = tr.infer()
+    default_ncol = 3
     assert tr.state.layout is not None
-    assert tr.state.layout.ncol == 3
+    assert tr.state.layout.ncol == default_ncol
 
 
 def test_infer_default_label_state(iris_df_no_duplicates):

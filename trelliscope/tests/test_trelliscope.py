@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import urllib.request
+from http import HTTPStatus
 
 import pandas as pd
 import pytest
@@ -420,18 +421,20 @@ def test_infer_state(iris_df_no_duplicates):
     tr = Trelliscope(df, "test").add_panel(pnl).infer()
 
     # Empty state → default LayoutState(ncol=3) and LabelState(key_cols)
+    default_ncol = 3
     inferred = tr._infer_state(DisplayState())
     assert inferred.layout is not None
-    assert inferred.layout.ncol == 3
+    assert inferred.layout.ncol == default_ncol
     assert inferred.labels is not None
     for key in tr.key_cols:
         assert key in inferred.labels.varnames
 
     # Existing layout is preserved, not overwritten
     state_with_layout = DisplayState()
-    state_with_layout.set(LayoutState(ncol=5))
+    preset_ncol = 5
+    state_with_layout.set(LayoutState(ncol=preset_ncol))
     inferred2 = tr._infer_state(state_with_layout)
-    assert inferred2.layout.ncol == 5
+    assert inferred2.layout.ncol == preset_ncol
 
     # CategoryFilterState values are intersected with FactorMeta levels
     state_with_filter = DisplayState()
@@ -487,7 +490,7 @@ def test_add_inputs(iris_tr):
     ]
     tr = iris_tr.add_inputs(inputs, email="test@example.com", vars=["Species"])
 
-    assert len(tr.inputs) == 3
+    assert len(tr.inputs) == len(inputs)
     assert tr.input_email == "test@example.com"
     assert tr.input_vars == ["Species"]
 
@@ -555,9 +558,10 @@ def test_set_var_labels_invalid_type(iris_tr):
 
 def test_set_default_layout_sidebar(iris_df_no_duplicates):
     tr = Trelliscope(iris_df_no_duplicates, name="iris")
-    tr = tr.set_default_layout(ncol=2, sidebar=False)
+    ncol = 2
+    tr = tr.set_default_layout(ncol=ncol, sidebar=False)
     assert tr.state.layout.sidebar is False
-    assert tr.state.layout.ncol == 2
+    assert tr.state.layout.ncol == ncol
 
 
 def test_set_default_layout_visible_filters(iris_df_no_duplicates):
@@ -574,11 +578,12 @@ def test_set_default_layout_visible_filters_unknown_col(iris_df_no_duplicates):
 
 def test_set_default_layout_serialized(iris_df_no_duplicates):
     tr = Trelliscope(iris_df_no_duplicates, name="iris")
-    tr = tr.set_default_layout(ncol=4, sidebar=False, visible_filters=["Species"])
+    ncol = 4
+    tr = tr.set_default_layout(ncol=ncol, sidebar=False, visible_filters=["Species"])
     d = tr.state.layout.to_dict()
     assert d["sidebarActive"] is False
     assert "visible_filters" not in d
-    assert d["ncol"] == 4
+    assert d["ncol"] == ncol
 
 
 def test_visible_filters_written_as_filter_view(iris_df_no_duplicates):
@@ -692,7 +697,7 @@ def test_serve_responds_to_http(iris_df_no_duplicates):
         response = urllib.request.urlopen(
             "http://localhost:19878/index.html", timeout=3
         )
-        assert response.getcode() == 200
+        assert response.getcode() == HTTPStatus.OK
 
 
 def test_save_figure_calls_write_image(tmp_path):
