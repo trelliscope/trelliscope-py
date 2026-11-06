@@ -402,7 +402,6 @@ class Trelliscope:
 
         result["thumbnailurl"] = self.thumbnail_url
         result["primarypanel"] = self.primary_panel
-        result["theme"] = self.theme.to_dict() if self.theme is not None else None
         result["hasCustomInfo"] = self.info_html is not None
         result["infoOnLoad"] = self.show_info_on_load
 
@@ -731,11 +730,18 @@ class Trelliscope:
             # We might just want to get a random hash based on the current time
             config_dict["id"] = self.id
 
-            # Write out a new config file
-            function_name = f"__loadAppConfig__{config_dict['id']}"
-            content = json.dumps(config_dict, indent=2)
-            config_file = jsonp_config_file if jsonp else json_config_file
-            utils.write_json_file(config_file, jsonp, function_name, content)
+        # The viewer reads the theme from the app config, so the config is
+        # rewritten on every write, as the R package's check_app_config() does.
+        if self.theme is not None:
+            config_dict["theme"] = self.theme.to_dict()
+        else:
+            config_dict.pop("theme", None)
+
+        config_jsonp = config_dict["datatype"] == "jsonp"
+        function_name = f"__loadAppConfig__{config_dict['id']}"
+        content = json.dumps(config_dict, indent=2)
+        config_file = jsonp_config_file if config_jsonp else json_config_file
+        utils.write_json_file(config_file, config_jsonp, function_name, content)
 
         return config_dict
 

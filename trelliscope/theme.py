@@ -26,22 +26,21 @@ class Theme:
         "error",
     ]
 
-    # Maps Python snake_case attribute names to the camelCase keys the JS viewer expects.
-    _ATTR_TO_KEY = {
-        "primary": "primary",
-        "primary2": "primary2",
-        "primary3": "primary3",
-        "background": "background",
-        "background2": "background2",
-        "background3": "background3",
-        "bars": "bars",
-        "text": "text",
-        "text2": "text2",
-        "button_text": "buttonText",
-        "text_disabled": "textDisabled",
-        "error": "error",
-        "font_family": "fontFamily",
-        "logo": "logo",
+    # The R package's set_theme() defaults, used for any color not given.
+    _DEFAULTS = {
+        "primary": "#448aff",
+        "primary2": "#4dabf5",
+        "primary3": "#2e60b1",
+        "background": "#FEFEFE",
+        "background2": "#EBEBEB",
+        "background3": "#E0E0E0",
+        "bars": "#FFAE25",
+        "text": "#000",
+        "text2": "#FFF",
+        "button_text": "#757575",
+        "text_disabled": "#BCBCBC",
+        "error": "#ff5252",
+        "font_family": '"Poppins", sans-serif',
     }
 
     def __init__(
@@ -91,22 +90,59 @@ class Theme:
 
     @property
     def is_custom(self) -> bool:
-        return any(getattr(self, attr) is not None for attr in self._ATTR_TO_KEY)
+        return any(
+            getattr(self, attr) is not None for attr in [*self._DEFAULTS, "logo"]
+        )
 
     def to_dict(self) -> dict:
-        result = {}
-        for attr, key in self._ATTR_TO_KEY.items():
+        """
+        Returns the theme as the MUI theme object the viewer reads from the app
+        config, built the same way as the R package's set_theme().
+        """
+
+        def get(attr):
             val = getattr(self, attr)
-            if val is not None:
-                result[key] = val
-        result["isCustom"] = self.is_custom
-        return result
+            return self._DEFAULTS[attr] if val is None else val
+
+        return {
+            "palette": {
+                "primary": {
+                    "main": get("primary"),
+                    "light": get("primary2"),
+                    "dark": get("primary3"),
+                    "contrastText": get("button_text"),
+                },
+                "secondary": {
+                    "main": get("background"),
+                    "light": get("background2"),
+                    "dark": get("background3"),
+                    "contrastText": get("bars"),
+                },
+                "background": {"default": get("background")},
+                "action": {"active": get("button_text")},
+                "text": {
+                    "primary": get("text"),
+                    "secondary": get("text2"),
+                    "disabled": get("text_disabled"),
+                },
+                "error": {"main": get("error")},
+            },
+            "typography": {
+                "fontFamily": get("font_family"),
+                "fontWeightLight": 200,
+                "fontWeightRegular": 300,
+                "fontWeightMedium": 400,
+            },
+            "logo": self.logo,
+        }
 
     def to_json(self, pretty: bool = True) -> str:
         return json.dumps(self.to_dict(), indent=2 if pretty else None)
 
     def __repr__(self) -> str:
-        custom = {
-            k: v for k, v in self._ATTR_TO_KEY.items() if getattr(self, k) is not None
-        }
-        return f"Theme(is_custom={self.is_custom}, params={list(custom.keys())})"
+        custom = [
+            attr
+            for attr in [*self._DEFAULTS, "logo"]
+            if getattr(self, attr) is not None
+        ]
+        return f"Theme(is_custom={self.is_custom}, params={custom})"
