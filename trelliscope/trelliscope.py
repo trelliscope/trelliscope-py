@@ -389,10 +389,17 @@ class Trelliscope:
         if len(self.inputs) == 0:
             result["inputs"] = None
         else:
-            result["inputs"] = [inp.to_dict() for inp in self.inputs.values()]
+            # The viewer reads this shape (see Inputs in the R package's
+            # R/input_classes.R); inputs are stored in the browser's localStorage.
+            result["inputs"] = {
+                "inputs": [inp.to_dict() for inp in self.inputs.values()],
+                "storageInterface": {"type": "localStorage"},
+                "feedbackInterface": {
+                    "feedbackEmail": self.input_email,
+                    "includeMetaVars": self.input_vars or [],
+                },
+            }
 
-        result["inputEmailAddr"] = self.input_email
-        result["inputVars"] = self.input_vars
         result["thumbnailurl"] = self.thumbnail_url
         result["primarypanel"] = self.primary_panel
         result["theme"] = self.theme.to_dict() if self.theme is not None else None

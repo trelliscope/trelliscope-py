@@ -19,6 +19,7 @@ class Input:
         self._name = name
         self.type = type
         self.label = label if label is not None else name
+        self.active = True
 
     @property
     def name(self):
@@ -31,7 +32,12 @@ class Input:
         self._name = value
 
     def to_dict(self) -> dict:
-        return {"name": self._name, "label": self.label, "type": self.type}
+        return {
+            "name": self._name,
+            "label": self.label,
+            "type": self.type,
+            "active": self.active,
+        }
 
     def to_json(self, pretty: bool = True) -> str:
         return json.dumps(self.to_dict(), indent=2 if pretty else None)

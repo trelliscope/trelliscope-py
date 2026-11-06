@@ -40,6 +40,7 @@ def test_text_input_to_dict():
         "name": "notes",
         "label": "Notes",
         "type": "text",
+        "active": True,
         "width": 80,
         "height": 4,
     }

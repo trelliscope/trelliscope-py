@@ -499,14 +499,21 @@ def test_add_inputs_serialized(iris_tr):
         TextInput("notes"),
         RadioInput("flag", options=["yes", "no"]),
     ]
-    tr = iris_tr.add_inputs(inputs, email="user@test.com")
+    tr = iris_tr.add_inputs(inputs, email="user@test.com", vars=["Species"])
     d = tr.to_dict()
 
-    assert d["inputs"] is not None
-    assert len(d["inputs"]) == 2
-    assert d["inputEmailAddr"] == "user@test.com"
-    types = {i["type"] for i in d["inputs"]}
-    assert types == {"text", "radio"}
+    # The shape the viewer reads, matching the R package's Inputs class.
+    assert set(d["inputs"]) == {"inputs", "storageInterface", "feedbackInterface"}
+    assert {i["type"] for i in d["inputs"]["inputs"]} == {"text", "radio"}
+    assert d["inputs"]["storageInterface"] == {"type": "localStorage"}
+    assert d["inputs"]["feedbackInterface"] == {
+        "feedbackEmail": "user@test.com",
+        "includeMetaVars": ["Species"],
+    }
+
+
+def test_no_inputs_serialized_as_null(iris_tr):
+    assert iris_tr.to_dict()["inputs"] is None
 
 
 def test_set_var_labels(iris_tr):
