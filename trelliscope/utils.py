@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import pandas as pd
 import plotly
@@ -326,7 +326,8 @@ def check_exhaustive_levels(
     Raises:
         ValueError - If the check fails.
     """
-    actual_values = set(df[varname].unique())
+    # A missing value is not a level: it is written as 0, which the viewer shows as missing.
+    actual_values = set(df[varname].dropna().unique())
     expected_values = set(levels)
 
     diff = actual_values - expected_values

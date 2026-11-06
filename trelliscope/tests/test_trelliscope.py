@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import tempfile
@@ -7,6 +8,7 @@ import pandas as pd
 import pytest
 
 from trelliscope import Trelliscope
+from trelliscope.metas import NumberMeta
 from trelliscope.panel_source import FilePanelSource
 from trelliscope.panels import ImagePanel, Panel
 from trelliscope.state import SortState
@@ -714,3 +716,45 @@ def test_write_display_in_jupyter_event_loop(iris_df_no_duplicates, tmp_path):
 
     tr = asyncio.run(run())
     assert tr is not None
+
+
+def test_write_display_with_missing_category_value(iris_df_no_duplicates: pd.DataFrame):
+    df = iris_df_no_duplicates.copy()
+    df["img_panel"] = "test_image.png"
+    df["size"] = pd.Categorical(
+        ["small", None] * (len(df) // 2) + ["small"] * (len(df) % 2)
+    )
+
+    with tempfile.TemporaryDirectory() as output_dir:
+        tr = (
+            Trelliscope(df, "Iris", path=output_dir)
+            .add_panel(
+                ImagePanel(
+                    "img_panel",
+                    source=FilePanelSource(True),
+                    should_copy_to_output=False,
+                )
+            )
+            .write_display()
+        )
+
+        meta_data_file = os.path.join(tr.get_dataset_display_path(), "metaData.js")
+        with open(meta_data_file) as f:
+            text = f.read()
+        rows = json.loads(text[text.index("=") + 1 :])
+
+        # Level codes start at 1; the viewer reads 0 as a missing value.
+        assert {row["size"] for row in rows} == {0, 1}
+
+
+def test_set_metas(iris_df_no_duplicates: pd.DataFrame):
+    tr = Trelliscope(iris_df_no_duplicates, "iris")
+    metas = [NumberMeta("Sepal.Length", digits=1), NumberMeta("Sepal.Width", digits=2)]
+
+    tr2 = tr.set_metas(metas)
+
+    # set_meta deep-copies the display, so compare values, not identities.
+    assert {k: m.digits for k, m in tr2.metas.items()} == {
+        m.varname: m.digits for m in metas
+    }
+    assert tr.metas == {}
