@@ -812,3 +812,36 @@ def test_rewrite_uses_new_panels_when_plot_code_changes(tmp_path):
     # Same keys, different plotting code: the second write must not reuse the first.
     assert write(b"first") == b"first"
     assert write(b"second") == b"second"
+
+
+def _write_image_display(df, name, output_dir):
+    df = df.copy()
+    df["img"] = "test.png"
+    pnl = ImagePanel("img", source=FilePanelSource(False), should_copy_to_output=False)
+    return Trelliscope(df, name, path=output_dir).add_panel(pnl).write_display()
+
+
+def test_serve_second_display_on_same_port(iris_df_no_duplicates):
+    """A second display served on the same port must replace the first."""
+    port = 19879
+    with tempfile.TemporaryDirectory() as dir1, tempfile.TemporaryDirectory() as dir2:
+        tr1 = _write_image_display(iris_df_no_duplicates, "first", dir1)
+        tr2 = _write_image_display(iris_df_no_duplicates, "second", dir2)
+
+        tr1.serve(port=port)
+        tr2.serve(port=port)
+        with urllib.request.urlopen("http://localhost:19879/id", timeout=3) as r:
+            assert r.read().decode().strip() == tr2.id
+
+
+def test_serve_port_used_by_another_program(iris_df_no_duplicates):
+    import socket
+
+    with socket.socket() as other, tempfile.TemporaryDirectory() as output_dir:
+        other.bind(("", 0))
+        other.listen()
+        busy_port = other.getsockname()[1]
+
+        tr = _write_image_display(iris_df_no_duplicates, "test", output_dir)
+        with pytest.raises(ValueError, match="already in use"):
+            tr.serve(port=busy_port)

@@ -7,8 +7,10 @@ import logging
 import os
 import shutil
 import tempfile
+import threading
 import uuid
 import webbrowser
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 from typing import Any
 
 import pandas as pd
@@ -38,6 +40,19 @@ from trelliscope.theme import Theme
 from .view import View
 
 logging.basicConfig(level=logging.INFO)
+
+# Servers started by Trelliscope.serve(), by port.
+_DISPLAY_SERVERS: dict[int, HTTPServer] = {}
+
+
+class _DisplayRequestHandler(SimpleHTTPRequestHandler):
+    """Serves files from the directory of the display last served on this port."""
+
+    def __init__(self, request, client_address, server):
+        super().__init__(request, client_address, server, directory=server.serve_dir)
+
+    def log_message(self, *args):
+        pass
 
 
 class Trelliscope:
@@ -1747,9 +1762,6 @@ class Trelliscope:
 
         Returns self so it can be chained after ``write_display()``.
         """
-        import threading
-        from http.server import HTTPServer, SimpleHTTPRequestHandler
-
         output_path = self.get_output_path()
         if output_path is None or not os.path.exists(
             os.path.join(output_path, "index.html")
@@ -1758,20 +1770,22 @@ class Trelliscope:
                 "No display output found. Call write_display() before serve()."
             )
 
-        serve_dir = output_path
-
-        class _Handler(SimpleHTTPRequestHandler):
-            def __init__(self_h, *args, **kwargs):
-                super().__init__(*args, directory=serve_dir, **kwargs)
-
-            def log_message(self_h, *args):
-                pass
-
-        try:
-            httpd = HTTPServer(("", port), _Handler)
+        httpd = _DISPLAY_SERVERS.get(port)
+        if httpd is None:
+            try:
+                httpd = HTTPServer(("", port), _DisplayRequestHandler)
+            except OSError as e:
+                raise ValueError(
+                    f"Port {port} is already in use by another program. "
+                    "Pass a different port to serve()."
+                ) from e
+            httpd.serve_dir = output_path
             threading.Thread(target=httpd.serve_forever, daemon=True).start()
-        except OSError:
-            pass  # port already bound from a previous call — server still running
+            _DISPLAY_SERVERS[port] = httpd
+
+        # Point the port at this display, so serving a second display on the
+        # same port shows that display rather than the first one.
+        httpd.serve_dir = output_path
 
         url = f"http://localhost:{port}/"
         logging.info(f"Trelliscope server running at {url}")
