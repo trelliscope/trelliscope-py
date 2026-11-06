@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import glob
-import hashlib
 import json
 import logging
 import os
@@ -534,7 +533,7 @@ class Trelliscope:
             if (panel.is_writeable or panel.should_copy) and (
                 not panel.panels_written or force_write
             ):
-                tr = tr.write_or_copy_panels(panel_col, force_write=force_write)
+                tr = tr.write_or_copy_panels(panel_col)
 
         tr = tr.infer()
 
@@ -1312,39 +1311,12 @@ class Trelliscope:
 
         return filename_for_dataframe
 
-    def _compute_panel_keysig(self) -> str:
-        """Compute an MD5 hash of key column values to detect data changes between runs."""
-        key_values = (
-            self.data_frame[self.key_cols].astype(str).values.flatten().tolist()
-        )
-        content = "|".join(key_values)
-        return hashlib.md5(content.encode()).hexdigest()
-
-    def _read_stored_keysig(self, panel_col: str) -> str:
-        """Read the persisted keysig for a panel column. Returns None if absent."""
-        keysig_file = os.path.join(
-            self._get_panel_output_path(panel_col, is_absolute=True), ".keysig"
-        )
-        if os.path.isfile(keysig_file):
-            with open(keysig_file) as f:
-                return f.read().strip()
-        return None
-
-    def _write_keysig(self, panel_col: str, keysig: str) -> None:
-        """Persist the keysig for a panel column so future runs can skip unchanged panels."""
-        keysig_file = os.path.join(
-            self._get_panel_output_path(panel_col, is_absolute=True), ".keysig"
-        )
-        with open(keysig_file, "w") as f:
-            f.write(keysig)
-
-    def write_or_copy_panels(self, panel_col: str, force_write: bool = False):
+    def write_or_copy_panels(self, panel_col: str):
         """
         Writes the panels to the output directory (or copies them if they are already files).
 
         Params:
             panel_col:str - The name of the panel column.
-            force_write:bool - If True, panels are always re-written even if unchanged.
         """
         tr = self.__copy()
 
@@ -1363,11 +1335,6 @@ class Trelliscope:
         elif panel.is_writeable:
             extension = panel.get_extension()
 
-            # Keysig cache: skip rendering if the key data hasn't changed
-            current_keysig = tr._compute_panel_keysig()
-            stored_keysig = tr._read_stored_keysig(panel_col)
-            skip_render = (not force_write) and (stored_keysig == current_keysig)
-
             if panel.is_lazy:
                 # Lazy panel: generate figures via fn(row) at write time
                 progress_bar = ProgressBar(len(tr.data_frame), "Generating Panels:")
@@ -1376,68 +1343,52 @@ class Trelliscope:
                     filename_for_dataframe = Trelliscope._get_panel_filename(
                         row, tr.key_cols, relative_output_dir, extension
                     )
-                    if not skip_render:
-                        filename_for_writing = Trelliscope._get_panel_filename(
-                            row, tr.key_cols, absolute_output_dir, extension
-                        )
-                        fig = panel.fn(row)
-                        Trelliscope._save_figure(fig, filename_for_writing)
-                        try:
-                            progress_bar.record_progress()
-                        except Exception as e:
-                            logging.debug(f"Error recording progress: {e}")
+                    filename_for_writing = Trelliscope._get_panel_filename(
+                        row, tr.key_cols, absolute_output_dir, extension
+                    )
+                    fig = panel.fn(row)
+                    Trelliscope._save_figure(fig, filename_for_writing)
+                    try:
+                        progress_bar.record_progress()
+                    except Exception as e:
+                        logging.debug(f"Error recording progress: {e}")
                     results.append(filename_for_dataframe)
                 tr.data_frame[panel_col] = results
             else:
                 # Regular figure panel: figures already live in df[panel_col]
                 tr.data_frame[panel.figure_varname] = tr.data_frame[panel_col]
 
-                if skip_render:
-                    logging.info(
-                        f"Skipping render for '{panel_col}': key data unchanged (keysig match)."
-                    )
-                    tr.data_frame[panel_col] = tr.data_frame.apply(
-                        lambda row: Trelliscope._get_panel_filename(
-                            row, tr.key_cols, relative_output_dir, extension
+                progress_bar = ProgressBar(len(tr.data_frame), "Saving Images:")
+
+                def _apply_write_figures(_tr=tr, _pb=progress_bar):
+                    return _tr.data_frame.apply(
+                        lambda row: Trelliscope.__write_figure(
+                            row=row,
+                            fig_column=panel.figure_varname,
+                            output_dir_for_writing=absolute_output_dir,
+                            output_dir_for_dataframe=relative_output_dir,
+                            extension=extension,
+                            key_cols=_tr.key_cols,
+                            progress_bar=_pb,
                         ),
                         axis=1,
                     )
-                else:
-                    progress_bar = ProgressBar(len(tr.data_frame), "Saving Images:")
 
-                    def _apply_write_figures(_tr=tr, _pb=progress_bar):
-                        return _tr.data_frame.apply(
-                            lambda row: Trelliscope.__write_figure(
-                                row=row,
-                                fig_column=panel.figure_varname,
-                                output_dir_for_writing=absolute_output_dir,
-                                output_dir_for_dataframe=relative_output_dir,
-                                extension=extension,
-                                key_cols=_tr.key_cols,
-                                progress_bar=_pb,
-                            ),
-                            axis=1,
-                        )
+                # kaleido 1.x uses asyncio.run() internally, which fails
+                # when Jupyter's event loop is already running. All figures
+                # must be written in a single worker thread so that kaleido
+                # can create and reuse one event loop across every figure.
+                import asyncio
+                import concurrent.futures
 
-                    # kaleido 1.x uses asyncio.run() internally, which fails
-                    # when Jupyter's event loop is already running. All figures
-                    # must be written in a single worker thread so that kaleido
-                    # can create and reuse one event loop across every figure.
-                    import asyncio
-                    import concurrent.futures
-
-                    try:
-                        asyncio.get_running_loop()
-                        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
-                            tr.data_frame[panel_col] = ex.submit(
-                                _apply_write_figures
-                            ).result()
-                    except RuntimeError:
-                        tr.data_frame[panel_col] = _apply_write_figures()
-
-            if not skip_render:
-                tr._write_keysig(panel_col, current_keysig)
-            tr.keysig = current_keysig
+                try:
+                    asyncio.get_running_loop()
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+                        tr.data_frame[panel_col] = ex.submit(
+                            _apply_write_figures
+                        ).result()
+                except RuntimeError:
+                    tr.data_frame[panel_col] = _apply_write_figures()
 
         panel.panels_written = True
 

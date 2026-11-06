@@ -9,7 +9,7 @@ import pytest
 from trelliscope import Trelliscope
 from trelliscope.metas import NumberMeta
 from trelliscope.panel_source import FilePanelSource
-from trelliscope.panels import ImagePanel, Panel
+from trelliscope.panels import ImagePanel, LazyPanel, Panel
 from trelliscope.state import SortState
 
 
@@ -781,3 +781,34 @@ def test_set_metas(iris_df_no_duplicates: pd.DataFrame):
         m.varname: m.digits for m in metas
     }
     assert tr.metas == {}
+
+
+class _FakeFigure:
+    """Writes fixed bytes, standing in for a Plotly figure."""
+
+    def __init__(self, content: bytes):
+        self.content = content
+
+    def write_image(self, path):
+        with open(path, "wb") as f:
+            f.write(self.content)
+
+
+def test_rewrite_uses_new_panels_when_plot_code_changes(tmp_path):
+    df = pd.DataFrame({"id": ["a", "b"]})
+
+    def write(content):
+        tr = (
+            Trelliscope(df, "test", path=str(tmp_path))
+            .add_panel(LazyPanel("panel", fn=lambda row: _FakeFigure(content)))
+            .write_display()
+        )
+        panel_file = os.path.join(
+            tr.get_dataset_display_path(), tr.data_frame["panel"][0]
+        )
+        with open(panel_file, "rb") as f:
+            return f.read()
+
+    # Same keys, different plotting code: the second write must not reuse the first.
+    assert write(b"first") == b"first"
+    assert write(b"second") == b"second"
